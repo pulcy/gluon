@@ -1,0 +1,20 @@
+[Unit]
+Description=Launch Weave
+After=etcd2.service
+After=install-weave.target
+
+[Service]
+Restart=on-failure
+RestartSec=1s
+StartLimitInterval=300s
+StartLimitBurst=3
+TimeoutStartSec=0
+EnvironmentFile=/etc/environment
+
+ExecStartPre=/bin/sh -c 'echo {{.WeaveIPS}} > /tmp/weave-peers'
+ExecStartPre=/bin/sh -c '/opt/bin/weave launch --password={{.WeavePassword}} $(cat /tmp/weave-peers)'
+ExecStart=/usr/bin/docker logs -f weave
+ExecStop=/bin/sh -c '/opt/bin/weave stop'
+
+[Install]
+WantedBy=multi-user.target

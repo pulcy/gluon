@@ -1,0 +1,3 @@
+.gobuild
+yard
+templates/templates_bindata.go
