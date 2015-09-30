@@ -18,6 +18,10 @@ const (
 	installServiceTemplate = "templates/install-weave.service.tmpl"
 	installServicePath     = "/etc/systemd/system/" + installServiceName
 
+	networkServiceName     = "10-weave.network"
+	networkServiceTemplate = "templates/10-weave.network.tmpl"
+	networkServicePath     = "/etc/systemd/network/10-weave.network"
+
 	serviceName     = "weave.service"
 	serviceTemplate = "templates/weave.service.tmpl"
 	servicePath     = "/etc/systemd/system/" + serviceName
@@ -44,6 +48,9 @@ func (t *WeaveTopic) Name() string {
 }
 
 func (t *WeaveTopic) Setup(deps *topics.TopicDependencies) error {
+	if err := createWeaveNetworkService(deps); err != nil {
+		return maskAny(err)
+	}
 	if err := createWeaveInstallService(deps); err != nil {
 		return maskAny(err)
 	}
@@ -65,6 +72,15 @@ func (t *WeaveTopic) Setup(deps *topics.TopicDependencies) error {
 	// start install-weave.service unit
 	deps.Logger.Info("starting %s", serviceName)
 	if err := deps.Systemd.Start(serviceName); err != nil {
+		return maskAny(err)
+	}
+
+	return nil
+}
+
+func createWeaveNetworkService(deps *topics.TopicDependencies) error {
+	deps.Logger.Info("creating %s", networkServicePath)
+	if err := templates.Render(networkServiceTemplate, networkServicePath, nil, fileMode); err != nil {
 		return maskAny(err)
 	}
 
