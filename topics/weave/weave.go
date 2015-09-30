@@ -3,6 +3,7 @@ package weave
 import (
 	"os"
 
+	"github.com/dchest/uniuri"
 	"github.com/juju/errgo"
 
 	"arvika.pulcy.com/iggi/yard/templates"
@@ -47,14 +48,21 @@ func (t *WeaveTopic) Name() string {
 	return "weave"
 }
 
-func (t *WeaveTopic) Setup(deps *topics.TopicDependencies) error {
+func (t *WeaveTopic) Defaults(flags *topics.TopicFlags) error {
+	if flags.WeavePassword == "" {
+		flags.WeavePassword = uniuri.NewLen(uniuri.UUIDLen)
+	}
+	return nil
+}
+
+func (t *WeaveTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
 	if err := createWeaveNetworkService(deps); err != nil {
 		return maskAny(err)
 	}
 	if err := createWeaveInstallService(deps); err != nil {
 		return maskAny(err)
 	}
-	if err := createWeaveService(deps); err != nil {
+	if err := createWeaveService(deps, flags); err != nil {
 		return maskAny(err)
 	}
 
@@ -96,10 +104,10 @@ func createWeaveInstallService(deps *topics.TopicDependencies) error {
 	return nil
 }
 
-func createWeaveService(deps *topics.TopicDependencies) error {
+func createWeaveService(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
 	deps.Logger.Info("creating %s", servicePath)
 	opts := weaveOptions{
-		WeavePassword: "foo",
+		WeavePassword: flags.WeavePassword,
 		WeaveIPS:      weaveIPs,
 	}
 	if err := templates.Render(serviceTemplate, servicePath, opts, 0600); err != nil {

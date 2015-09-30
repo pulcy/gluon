@@ -39,3 +39,11 @@ func Exitf(format string, args ...interface{}) {
 	fmt.Printf(format, args...)
 	os.Exit(1)
 }
+
+func def(envKey, defaultValue string) string {
+	s := os.Getenv(envKey)
+	if s == "" {
+		s = defaultValue
+	}
+	return s
+}

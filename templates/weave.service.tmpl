@@ -12,7 +12,7 @@ TimeoutStartSec=0
 EnvironmentFile=/etc/environment
 
 ExecStartPre=/bin/sh -c 'echo {{escape .WeaveIPS}} > /tmp/weave-peers'
-ExecStartPre=/bin/sh -c '/opt/bin/weave launch --password={{.WeavePassword}} $(cat /tmp/weave-peers)'
+ExecStartPre=/bin/sh -c '/opt/bin/weave launch --password={{quote .WeavePassword}} $(cat /tmp/weave-peers)'
 ExecStart=/usr/bin/docker logs -f weave
 ExecStop=/bin/sh -c '/opt/bin/weave stop'
 

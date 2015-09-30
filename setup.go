@@ -15,9 +15,11 @@ var (
 		Use: "setup",
 		Run: runSetup,
 	}
+	setupFlags = &topics.TopicFlags{}
 )
 
 func init() {
+	cmdSetup.Flags().StringVar(&setupFlags.WeavePassword, "weave-password", def("WEAVE_PASSWORD", ""), "Password protecting inter-host weave traffic")
 	cmdMain.AddCommand(cmdSetup)
 }
 
@@ -27,9 +29,15 @@ func runSetup(cmd *cobra.Command, args []string) {
 		Logger:  log,
 	}
 
-	for _, t := range createTopics() {
+	setupList := createTopics()
+	for _, t := range setupList {
+		if err := t.Defaults(setupFlags); err != nil {
+			Exitf("Defaults %s failed: %#v\n", t.Name(), err)
+		}
+	}
+	for _, t := range setupList {
 		fmt.Printf("Setup %s\n", t.Name())
-		if err := t.Setup(deps); err != nil {
+		if err := t.Setup(deps, setupFlags); err != nil {
 			Exitf("Setup %s failed: %#v\n", t.Name(), err)
 		}
 	}

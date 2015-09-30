@@ -7,10 +7,15 @@ import (
 
 type Topic interface {
 	Name() string
-	Setup(deps *TopicDependencies) error
+	Defaults(flags *TopicFlags) error
+	Setup(deps *TopicDependencies, flags *TopicFlags) error
 }
 
 type TopicDependencies struct {
 	Systemd *systemd.SystemdClient
 	Logger  *logging.Logger
+}
+
+type TopicFlags struct {
+	WeavePassword string
 }
