@@ -7,6 +7,7 @@ import (
 
 	"arvika.pulcy.com/iggi/yard/systemd"
 	"arvika.pulcy.com/iggi/yard/topics"
+	"arvika.pulcy.com/iggi/yard/topics/stunnel"
 	"arvika.pulcy.com/iggi/yard/topics/weave"
 )
 
@@ -19,6 +20,9 @@ var (
 )
 
 func init() {
+	// Stunnel
+	cmdSetup.Flags().StringVar(&setupFlags.StunnelPemPassphrase, "stunnel-pem-passphrase", def("STUNNEL_PEM_PASSPHRASE", ""), "Passphrase used to open stunnel.pem.gpg")
+	// Weave
 	cmdSetup.Flags().StringVar(&setupFlags.WeavePassword, "weave-password", def("WEAVE_PASSWORD", ""), "Password protecting inter-host weave traffic")
 	cmdMain.AddCommand(cmdSetup)
 }
@@ -46,6 +50,7 @@ func runSetup(cmd *cobra.Command, args []string) {
 // Topics creates an ordered list of topics o provision
 func createTopics() []topics.Topic {
 	return []topics.Topic{
+		stunnel.NewTopic(),
 		weave.NewTopic(),
 	}
 }

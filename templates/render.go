@@ -2,6 +2,7 @@ package templates
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 	"text/template"
 
@@ -28,6 +29,10 @@ func Render(templateName, destinationPath string, options interface{}, destinati
 	tmpl.Funcs(funcMap)
 	_, err = tmpl.Parse(string(asset))
 	if err != nil {
+		return maskAny(err)
+	}
+	destinationDir := filepath.Dir(destinationPath)
+	if err := os.MkdirAll(destinationDir, destinationFileMode); err != nil {
 		return maskAny(err)
 	}
 	f, err := os.Create(destinationPath)
