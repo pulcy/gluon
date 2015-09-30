@@ -14,6 +14,7 @@ REPONAME := $(PROJECT)
 REPODIR := $(ORGDIR)/$(REPONAME)
 REPOPATH := $(ORGPATH)/$(REPONAME)
 BIN := $(BINDIR)/$(PROJECT)
+BINGPG := $(BIN).gpg
 GOBINDATA := $(GOBUILDDIR)/bin/go-bindata
 
 GOPATH := $(GOBUILDDIR)
@@ -30,10 +31,10 @@ TEMPLATES := $(shell find $(SRCDIR) -name '*.tmpl')
 
 .PHONY: all clean deps 
 
-all: $(BIN)
+all: $(BIN) $(BINGPG)
 
 clean:
-	rm -Rf $(BIN) $(GOBUILDDIR)
+	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR)
 
 deps: 
 	@${MAKE} -B -s $(GOBUILDDIR) $(GOBINDATA)
@@ -61,6 +62,11 @@ $(BIN): $(GOBUILDDIR) $(GOBINDATA) $(SOURCES) templates/templates_bindata.go
 	    -w /usr/code/ \
 	    golang:1.4.2-cross \
 	    go build -a -ldflags "-X main.projectVersion $(VERSION) -X main.projectBuild $(COMMIT)" -o /usr/code/$(PROJECT)
+
+$(BINGPG): $(BIN)
+	@sh -c 'if [ -z $(YARD_PASSPHRASE) ]; then echo YARD_PASSPHRASE missing && exit 1; fi'
+	@rm -Rf $(BINGPG)
+	@gpg --armor --output $(BINGPG) --passphrase $(YARD_PASSPHRASE) --symmetric $(BIN)
 
 # Special rule, because this file is generated
 templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)

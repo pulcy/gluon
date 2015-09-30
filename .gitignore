@@ -1,3 +1,4 @@
 .gobuild
 yard
+yard.gpg
 templates/templates_bindata.go
