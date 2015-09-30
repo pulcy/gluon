@@ -3,7 +3,6 @@ package weave
 import (
 	"os"
 
-	"github.com/dchest/uniuri"
 	"github.com/juju/errgo"
 
 	"arvika.pulcy.com/iggi/yard/templates"
@@ -50,7 +49,7 @@ func (t *WeaveTopic) Name() string {
 
 func (t *WeaveTopic) Defaults(flags *topics.TopicFlags) error {
 	if flags.WeavePassword == "" {
-		flags.WeavePassword = uniuri.NewLen(uniuri.UUIDLen)
+		return errgo.New("WeavePassword is not set")
 	}
 	return nil
 }
