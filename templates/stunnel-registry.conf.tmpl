@@ -2,7 +2,7 @@ client = yes
 foreground = yes
 
 [docker-registry]
-accept = 127.0.0.1:5000
+accept = 0.0.0.0:5000
 connect = {{.PrivateRegistryHost}}:{{.PrivateRegistryPort}}
 cert = /etc/stunnel/stunnel.pem
 

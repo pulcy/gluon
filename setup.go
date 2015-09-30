@@ -7,6 +7,7 @@ import (
 
 	"arvika.pulcy.com/iggi/yard/systemd"
 	"arvika.pulcy.com/iggi/yard/topics"
+	"arvika.pulcy.com/iggi/yard/topics/hosts"
 	"arvika.pulcy.com/iggi/yard/topics/stunnel"
 	"arvika.pulcy.com/iggi/yard/topics/weave"
 )
@@ -50,6 +51,7 @@ func runSetup(cmd *cobra.Command, args []string) {
 // Topics creates an ordered list of topics o provision
 func createTopics() []topics.Topic {
 	return []topics.Topic{
+		hosts.NewTopic(),
 		stunnel.NewTopic(),
 		weave.NewTopic(),
 	}
