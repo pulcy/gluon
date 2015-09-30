@@ -2,22 +2,21 @@ package systemd
 
 import (
 	systemdPkg "github.com/coreos/go-systemd/dbus"
+	"github.com/op/go-logging"
 )
 
-var vLogger = func(f string, v ...interface{}) {}
-
-func Configure(vl func(f string, v ...interface{})) {
-	vLogger = vl
+type SystemdClient struct {
+	Logger *logging.Logger
 }
 
-type SystemdClient struct{}
-
-func NewSystemdClient() (*SystemdClient, error) {
-	return &SystemdClient{}, nil
+func NewSystemdClient(logger *logging.Logger) *SystemdClient {
+	return &SystemdClient{
+		Logger: logger,
+	}
 }
 
 func (sdc *SystemdClient) Reload() error {
-	vLogger("  call SystemdClient.Reload()")
+	sdc.Logger.Debug("call systemd reload")
 
 	conn, err := systemdPkg.New()
 	if err != nil {
@@ -33,7 +32,7 @@ func (sdc *SystemdClient) Reload() error {
 
 // See http://godoc.org/github.com/coreos/go-systemd/dbus#Conn.StartUnit
 func (sdc *SystemdClient) Start(unit string) error {
-	vLogger("  call SystemdClient.Start(unit): %s", unit)
+	sdc.Logger.Debug("call systemd start %s", unit)
 
 	conn, err := systemdPkg.New()
 	if err != nil {
@@ -63,7 +62,7 @@ func (sdc *SystemdClient) Start(unit string) error {
 			return Mask(ErrJobSkipped)
 		default:
 			// that should never happen
-			vLogger("  unexpected systemd response: '%s'", res)
+			sdc.Logger.Error("unexpected systemd response: '%s'", res)
 			return Mask(ErrUnknownSystemdResponse)
 		}
 	case <-timeoutJobExecution():
@@ -75,7 +74,7 @@ func (sdc *SystemdClient) Start(unit string) error {
 
 // See http://godoc.org/github.com/coreos/go-systemd/dbus#Conn.StartUnit
 func (sdc *SystemdClient) Stop(unit string) error {
-	vLogger("  call SystemdClient.Stop(unit): %s", unit)
+	sdc.Logger.Debug("call systemd stop %s", unit)
 
 	conn, err := systemdPkg.New()
 	if err != nil {
@@ -106,7 +105,7 @@ func (sdc *SystemdClient) Stop(unit string) error {
 			return Mask(ErrJobSkipped)
 		default:
 			// that should never happen
-			vLogger("  unexpected systemd response: '%s'", res)
+			sdc.Logger.Error("unexpected systemd response: '%s'", res)
 			return Mask(ErrUnknownSystemdResponse)
 		}
 	case <-timeoutJobExecution():
@@ -117,7 +116,7 @@ func (sdc *SystemdClient) Stop(unit string) error {
 }
 
 func (sdc *SystemdClient) Exists(unit string) (bool, error) {
-	vLogger("  call SystemdClient.Exists(unit): %s", unit)
+	sdc.Logger.Debug("call systemd exists %s", unit)
 
 	conn, err := systemdPkg.New()
 	if err != nil {
@@ -137,4 +136,3 @@ func (sdc *SystemdClient) Exists(unit string) (bool, error) {
 
 	return false, nil
 }
-

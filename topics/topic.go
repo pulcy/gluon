@@ -2,6 +2,7 @@ package topics
 
 import (
 	"arvika.pulcy.com/iggi/yard/systemd"
+	"github.com/op/go-logging"
 )
 
 type Topic interface {
@@ -11,4 +12,5 @@ type Topic interface {
 
 type TopicDependencies struct {
 	Systemd *systemd.SystemdClient
+	Logger  *logging.Logger
 }

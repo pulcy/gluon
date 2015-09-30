@@ -44,10 +44,11 @@ $(GOBINDATA):
 $(GOBUILDDIR): 
 	@mkdir -p $(ORGDIR)
 	@rm -f $(REPODIR) && ln -s ../../../.. $(REPODIR)
-	@cd $(GOPATH) && pulcy go get github.com/spf13/pflag
-	@cd $(GOPATH) && pulcy go get github.com/spf13/cobra
-	@cd $(GOPATH) && pulcy go get github.com/juju/errgo
 	@cd $(GOPATH) && pulcy go get github.com/coreos/go-systemd/dbus
+	@cd $(GOPATH) && pulcy go get github.com/juju/errgo
+	@cd $(GOPATH) && pulcy go get github.com/op/go-logging
+	@cd $(GOPATH) && pulcy go get github.com/spf13/cobra
+	@cd $(GOPATH) && pulcy go get github.com/spf13/pflag
 	
 $(BIN): $(GOBUILDDIR) $(GOBINDATA) $(SOURCES) templates/templates_bindata.go
 	docker run \

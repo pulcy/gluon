@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/op/go-logging"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +20,12 @@ var (
 		Long:  "yard provisions machines to run jobs",
 		Run:   showUsage,
 	}
+	log = logging.MustGetLogger(cmdMain.Use)
 )
+
+func init() {
+	logging.SetFormatter(logging.MustStringFormatter("[%{level:-5s}] %{message}"))
+}
 
 func main() {
 	cmdMain.Execute()

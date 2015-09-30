@@ -22,12 +22,9 @@ func init() {
 }
 
 func runSetup(cmd *cobra.Command, args []string) {
-	systemdClient, err := systemd.NewSystemdClient()
-	if err != nil {
-		Exitf("Setup cannot create systemd client: %#v\n", err)
-	}
 	deps := &topics.TopicDependencies{
-		Systemd: systemdClient,
+		Systemd: systemd.NewSystemdClient(log),
+		Logger:  log,
 	}
 
 	for _, t := range createTopics() {
