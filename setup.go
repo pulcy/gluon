@@ -5,11 +5,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"arvika.pulcy.com/iggi/yard/systemd"
-	"arvika.pulcy.com/iggi/yard/topics"
-	"arvika.pulcy.com/iggi/yard/topics/hosts"
-	"arvika.pulcy.com/iggi/yard/topics/stunnel"
-	"arvika.pulcy.com/iggi/yard/topics/weave"
+	"arvika.pulcy.com/pulcy/yard/systemd"
+	"arvika.pulcy.com/pulcy/yard/topics"
+	"arvika.pulcy.com/pulcy/yard/topics/hosts"
+	"arvika.pulcy.com/pulcy/yard/topics/stunnel"
+	"arvika.pulcy.com/pulcy/yard/topics/weave"
 )
 
 var (

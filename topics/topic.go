@@ -1,8 +1,9 @@
 package topics
 
 import (
-	"arvika.pulcy.com/iggi/yard/systemd"
 	"github.com/op/go-logging"
+
+	"arvika.pulcy.com/pulcy/yard/systemd"
 )
 
 type Topic interface {
