@@ -9,7 +9,6 @@ import (
 	"arvika.pulcy.com/pulcy/yard/topics"
 	"arvika.pulcy.com/pulcy/yard/topics/hosts"
 	"arvika.pulcy.com/pulcy/yard/topics/stunnel"
-	"arvika.pulcy.com/pulcy/yard/topics/weave"
 )
 
 var (
@@ -23,8 +22,6 @@ var (
 func init() {
 	// Stunnel
 	cmdSetup.Flags().StringVar(&setupFlags.StunnelPemPassphrase, "stunnel-pem-passphrase", def("STUNNEL_PEM_PASSPHRASE", ""), "Passphrase used to open stunnel.pem.gpg")
-	// Weave
-	cmdSetup.Flags().StringVar(&setupFlags.WeavePassword, "weave-password", def("WEAVE_PASSWORD", ""), "Password protecting inter-host weave traffic")
 	cmdMain.AddCommand(cmdSetup)
 }
 
@@ -53,6 +50,5 @@ func createTopics() []topics.Topic {
 	return []topics.Topic{
 		hosts.NewTopic(),
 		stunnel.NewTopic(),
-		weave.NewTopic(),
 	}
 }

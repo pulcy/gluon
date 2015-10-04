@@ -20,7 +20,4 @@ type TopicDependencies struct {
 type TopicFlags struct {
 	// Stunnel
 	StunnelPemPassphrase string
-
-	// Weave
-	WeavePassword string
 }
