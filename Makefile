@@ -20,29 +20,29 @@ GOBINDATA := $(GOBUILDDIR)/bin/go-bindata
 GOPATH := $(GOBUILDDIR)
 
 ifndef GOOS
-	GOOS := $(shell go env GOOS)
+	GOOS := linux
 endif
 ifndef GOARCH
-	GOARCH := $(shell go env GOARCH)
-endif	
+	GOARCH := amd64
+endif
 
 SOURCES := $(shell find $(SRCDIR) -name '*.go')
 TEMPLATES := $(shell find $(SRCDIR) -name '*.tmpl')
 
-.PHONY: all clean deps 
+.PHONY: all clean deps
 
 all: $(BIN) $(BINGPG)
 
 clean:
 	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR)
 
-deps: 
+deps:
 	@${MAKE} -B -s $(GOBUILDDIR) $(GOBINDATA)
 
 $(GOBINDATA):
 	GOPATH=$(GOPATH) go get github.com/jteeuwen/go-bindata/...
-	
-$(GOBUILDDIR): 
+
+$(GOBUILDDIR):
 	@mkdir -p $(ORGDIR)
 	@rm -f $(REPODIR) && ln -s ../../../.. $(REPODIR)
 	@cd $(GOPATH) && pulcy go get github.com/coreos/go-systemd/dbus
@@ -71,4 +71,3 @@ $(BINGPG): $(BIN)
 # Special rule, because this file is generated
 templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)
 	$(GOBINDATA) -pkg templates -o templates/templates_bindata.go templates/
-
