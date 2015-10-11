@@ -8,7 +8,6 @@ import (
 	"arvika.pulcy.com/pulcy/yard/systemd"
 	"arvika.pulcy.com/pulcy/yard/topics"
 	"arvika.pulcy.com/pulcy/yard/topics/hosts"
-	"arvika.pulcy.com/pulcy/yard/topics/stunnel"
 )
 
 var (
@@ -49,6 +48,5 @@ func runSetup(cmd *cobra.Command, args []string) {
 func createTopics() []topics.Topic {
 	return []topics.Topic{
 		hosts.NewTopic(),
-		stunnel.NewTopic(),
 	}
 }
