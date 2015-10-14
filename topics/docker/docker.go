@@ -45,11 +45,7 @@ func (t *DockerTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicF
 		return maskAny(err)
 	}
 
-	if err := deps.Systemd.Stop(serviceName); err != nil {
-		deps.Logger.Warning("failed to stop docker: %#v", err)
-	}
-
-	if err := deps.Systemd.Start(serviceName); err != nil {
+	if err := deps.Systemd.Restart(serviceName); err != nil {
 		return maskAny(err)
 	}
 

@@ -75,6 +75,50 @@ func (sdc *SystemdClient) Start(unit string) error {
 	return nil
 }
 
+// See http://godoc.org/github.com/coreos/go-systemd/dbus#Conn.RestartUnit
+func (sdc *SystemdClient) Restart(unit string) error {
+	sdc.Logger.Debug("call systemd restart %s", unit)
+
+	conn, err := systemdPkg.New()
+	if err != nil {
+		return Mask(err)
+	}
+
+	strChan := make(chan string, 1)
+	if _, err := conn.RestartUnit(unit, "replace", strChan); err != nil {
+		sdc.Logger.Debug("systemd restart failed: %#v", err)
+		return Mask(err)
+	}
+
+	select {
+	case res := <-strChan:
+		sdc.Logger.Debug("systemd restart responded %s", res)
+		switch res {
+		case "done":
+			return nil
+		case "canceled":
+			return Mask(ErrJobCanceled)
+		case "timeout":
+			return Mask(ErrJobTimeout)
+		case "failed":
+			// We need a start considered to be failed, when the unit is already running.
+			return nil
+		case "dependency":
+			return Mask(ErrJobDependency)
+		case "skipped":
+			return Mask(ErrJobSkipped)
+		default:
+			// that should never happen
+			sdc.Logger.Error("unexpected systemd response: '%s'", res)
+			return Mask(ErrUnknownSystemdResponse)
+		}
+	case <-timeoutJobExecution():
+		return Mask(ErrJobExecutionTookTooLong)
+	}
+
+	return nil
+}
+
 // See http://godoc.org/github.com/coreos/go-systemd/dbus#Conn.StartUnit
 func (sdc *SystemdClient) Stop(unit string) error {
 	sdc.Logger.Debug("call systemd stop %s", unit)
