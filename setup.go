@@ -8,6 +8,11 @@ import (
 	"arvika.pulcy.com/pulcy/yard/systemd"
 	"arvika.pulcy.com/pulcy/yard/topics"
 	"arvika.pulcy.com/pulcy/yard/topics/hosts"
+	"arvika.pulcy.com/pulcy/yard/topics/iptables"
+)
+
+const (
+	defaultDockerSubnet = "172.17.0.0/16"
 )
 
 var (
@@ -19,12 +24,21 @@ var (
 )
 
 func init() {
-	// Stunnel
-	cmdSetup.Flags().StringVar(&setupFlags.StunnelPemPassphrase, "stunnel-pem-passphrase", def("STUNNEL_PEM_PASSPHRASE", ""), "Passphrase used to open stunnel.pem.gpg")
+	// Etcd
+	cmdSetup.Flags().StringVar(&setupFlags.DiscoveryUrl, "discovery-url", "", "Full URL for setting up etcd member lists")
+	// Docker
+	cmdSetup.Flags().StringVar(&setupFlags.DockerSubnet, "docker-subnet", defaultDockerSubnet, "Subnet used by docker")
 	cmdMain.AddCommand(cmdSetup)
 }
 
 func runSetup(cmd *cobra.Command, args []string) {
+	if setupFlags.DiscoveryUrl == "" {
+		Exitf("discovery-url missing\n")
+	}
+	if setupFlags.DockerSubnet == "" {
+		Exitf("docker-subnet missing\n")
+	}
+
 	deps := &topics.TopicDependencies{
 		Systemd: systemd.NewSystemdClient(log),
 		Logger:  log,
@@ -48,5 +62,6 @@ func runSetup(cmd *cobra.Command, args []string) {
 func createTopics() []topics.Topic {
 	return []topics.Topic{
 		hosts.NewTopic(),
+		iptables.NewTopic(),
 	}
 }

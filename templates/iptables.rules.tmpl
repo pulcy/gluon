@@ -1,0 +1,28 @@
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+-A POSTROUTING -s {{.DockerSubnet}} ! -d {{.DockerSubnet}} -j MASQUERADE
+COMMIT
+
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT DROP [0:0]
+:DOCKER - [0:0]
+-A INPUT -i lo -j ACCEPT
+{{range .ClusterMemberIPs }}
+-A INPUT -d {{.}} ! -i docker0 -j ACCEPT
+{{end}}
+-A INPUT -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A INPUT -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A INPUT -p tcp --dport 443 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A INPUT -p tcp --dport 7088 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A OUTPUT -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
+-A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -s {{.DockerSubnet}} -j ACCEPT
+-A FORWARD -o docker0 -j DOCKER
+-A OUTPUT -j ACCEPT
+COMMIT
