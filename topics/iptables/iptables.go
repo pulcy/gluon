@@ -91,7 +91,7 @@ func createRules(deps *topics.TopicDependencies, flags *topics.TopicFlags) error
 
 func createNetfilterService(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
 	deps.Logger.Info("creating %s", netfilterServicePath)
-	if err := templates.Render(netfilterServiceName, netfilterServicePath, nil, fileMode); err != nil {
+	if err := templates.Render(netfilterTemplate, netfilterServicePath, nil, fileMode); err != nil {
 		return maskAny(err)
 	}
 
