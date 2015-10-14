@@ -7,6 +7,7 @@ import (
 
 	"arvika.pulcy.com/pulcy/yard/systemd"
 	"arvika.pulcy.com/pulcy/yard/topics"
+	"arvika.pulcy.com/pulcy/yard/topics/docker"
 	"arvika.pulcy.com/pulcy/yard/topics/hosts"
 	"arvika.pulcy.com/pulcy/yard/topics/iptables"
 )
@@ -27,13 +28,18 @@ func init() {
 	// Etcd
 	cmdSetup.Flags().StringVar(&setupFlags.DiscoveryUrl, "discovery-url", "", "Full URL for setting up etcd member lists")
 	// Docker
+	cmdSetup.Flags().StringVar(&setupFlags.DockerIP, "docker-ip", "", "IP address docker binds ports to")
 	cmdSetup.Flags().StringVar(&setupFlags.DockerSubnet, "docker-subnet", defaultDockerSubnet, "Subnet used by docker")
+
 	cmdMain.AddCommand(cmdSetup)
 }
 
 func runSetup(cmd *cobra.Command, args []string) {
 	if setupFlags.DiscoveryUrl == "" {
 		Exitf("discovery-url missing\n")
+	}
+	if setupFlags.DockerIP == "" {
+		Exitf("docker-ip missing\n")
 	}
 	if setupFlags.DockerSubnet == "" {
 		Exitf("docker-subnet missing\n")
@@ -63,5 +69,6 @@ func createTopics() []topics.Topic {
 	return []topics.Topic{
 		hosts.NewTopic(),
 		iptables.NewTopic(),
+		docker.NewTopic(),
 	}
 }

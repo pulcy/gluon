@@ -1,0 +1,10 @@
+[Unit]
+Description=Docker Application Container Engine
+Requires=docker.socket
+After=docker.socket
+
+[Service]
+ExecStart=/usr/bin/docker -d --ip={{.DockerIP}} --host=fd://
+
+[Install]
+WantedBy=multi-user.target

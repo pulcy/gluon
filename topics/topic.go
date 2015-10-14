@@ -29,6 +29,7 @@ type TopicFlags struct {
 	DiscoveryUrl string
 
 	// Docker
+	DockerIP     string
 	DockerSubnet string
 
 	// private cache
