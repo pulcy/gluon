@@ -14,17 +14,17 @@ COMMIT
 :PRIVATECLUSTER - [0:0]
 -A INPUT -i lo -j ACCEPT
 -A INPUT -i docker0 -j ACCEPT
+-A INPUT -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A INPUT -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A INPUT -p tcp --dport 443 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A INPUT -p tcp --dport 7088 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A INPUT -i eth1 -j PRIVATECLUSTER
 {{range .ClusterMemberIPs }}
 -A PRIVATECLUSTER -s {{.}} -j ACCEPT
 {{end}}
 -A PRIVATECLUSTER -j DROP
--A INPUT -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
--A INPUT -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT
--A INPUT -p tcp --dport 443 -m state --state NEW,ESTABLISHED -j ACCEPT
--A INPUT -p tcp --dport 7088 -m state --state NEW,ESTABLISHED -j ACCEPT
 -A OUTPUT -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
--A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A FORWARD -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A FORWARD -s {{.DockerSubnet}} -j ACCEPT
 -A FORWARD -o docker0 -j DOCKER
