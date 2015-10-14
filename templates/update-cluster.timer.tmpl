@@ -1,0 +1,7 @@
+[Unit]
+Description=Update PRIVATECLUSTER iptables chain timer
+
+[Timer]
+OnCalendar=*:0/2
+Unit=update-cluster.service
+OnBootSec=30s
