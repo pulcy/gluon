@@ -97,6 +97,7 @@ func createNetfilterService(deps *topics.TopicDependencies, flags *topics.TopicF
 
 	return nil
 }
+
 func createIptablesService(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
 	deps.Logger.Info("creating %s", servicePath)
 	if err := templates.Render(serviceTemplate, servicePath, nil, fileMode); err != nil {
