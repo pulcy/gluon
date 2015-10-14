@@ -24,6 +24,7 @@ func (sdc *SystemdClient) Reload() error {
 	}
 
 	if err := conn.Reload(); err != nil {
+		sdc.Logger.Debug("systemd reload failed: %#v", err)
 		return Mask(err)
 	}
 
@@ -41,11 +42,13 @@ func (sdc *SystemdClient) Start(unit string) error {
 
 	strChan := make(chan string, 1)
 	if _, err := conn.StartUnit(unit, "replace", strChan); err != nil {
+		sdc.Logger.Debug("systemd start failed: %#v", err)
 		return Mask(err)
 	}
 
 	select {
 	case res := <-strChan:
+		sdc.Logger.Debug("systemd start responded %s", res)
 		switch res {
 		case "done":
 			return nil
@@ -83,11 +86,13 @@ func (sdc *SystemdClient) Stop(unit string) error {
 
 	strChan := make(chan string, 1)
 	if _, err := conn.StopUnit(unit, "replace", strChan); err != nil {
+		sdc.Logger.Debug("systemd stop failed: %#v", err)
 		return Mask(err)
 	}
 
 	select {
 	case res := <-strChan:
+		sdc.Logger.Debug("systemd stop responded %s", res)
 		switch res {
 		case "done":
 			return nil
