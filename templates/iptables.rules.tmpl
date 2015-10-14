@@ -12,8 +12,9 @@ COMMIT
 :OUTPUT DROP [0:0]
 :DOCKER - [0:0]
 -A INPUT -i lo -j ACCEPT
+-A INPUT -i docker0 -j ACCEPT
 {{range .ClusterMemberIPs }}
--A INPUT -d {{.}} ! -i docker0 -j ACCEPT
+-A INPUT -s {{.}} -j ACCEPT
 {{end}}
 -A INPUT -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
 -A INPUT -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT
