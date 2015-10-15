@@ -20,13 +20,17 @@ COMMIT
 -A INPUT -p tcp --dport 7088 -m state --state NEW,ESTABLISHED -j ACCEPT
 -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A INPUT -i {{.PrivateClusterDevice}} -j PRIVATECLUSTER
+
 {{range .ClusterMemberIPs }}
 -A PRIVATECLUSTER -s {{.}} -j ACCEPT
 {{end}}
 -A PRIVATECLUSTER -j DROP
--A OUTPUT -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
+
+-A FORWARD -i {{.PrivateClusterDevice}} -o docker0 -j PRIVATECLUSTER
 -A FORWARD -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A FORWARD -s {{.DockerSubnet}} -j ACCEPT
 -A FORWARD -o docker0 -j DOCKER
+
+-A OUTPUT -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
 -A OUTPUT -j ACCEPT
 COMMIT
