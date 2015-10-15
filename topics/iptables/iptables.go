@@ -121,9 +121,11 @@ func createNetfilterService(deps *topics.TopicDependencies, flags *topics.TopicF
 func createUpdateClusterService(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
 	deps.Logger.Info("creating %s", updateClusterServicePath)
 	opts := struct {
-		DiscoveryUrl string
+		DiscoveryUrl         string
+		PrivateClusterDevice string
 	}{
-		DiscoveryUrl: flags.DiscoveryUrl,
+		DiscoveryUrl:         flags.DiscoveryUrl,
+		PrivateClusterDevice: flags.PrivateClusterDevice,
 	}
 	if err := templates.Render(updateClusterServiceTemplate, updateClusterServicePath, opts, fileMode); err != nil {
 		return maskAny(err)

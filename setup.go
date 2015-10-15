@@ -47,6 +47,9 @@ func runSetup(cmd *cobra.Command, args []string) {
 	if setupFlags.DockerSubnet == "" {
 		Exitf("docker-subnet missing\n")
 	}
+	if setupFlags.PrivateClusterDevice == "" {
+		Exitf("private-cluster-device missing\n")
+	}
 
 	deps := &topics.TopicDependencies{
 		Systemd: systemd.NewSystemdClient(log),
