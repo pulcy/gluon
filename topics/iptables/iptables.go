@@ -94,11 +94,13 @@ func createRules(deps *topics.TopicDependencies, flags *topics.TopicFlags) error
 		return maskAny(err)
 	}
 	opts := struct {
-		ClusterMemberIPs []string
-		DockerSubnet     string
+		ClusterMemberIPs     []string
+		DockerSubnet         string
+		PrivateClusterDevice string
 	}{
-		ClusterMemberIPs: memberIPs,
-		DockerSubnet:     flags.DockerSubnet,
+		ClusterMemberIPs:     memberIPs,
+		DockerSubnet:         flags.DockerSubnet,
+		PrivateClusterDevice: flags.PrivateClusterDevice,
 	}
 	if err := templates.Render(rulesTemplate, rulesPath, opts, fileMode); err != nil {
 		return maskAny(err)

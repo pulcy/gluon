@@ -32,6 +32,9 @@ type TopicFlags struct {
 	DockerIP     string
 	DockerSubnet string
 
+	// IPTables
+	PrivateClusterDevice string
+
 	// private cache
 	privateIPs []string
 }

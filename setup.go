@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	defaultDockerSubnet = "172.17.0.0/16"
+	defaultDockerSubnet         = "172.17.0.0/16"
+	defaultPrivateClusterDevice = "eth1"
 )
 
 var (
@@ -30,6 +31,8 @@ func init() {
 	// Docker
 	cmdSetup.Flags().StringVar(&setupFlags.DockerIP, "docker-ip", "", "IP address docker binds ports to")
 	cmdSetup.Flags().StringVar(&setupFlags.DockerSubnet, "docker-subnet", defaultDockerSubnet, "Subnet used by docker")
+	// IPTables
+	cmdSetup.Flags().StringVar(&setupFlags.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the private IP")
 
 	cmdMain.AddCommand(cmdSetup)
 }
