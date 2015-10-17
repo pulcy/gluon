@@ -8,6 +8,7 @@ import (
 	"arvika.pulcy.com/pulcy/yard/systemd"
 	"arvika.pulcy.com/pulcy/yard/topics"
 	"arvika.pulcy.com/pulcy/yard/topics/docker"
+	"arvika.pulcy.com/pulcy/yard/topics/env"
 	"arvika.pulcy.com/pulcy/yard/topics/iptables"
 )
 
@@ -37,6 +38,8 @@ func init() {
 }
 
 func runSetup(cmd *cobra.Command, args []string) {
+	showVersion(cmd, args)
+
 	if setupFlags.DiscoveryUrl == "" {
 		Exitf("discovery-url missing\n")
 	}
@@ -72,6 +75,7 @@ func runSetup(cmd *cobra.Command, args []string) {
 // Topics creates an ordered list of topics o provision
 func createTopics() []topics.Topic {
 	return []topics.Topic{
+		env.NewTopic(),
 		iptables.NewTopic(),
 		docker.NewTopic(),
 	}

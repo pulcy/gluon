@@ -1,0 +1,24 @@
+# Test for an interactive shell.  There is no need to set anything
+# past this point for scp and rcp, and it's important to refrain from
+# outputting anything in those cases.
+if [[ $- != *i* ]] ; then
+	# Shell is non-interactive.  Be done now!
+	return
+fi
+
+# Alter prompt
+export PS1="\e[0;32m\u@$(cat /etc/environment | grep COREOS_PUBLIC_IPV4 | cut -d "=" -f 2)> \e[m"
+
+# General
+alias jq="docker run --rm -i realguess/jq:latest jq"
+
+# Docker
+alias dockercleancontainers="docker ps -a --no-trunc| grep 'Exit' | awk '{print \$1}' | xargs -L 1 -r docker rm"
+alias dockerrmcontainers="docker ps -a --no-trunc |awk '{print \$1}' | xargs -L 1 -r docker rm -f"
+alias dockercleanimages="docker images -a --no-trunc | grep none | awk '{print \$3}' | xargs -L 1 -r docker rmi"
+alias dockerclean="dockercleancontainers && dockercleanimages"
+
+# Fleet
+alias fc="fleetctl cat"
+alias fj="fleetctl journal"
+alias flu="fleetctl list-units"
