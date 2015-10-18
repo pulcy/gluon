@@ -13,8 +13,11 @@ import (
 )
 
 const (
-	defaultDockerSubnet         = "172.17.0.0/16"
-	defaultPrivateClusterDevice = "eth1"
+	defaultDockerSubnet            = "172.17.0.0/16"
+	defaultPrivateClusterDevice    = "eth1"
+	defaultPrivateRegistryUrl      = "https://registry.pulcy.com"
+	defaultPrivateRegistryUserName = "server"
+	defaultPrivateRegistryPassword = ""
 )
 
 var (
@@ -31,6 +34,9 @@ func init() {
 	// Docker
 	cmdSetup.Flags().StringVar(&setupFlags.DockerIP, "docker-ip", "", "IP address docker binds ports to")
 	cmdSetup.Flags().StringVar(&setupFlags.DockerSubnet, "docker-subnet", defaultDockerSubnet, "Subnet used by docker")
+	cmdSetup.Flags().StringVar(&setupFlags.PrivateRegistryUrl, "private-registry-url", defaultPrivateRegistryUrl, "URL of private docker registry")
+	cmdSetup.Flags().StringVar(&setupFlags.PrivateRegistryUserName, "private-registry-username", defaultPrivateRegistryUserName, "Username for private registry")
+	cmdSetup.Flags().StringVar(&setupFlags.PrivateRegistryPassword, "private-registry-password", defaultPrivateRegistryPassword, "Password for private registry")
 	// IPTables
 	cmdSetup.Flags().StringVar(&setupFlags.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the private IP")
 

@@ -29,8 +29,11 @@ type TopicFlags struct {
 	DiscoveryUrl string
 
 	// Docker
-	DockerIP     string
-	DockerSubnet string
+	DockerIP                string
+	DockerSubnet            string
+	PrivateRegistryUrl      string
+	PrivateRegistryUserName string
+	PrivateRegistryPassword string
 
 	// IPTables
 	PrivateClusterDevice string

@@ -51,6 +51,9 @@ $(GOBUILDDIR):
 	@cd $(GOPATH) && pulcy go get github.com/op/go-logging
 	@cd $(GOPATH) && pulcy go get github.com/spf13/cobra
 	@cd $(GOPATH) && pulcy go get github.com/spf13/pflag
+	@pulcy get git@github.com:docker/docker.git $(GOBUILDDIR)/src/github.com/docker/docker
+	@pulcy get git@github.com:opencontainers/runc.git $(GOBUILDDIR)/src/github.com/opencontainers/runc
+
 
 $(BIN): $(GOBUILDDIR) $(GOBINDATA) $(SOURCES) templates/templates_bindata.go
 	docker run \

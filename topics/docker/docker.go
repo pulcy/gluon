@@ -2,7 +2,9 @@ package docker
 
 import (
 	"os"
+	"path/filepath"
 
+	"github.com/docker/docker/cliconfig"
 	"github.com/juju/errgo"
 
 	"arvika.pulcy.com/pulcy/yard/templates"
@@ -17,6 +19,7 @@ const (
 	serviceTemplate = "templates/docker.service.tmpl"
 	serviceName     = "docker.service"
 	servicePath     = "/etc/systemd/system/" + serviceName
+	rootConfigPath  = "/root/.docker/config"
 
 	fileMode = os.FileMode(0755)
 )
@@ -37,6 +40,10 @@ func (t *DockerTopic) Defaults(flags *topics.TopicFlags) error {
 }
 
 func (t *DockerTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+	if err := createDockerConfig(deps, flags); err != nil {
+		return maskAny(err)
+	}
+
 	if err := createDockerService(deps, flags); err != nil {
 		return maskAny(err)
 	}
@@ -61,6 +68,33 @@ func createDockerService(deps *topics.TopicDependencies, flags *topics.TopicFlag
 	}
 	if err := templates.Render(serviceTemplate, servicePath, opts, fileMode); err != nil {
 		return maskAny(err)
+	}
+
+	return nil
+}
+
+func createDockerConfig(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+	if flags.PrivateRegistryPassword != "" && flags.PrivateRegistryUrl != "" && flags.PrivateRegistryUserName != "" {
+		deps.Logger.Info("creating %s", rootConfigPath)
+		// Load config file
+		cf, err := cliconfig.Load(filepath.Dir(rootConfigPath))
+		if err != nil {
+			return maskAny(err)
+		}
+
+		// Set authentication entries
+		cf.AuthConfigs[flags.PrivateRegistryUrl] = cliconfig.AuthConfig{
+			Username: flags.PrivateRegistryUserName,
+			Password: flags.PrivateRegistryPassword,
+			Email:    "",
+		}
+
+		// Save
+		if err := cf.Save(); err != nil {
+			return maskAny(err)
+		}
+	} else {
+		deps.Logger.Warning("Skip creating .docker config")
 	}
 
 	return nil
