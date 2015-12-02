@@ -20,7 +20,7 @@ func UpdatePrivateCluster(deps *topics.TopicDependencies, flags *topics.TopicFla
 }
 
 func updatePrivateClusterChain(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
-	memberIPs, err := flags.GetClusterMemberPrivateIPs()
+	members, err := flags.GetClusterMembers()
 	if err != nil {
 		return maskAny(err)
 	}
@@ -28,8 +28,8 @@ func updatePrivateClusterChain(deps *topics.TopicDependencies, flags *topics.Top
 	if err := iptables(deps, false, "-F", "PRIVATECLUSTER"); err != nil {
 		return maskAny(err)
 	}
-	for _, ip := range memberIPs {
-		if err := iptables(deps, false, "-A", "PRIVATECLUSTER", "-s", ip, "-j", "ACCEPT"); err != nil {
+	for _, cm := range members {
+		if err := iptables(deps, false, "-A", "PRIVATECLUSTER", "-s", cm.PrivateIP, "-j", "ACCEPT"); err != nil {
 			return maskAny(err)
 		}
 	}

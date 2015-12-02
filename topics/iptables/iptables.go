@@ -89,7 +89,7 @@ func (t *IPTablesTopic) Setup(deps *topics.TopicDependencies, flags *topics.Topi
 
 func createRules(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
 	deps.Logger.Info("creating %s", rulesPath)
-	memberIPs, err := flags.GetClusterMemberPrivateIPs()
+	members, err := flags.GetClusterMembers()
 	if err != nil {
 		return maskAny(err)
 	}
@@ -98,9 +98,12 @@ func createRules(deps *topics.TopicDependencies, flags *topics.TopicFlags) error
 		DockerSubnet         string
 		PrivateClusterDevice string
 	}{
-		ClusterMemberIPs:     memberIPs,
+		ClusterMemberIPs:     []string{},
 		DockerSubnet:         flags.DockerSubnet,
 		PrivateClusterDevice: flags.PrivateClusterDevice,
+	}
+	for _, cm := range members {
+		opts.ClusterMemberIPs = append(opts.ClusterMemberIPs, cm.PrivateIP)
 	}
 	if err := templates.Render(rulesTemplate, rulesPath, opts, fileMode); err != nil {
 		return maskAny(err)
