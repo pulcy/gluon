@@ -52,8 +52,8 @@ func createEtcd2Conf(deps *topics.TopicDependencies, flags *topics.TopicFlags) e
 		InitialClusterState string
 	}{}
 	if len(members) == 0 {
-		// Nothing to configure
-		os.Remove(confPath)
+		// Use discovery url
+		opts.DiscoveryURL = flags.DiscoveryURL
 	} else {
 		items := []string{}
 		for _, cm := range members {
@@ -61,9 +61,9 @@ func createEtcd2Conf(deps *topics.TopicDependencies, flags *topics.TopicFlags) e
 		}
 		opts.InitialCluster = strings.Join(items, ",")
 		opts.InitialClusterState = "existing"
-		if err := templates.Render(confTemplate, confPath, opts, fileMode); err != nil {
-			return maskAny(err)
-		}
+	}
+	if err := templates.Render(confTemplate, confPath, opts, fileMode); err != nil {
+		return maskAny(err)
 	}
 
 	return nil
