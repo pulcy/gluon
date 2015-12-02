@@ -29,8 +29,7 @@ var (
 )
 
 func init() {
-	// Etcd
-	cmdSetup.Flags().StringVar(&setupFlags.DiscoveryUrl, "discovery-url", "", "Full URL for setting up etcd member lists")
+	cmdSetup.Flags().StringVar(&setupFlags.DiscoveryURL, "discovery-url", "", "ETCD discovery URL")
 	// Docker
 	cmdSetup.Flags().StringVar(&setupFlags.DockerIP, "docker-ip", "", "IP address docker binds ports to")
 	cmdSetup.Flags().StringVar(&setupFlags.DockerSubnet, "docker-subnet", defaultDockerSubnet, "Subnet used by docker")
@@ -46,9 +45,6 @@ func init() {
 func runSetup(cmd *cobra.Command, args []string) {
 	showVersion(cmd, args)
 
-	if setupFlags.DiscoveryUrl == "" {
-		Exitf("discovery-url missing\n")
-	}
 	if setupFlags.DockerIP == "" {
 		Exitf("docker-ip missing\n")
 	}
@@ -64,7 +60,7 @@ func runSetup(cmd *cobra.Command, args []string) {
 		Logger:  log,
 	}
 
-	setupList := createTopics()
+	setupList := createTopics(args)
 	for _, t := range setupList {
 		if err := t.Defaults(setupFlags); err != nil {
 			Exitf("Defaults %s failed: %#v\n", t.Name(), err)
@@ -79,10 +75,28 @@ func runSetup(cmd *cobra.Command, args []string) {
 }
 
 // Topics creates an ordered list of topics o provision
-func createTopics() []topics.Topic {
-	return []topics.Topic{
+func createTopics(args []string) []topics.Topic {
+	allTopics := []topics.Topic{
 		env.NewTopic(),
 		iptables.NewTopic(),
 		docker.NewTopic(),
 	}
+	list := []topics.Topic{}
+	isSelected := func(name string) bool {
+		if len(args) == 0 {
+			return true
+		}
+		for _, a := range args {
+			if name == a {
+				return true
+			}
+		}
+		return false
+	}
+	for _, t := range allTopics {
+		if isSelected(t.Name()) {
+			list = append(list, t)
+		}
+	}
+	return list
 }

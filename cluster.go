@@ -22,7 +22,7 @@ var (
 
 func init() {
 	// Etcd
-	cmdClusterUpdate.Flags().StringVar(&clusterUpdateFlags.DiscoveryUrl, "discovery-url", "", "Full URL for setting up etcd member lists")
+	cmdClusterUpdate.Flags().StringVar(&clusterUpdateFlags.DiscoveryURL, "discovery-url", "", "Full URL for setting up etcd member lists")
 	cmdClusterUpdate.Flags().StringVar(&clusterUpdateFlags.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the private IP")
 
 	cmdMain.AddCommand(cmdCluster)
@@ -30,9 +30,6 @@ func init() {
 }
 
 func runClusterUpdate(cmd *cobra.Command, args []string) {
-	if clusterUpdateFlags.DiscoveryUrl == "" {
-		Exitf("discovery-url missing\n")
-	}
 	if clusterUpdateFlags.PrivateClusterDevice == "" {
 		Exitf("private-cluster-device missing\n")
 	}

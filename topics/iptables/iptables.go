@@ -124,7 +124,7 @@ func createUpdateClusterService(deps *topics.TopicDependencies, flags *topics.To
 		DiscoveryUrl         string
 		PrivateClusterDevice string
 	}{
-		DiscoveryUrl:         flags.DiscoveryUrl,
+		DiscoveryUrl:         flags.DiscoveryURL,
 		PrivateClusterDevice: flags.PrivateClusterDevice,
 	}
 	if err := templates.Render(updateClusterServiceTemplate, updateClusterServicePath, opts, fileMode); err != nil {

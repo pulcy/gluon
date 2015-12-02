@@ -8,9 +8,14 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/juju/errgo"
 	"github.com/op/go-logging"
 
 	"arvika.pulcy.com/pulcy/yard/systemd"
+)
+
+const (
+	clusterMembersPath = "/etc/yard-cluster-members"
 )
 
 type Topic interface {
@@ -25,8 +30,8 @@ type TopicDependencies struct {
 }
 
 type TopicFlags struct {
-	// Etcd
-	DiscoveryUrl string
+	// ETCD discovery URL
+	DiscoveryURL string
 
 	// Docker
 	DockerIP                string
@@ -60,7 +65,26 @@ func (flags *TopicFlags) GetClusterMemberPrivateIPs() ([]string, error) {
 		return flags.privateIPs, nil
 	}
 
-	resp, err := http.Get(flags.DiscoveryUrl)
+	addresses, err := flags.getClusterMembersFromFS()
+	if err != nil {
+		// Local config failed, try discovery
+		addresses, err = flags.getClusterMembersFromDiscovery()
+		if err != nil {
+			return nil, maskAny(err)
+		}
+	}
+
+	flags.privateIPs = addresses
+	return addresses, nil
+}
+
+// getClusterMembersFromDiscovery returns a list of the private IP
+// addresses of all the cluster members
+func (flags *TopicFlags) getClusterMembersFromDiscovery() ([]string, error) {
+	if flags.DiscoveryURL == "" {
+		return nil, maskAny(errgo.New("discovery-url missing"))
+	}
+	resp, err := http.Get(flags.DiscoveryURL)
 	if err != nil {
 		return nil, maskAny(err)
 	}
@@ -93,6 +117,27 @@ func (flags *TopicFlags) GetClusterMemberPrivateIPs() ([]string, error) {
 		}
 	}
 
-	flags.privateIPs = addresses
+	return addresses, nil
+}
+
+// getClusterMembersFromFS returns a list of the private IP
+// addresses from a local configuration file
+func (flags *TopicFlags) getClusterMembersFromFS() ([]string, error) {
+	content, err := ioutil.ReadFile(clusterMembersPath)
+	if err != nil {
+		return nil, maskAny(err)
+	}
+	lines := strings.Split(string(content), "\n")
+
+	// Find IP addresses
+	addresses := []string{}
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			addresses = append(addresses, line)
+		}
+
+	}
+
 	return addresses, nil
 }
