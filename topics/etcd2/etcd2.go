@@ -44,7 +44,7 @@ func createEtcd2Conf(deps *topics.TopicDependencies, flags *topics.TopicFlags) e
 	deps.Logger.Info("creating %s", confPath)
 	members, err := flags.GetClusterMembers()
 	if err != nil {
-		return maskAny(err)
+		deps.Logger.Warning("GetClusterMembers failed: %v", err)
 	}
 	opts := struct {
 		DiscoveryURL        string
