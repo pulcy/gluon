@@ -19,7 +19,7 @@ const (
 	confTemplate = "templates/99-etcd2.conf.tmpl"
 	confName     = "99-etcd2.conf"
 	confPath     = "/run/systemd/system/etcd2.service.d/" + confName
-	serviceName  = "etcd2"
+	serviceName  = "etcd2.service"
 
 	fileMode = os.FileMode(0755)
 )
