@@ -57,7 +57,7 @@ func Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags, yardVersion
 		return maskAny(err)
 	}
 
-	if err := deps.Systemd.Start(serviceName); err != nil {
+	if err := deps.Systemd.Restart(serviceName); err != nil {
 		return maskAny(err)
 	}
 

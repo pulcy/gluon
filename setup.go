@@ -37,6 +37,10 @@ func init() {
 func runSetup(cmd *cobra.Command, args []string) {
 	showVersion(cmd, args)
 
+	if err := setupFlags.SetupDefaults(projectVersion); err != nil {
+		Exitf("SetupDefaults failed: %#v\n", err)
+	}
+
 	if setupFlags.DockerIP == "" {
 		Exitf("docker-ip missing\n")
 	}
