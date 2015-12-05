@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"arvika.pulcy.com/pulcy/yard/systemd"
 	"arvika.pulcy.com/pulcy/yard/topics"
@@ -29,16 +30,7 @@ var (
 )
 
 func init() {
-	cmdSetup.Flags().StringVar(&setupFlags.DiscoveryURL, "discovery-url", "", "ETCD discovery URL")
-	// Docker
-	cmdSetup.Flags().StringVar(&setupFlags.DockerIP, "docker-ip", "", "IP address docker binds ports to")
-	cmdSetup.Flags().StringVar(&setupFlags.DockerSubnet, "docker-subnet", defaultDockerSubnet, "Subnet used by docker")
-	cmdSetup.Flags().StringVar(&setupFlags.PrivateRegistryUrl, "private-registry-url", defaultPrivateRegistryUrl, "URL of private docker registry")
-	cmdSetup.Flags().StringVar(&setupFlags.PrivateRegistryUserName, "private-registry-username", defaultPrivateRegistryUserName, "Username for private registry")
-	cmdSetup.Flags().StringVar(&setupFlags.PrivateRegistryPassword, "private-registry-password", defaultPrivateRegistryPassword, "Password for private registry")
-	// IPTables
-	cmdSetup.Flags().StringVar(&setupFlags.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the private IP")
-
+	initSetupFlags(cmdSetup.Flags(), setupFlags)
 	cmdMain.AddCommand(cmdSetup)
 }
 
@@ -99,4 +91,19 @@ func createTopics(args []string) []topics.Topic {
 		}
 	}
 	return list
+}
+
+func initSetupFlags(flags *pflag.FlagSet, f *topics.TopicFlags) {
+	flags.StringVar(&f.YardPassphrase, "yard-passphrase", "", "Passphrase for yard image")
+	flags.StringVar(&f.YardImage, "yard-image", "", "Yard docker image name")
+	// ETCD
+	flags.StringVar(&f.DiscoveryURL, "discovery-url", "", "ETCD discovery URL")
+	// Docker
+	flags.StringVar(&f.DockerIP, "docker-ip", "", "IP address docker binds ports to")
+	flags.StringVar(&f.DockerSubnet, "docker-subnet", defaultDockerSubnet, "Subnet used by docker")
+	flags.StringVar(&f.PrivateRegistryUrl, "private-registry-url", defaultPrivateRegistryUrl, "URL of private docker registry")
+	flags.StringVar(&f.PrivateRegistryUserName, "private-registry-username", defaultPrivateRegistryUserName, "Username for private registry")
+	flags.StringVar(&f.PrivateRegistryPassword, "private-registry-password", defaultPrivateRegistryPassword, "Password for private registry")
+	// IPTables
+	flags.StringVar(&f.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the private IP")
 }

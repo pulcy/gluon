@@ -1,6 +1,7 @@
 package topics
 
 import (
+	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -25,6 +26,10 @@ type TopicDependencies struct {
 }
 
 type TopicFlags struct {
+	// yard
+	YardPassphrase string
+	YardImage      string
+
 	// ETCD discovery URL
 	DiscoveryURL string
 
@@ -56,6 +61,24 @@ type discoveryNode struct {
 type ClusterMember struct {
 	MachineID string
 	PrivateIP string
+}
+
+// SetupDefaults fills given flags with default value
+func (flags *TopicFlags) SetupDefaults(yardVersion string) error {
+	if flags.DiscoveryURL == "" {
+		url, err := ioutil.ReadFile("/etc/pulcy/discovery-url")
+		if err != nil {
+			return maskAny(err)
+		}
+		flags.DiscoveryURL = string(url)
+	}
+	if flags.YardImage == "" && yardVersion != "" {
+		flags.YardImage = fmt.Sprintf("pulcy/yard:%s", yardVersion)
+	}
+	if flags.PrivateClusterDevice == "" {
+		flags.PrivateClusterDevice = "eth1"
+	}
+	return nil
 }
 
 // GetClusterMembers returns a list of the private IP

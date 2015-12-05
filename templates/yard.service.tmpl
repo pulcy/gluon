@@ -1,0 +1,20 @@
+[Unit]
+After=docker.service
+Requires=docker.service
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/environment
+Environment=YARD_PASSPHRASE={{.YardPassphrase}}
+ExecStartPre=/bin/sh -c 'mkdir -p /home/core/bin'
+ExecStartPre=/bin/sh -c '/usr/bin/docker pull {{.YardImage}}'
+ExecStartPre=/bin/sh -c 'test -e /home/core/bin/yard || /usr/bin/docker run --rm -v /home/core/bin/:/destination/ -e PASSPHRASE=${YARD_PASSPHRASE} {{.YardImage}}'
+ExecStart=/home/core/bin/yard setup \
+{{if .DiscoveryURL}}--discovery-url={{.DiscoveryURL}}{{end}} \
+--docker-ip=${COREOS_PRIVATE_IPV4} \
+--private-cluster-device={{.PrivateClusterDevice}} \
+--private-registry-url={{.PrivateRegistryUrl}} \
+--private-registry-username={{.PrivateRegistryUserName}} \
+--private-registry-password={{.PrivateRegistryPassword}}
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target

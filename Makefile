@@ -19,6 +19,7 @@ GOBINDATA := $(GOBUILDDIR)/bin/go-bindata
 
 GOPATH := $(GOBUILDDIR)
 
+GOVERSION=1.5.1
 ifndef GOOS
 	GOOS := linux
 endif
@@ -63,8 +64,8 @@ $(BIN): $(GOBUILDDIR) $(GOBINDATA) $(SOURCES) templates/templates_bindata.go
 	    -e GOOS=$(GOOS) \
 	    -e GOARCH=$(GOARCH) \
 	    -w /usr/code/ \
-	    golang:1.4.2-cross \
-	    go build -a -ldflags "-X main.projectVersion $(VERSION) -X main.projectBuild $(COMMIT)" -o /usr/code/$(PROJECT)
+	    golang:$(GOVERSION) \
+	    go build -a -ldflags "-X main.projectVersion=$(VERSION) -X main.projectBuild=$(COMMIT)" -o /usr/code/$(PROJECT)
 
 $(BINGPG): $(BIN)
 	@sh -c 'if [ -z $(YARD_PASSPHRASE) ]; then echo YARD_PASSPHRASE missing && exit 1; fi'
