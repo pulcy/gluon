@@ -63,7 +63,7 @@ func Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags, yardVersion
 func createService(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
 	deps.Logger.Info("creating %s", servicePath)
 	opts := struct {
-		DiscoveryUrl            string
+		DiscoveryURL            string
 		YardPassphrase          string
 		YardImage               string
 		PrivateClusterDevice    string
@@ -71,7 +71,7 @@ func createService(deps *topics.TopicDependencies, flags *topics.TopicFlags) err
 		PrivateRegistryUserName string
 		PrivateRegistryPassword string
 	}{
-		DiscoveryUrl:            flags.DiscoveryURL,
+		DiscoveryURL:            flags.DiscoveryURL,
 		YardPassphrase:          flags.YardPassphrase,
 		YardImage:               flags.YardImage,
 		PrivateClusterDevice:    flags.PrivateClusterDevice,
