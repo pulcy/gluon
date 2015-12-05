@@ -39,6 +39,10 @@ func Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags, yardVersion
 		return errgo.New("private-registry-password is missing")
 	}
 
+	if err := flags.Save(); err != nil {
+		return maskAny(err)
+	}
+
 	if err := createService(deps, flags); err != nil {
 		return maskAny(err)
 	}

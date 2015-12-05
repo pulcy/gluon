@@ -3,6 +3,8 @@ package topics
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/op/go-logging"
@@ -11,7 +13,10 @@ import (
 )
 
 const (
-	clusterMembersPath = "/etc/pulcy/cluster-members"
+	discoveryUrlPath       = "/etc/pulcy/discovery-url"
+	clusterMembersPath     = "/etc/pulcy/cluster-members"
+	yardPassphrasePath     = "/etc/pulcy/yard-passphrase"
+	privateRegistryUrlPath = "/etc/pulcy/private-registry-url"
 )
 
 type Topic interface {
@@ -66,17 +71,51 @@ type ClusterMember struct {
 // SetupDefaults fills given flags with default value
 func (flags *TopicFlags) SetupDefaults(yardVersion string) error {
 	if flags.DiscoveryURL == "" {
-		url, err := ioutil.ReadFile("/etc/pulcy/discovery-url")
+		url, err := ioutil.ReadFile(discoveryUrlPath)
 		if err != nil {
 			return maskAny(err)
 		}
 		flags.DiscoveryURL = string(url)
+	}
+	if flags.YardPassphrase == "" {
+		passphrase, err := ioutil.ReadFile(yardPassphrasePath)
+		if err != nil {
+			return maskAny(err)
+		}
+		flags.YardPassphrase = string(passphrase)
+	}
+	if flags.PrivateRegistryUrl == "" {
+		url, err := ioutil.ReadFile(privateRegistryUrlPath)
+		if err != nil {
+			return maskAny(err)
+		}
+		flags.PrivateRegistryUrl = string(url)
 	}
 	if flags.YardImage == "" && yardVersion != "" {
 		flags.YardImage = fmt.Sprintf("pulcy/yard:%s", yardVersion)
 	}
 	if flags.PrivateClusterDevice == "" {
 		flags.PrivateClusterDevice = "eth1"
+	}
+	return nil
+}
+
+// Save applicable flags to their respective files
+func (flags *TopicFlags) Save() error {
+	if flags.DiscoveryURL != "" {
+		if err := updateContent(discoveryUrlPath, flags.DiscoveryURL, 0644); err != nil {
+			return maskAny(err)
+		}
+	}
+	if flags.YardPassphrase != "" {
+		if err := updateContent(yardPassphrasePath, flags.YardPassphrase, 0400); err != nil {
+			return maskAny(err)
+		}
+	}
+	if flags.PrivateRegistryUrl != "" {
+		if err := updateContent(privateRegistryUrlPath, flags.PrivateRegistryUrl, 0644); err != nil {
+			return maskAny(err)
+		}
 	}
 	return nil
 }
@@ -123,4 +162,16 @@ func (flags *TopicFlags) getClusterMembersFromFS() ([]ClusterMember, error) {
 	}
 
 	return members, nil
+}
+
+func updateContent(path, content string, fileMode os.FileMode) error {
+	oldContent, err := ioutil.ReadFile(path)
+	if err != nil && !os.IsNotExist(err) {
+		return maskAny(err)
+	}
+	os.MkdirAll(filepath.Dir(path), 0755)
+	if strings.TrimSpace(string(oldContent)) != strings.TrimSpace(content) {
+		ioutil.WriteFile(path, []byte(content), fileMode)
+	}
+	return nil
 }
