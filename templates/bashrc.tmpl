@@ -11,6 +11,7 @@ export PS1="\e[0;32m\u@$(cat /etc/environment | grep COREOS_PUBLIC_IPV4 | cut -d
 
 # General
 alias jq="docker run --rm -i realguess/jq:latest jq"
+alias vault="docker run --rm -i pulcy/vault:latest"
 
 # Docker
 alias dockercleancontainers="docker ps -a --no-trunc| grep 'Exit' | awk '{print \$1}' | xargs -L 1 -r docker rm"
