@@ -11,6 +11,7 @@ import (
 	"arvika.pulcy.com/pulcy/yard/topics/docker"
 	"arvika.pulcy.com/pulcy/yard/topics/env"
 	"arvika.pulcy.com/pulcy/yard/topics/iptables"
+	"arvika.pulcy.com/pulcy/yard/topics/sshd"
 )
 
 const (
@@ -76,6 +77,7 @@ func createTopics(args []string) []topics.Topic {
 		env.NewTopic(),
 		iptables.NewTopic(),
 		docker.NewTopic(),
+		sshd.NewTopic(),
 	}
 	list := []topics.Topic{}
 	isSelected := func(name string) bool {
