@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/cliconfig"
 	"github.com/juju/errgo"
 
@@ -83,7 +84,7 @@ func createDockerConfig(deps *topics.TopicDependencies, flags *topics.TopicFlags
 		}
 
 		// Set authentication entries
-		cf.AuthConfigs[flags.PrivateRegistryUrl] = cliconfig.AuthConfig{
+		cf.AuthConfigs[flags.PrivateRegistryUrl] = types.AuthConfig{
 			Username: flags.PrivateRegistryUserName,
 			Password: flags.PrivateRegistryPassword,
 			Email:    "",
