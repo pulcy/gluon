@@ -72,7 +72,14 @@ $(BIN): $(GOBUILDDIR) $(GOBINDATA) $(SOURCES) templates/templates_bindata.go
 $(BINGPG): $(BIN)
 	@sh -c 'if [ -z $(YARD_PASSPHRASE) ]; then echo YARD_PASSPHRASE missing && exit 1; fi'
 	@rm -Rf $(BINGPG)
-	@gpg --armor --output $(BINGPG) --passphrase $(YARD_PASSPHRASE) --symmetric $(BIN)
+	@docker run \
+	    --rm \
+		-t \
+	    -v $(ROOTDIR):/usr/code \
+		-e YARD_PASSPHRASE=$(YARD_PASSPHRASE) \
+	    -w /usr/code/ \
+		pulcy/gpg \
+		--batch --armor --output yard.gpg --passphrase $(YARD_PASSPHRASE) --symmetric yard
 
 # Special rule, because this file is generated
 templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)
