@@ -50,6 +50,7 @@ func (t *SshdTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFla
 
 func createSshdConfig(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
 	deps.Logger.Info("creating %s", confPath)
+	os.Remove(confPath)
 	if err := templates.Render(confTemplate, confPath, nil, fileMode); err != nil {
 		return maskAny(err)
 	}
