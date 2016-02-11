@@ -7,6 +7,7 @@ COMMIT := $(shell git rev-parse --short HEAD)
 GOBUILDDIR := $(SCRIPTDIR)/.gobuild
 SRCDIR := $(SCRIPTDIR)
 BINDIR := $(ROOTDIR)
+VENDORDIR := $(ROOTDIR)/vendor
 
 ORGPATH := arvika.pulcy.com/pulcy
 ORGDIR := $(GOBUILDDIR)/src/$(ORGPATH)
@@ -18,8 +19,8 @@ BINGPG := $(BIN).gpg
 GOBINDATA := $(GOBUILDDIR)/bin/go-bindata
 
 GOPATH := $(GOBUILDDIR)
+GOVERSION := 1.5.3
 
-GOVERSION=1.5.1
 ifndef GOOS
 	GOOS := linux
 endif
@@ -52,10 +53,6 @@ $(GOBUILDDIR):
 	@cd $(GOPATH) && pulcy go get github.com/op/go-logging
 	@cd $(GOPATH) && pulcy go get github.com/spf13/cobra
 	@cd $(GOPATH) && pulcy go get github.com/spf13/pflag
-	@pulcy get git@github.com:docker/docker.git $(GOBUILDDIR)/src/github.com/docker/docker
-	@pulcy get git@github.com:docker/go-connections.git $(GOBUILDDIR)/src/github.com/docker/go-connections
-	@pulcy get git@github.com:docker/go-units.git $(GOBUILDDIR)/src/github.com/docker/go-units
-	@pulcy get git@github.com:opencontainers/runc.git $(GOBUILDDIR)/src/github.com/opencontainers/runc
 
 
 $(BIN): $(GOBUILDDIR) $(GOBINDATA) $(SOURCES) templates/templates_bindata.go

@@ -1,11 +1,12 @@
 package docker
 
 import (
+	"encoding/base64"
+	"encoding/json"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/cliconfig"
 	"github.com/juju/errgo"
 
 	"arvika.pulcy.com/pulcy/yard/templates"
@@ -24,6 +25,23 @@ const (
 
 	fileMode = os.FileMode(0755)
 )
+
+// ConfigFile ~/.docker/config.json file info
+// Taken from https://github.com/docker/docker/blob/master/cliconfig/config.go
+type ConfigFile struct {
+	AuthConfigs map[string]AuthConfig `json:"auths"`
+}
+
+// AuthConfig contains authorization information for connecting to a Registry
+// Taken from https://github.com/docker/engine-api/blob/master/types/auth.go
+type AuthConfig struct {
+	Username      string `json:"username,omitempty"`
+	Password      string `json:"password,omitempty"`
+	Auth          string `json:"auth"`
+	Email         string `json:"email"`
+	ServerAddress string `json:"serveraddress,omitempty"`
+	RegistryToken string `json:"registrytoken,omitempty"`
+}
 
 type DockerTopic struct {
 }
@@ -78,20 +96,26 @@ func createDockerConfig(deps *topics.TopicDependencies, flags *topics.TopicFlags
 	if flags.PrivateRegistryPassword != "" && flags.PrivateRegistryUrl != "" && flags.PrivateRegistryUserName != "" {
 		deps.Logger.Info("creating %s", rootConfigPath)
 		// Load config file
-		cf, err := cliconfig.Load(filepath.Dir(rootConfigPath))
-		if err != nil {
-			return maskAny(err)
+		cf := ConfigFile{
+			AuthConfigs: make(map[string]AuthConfig),
 		}
 
 		// Set authentication entries
-		cf.AuthConfigs[flags.PrivateRegistryUrl] = types.AuthConfig{
-			Username: flags.PrivateRegistryUserName,
-			Password: flags.PrivateRegistryPassword,
-			Email:    "",
+		cf.AuthConfigs[flags.PrivateRegistryUrl] = AuthConfig{
+			Auth: encodeAuth(AuthConfig{
+				Username: flags.PrivateRegistryUserName,
+				Password: flags.PrivateRegistryPassword,
+				Email:    "",
+			}),
 		}
 
 		// Save
-		if err := cf.Save(); err != nil {
+		os.MkdirAll(filepath.Dir(rootConfigPath), 0700)
+		raw, err := json.MarshalIndent(cf, "", "\t")
+		if err != nil {
+			return maskAny(err)
+		}
+		if err := ioutil.WriteFile(rootConfigPath, raw, 0600); err != nil {
 			return maskAny(err)
 		}
 	} else {
@@ -99,4 +123,14 @@ func createDockerConfig(deps *topics.TopicDependencies, flags *topics.TopicFlags
 	}
 
 	return nil
+}
+
+// encodeAuth creates a base64 encoded string to containing authorization information
+// Taken from https://github.com/docker/docker/blob/master/cliconfig/config.go
+func encodeAuth(authConfig AuthConfig) string {
+	authStr := authConfig.Username + ":" + authConfig.Password
+	msg := []byte(authStr)
+	encoded := make([]byte, base64.StdEncoding.EncodedLen(len(msg)))
+	base64.StdEncoding.Encode(encoded, msg)
+	return string(encoded)
 }
