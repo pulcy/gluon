@@ -7,8 +7,8 @@ import (
 
 	"github.com/juju/errgo"
 
-	"arvika.pulcy.com/pulcy/yard/templates"
-	"arvika.pulcy.com/pulcy/yard/topics"
+	"github.com/pulcy/yard/templates"
+	"github.com/pulcy/yard/topics"
 )
 
 var (

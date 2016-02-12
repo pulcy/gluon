@@ -9,7 +9,7 @@ import (
 
 	"github.com/op/go-logging"
 
-	"arvika.pulcy.com/pulcy/yard/systemd"
+	"github.com/pulcy/yard/systemd"
 )
 
 const (

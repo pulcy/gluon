@@ -6,12 +6,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"arvika.pulcy.com/pulcy/yard/systemd"
-	"arvika.pulcy.com/pulcy/yard/topics"
-	"arvika.pulcy.com/pulcy/yard/topics/docker"
-	"arvika.pulcy.com/pulcy/yard/topics/env"
-	"arvika.pulcy.com/pulcy/yard/topics/iptables"
-	"arvika.pulcy.com/pulcy/yard/topics/sshd"
+	"github.com/pulcy/yard/systemd"
+	"github.com/pulcy/yard/topics"
+	"github.com/pulcy/yard/topics/docker"
+	"github.com/pulcy/yard/topics/env"
+	"github.com/pulcy/yard/topics/iptables"
+	"github.com/pulcy/yard/topics/sshd"
 )
 
 const (

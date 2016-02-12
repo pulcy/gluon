@@ -4,7 +4,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"arvika.pulcy.com/pulcy/yard/topics"
+	"github.com/pulcy/yard/topics"
 )
 
 // UpdatePrivateCluster refresh the PRIVATECLUSTER iptables chain reflecting

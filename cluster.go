@@ -3,9 +3,9 @@ package main
 import (
 	"github.com/spf13/cobra"
 
-	"arvika.pulcy.com/pulcy/yard/systemd"
-	"arvika.pulcy.com/pulcy/yard/topics"
-	"arvika.pulcy.com/pulcy/yard/topics/iptables"
+	"github.com/pulcy/yard/systemd"
+	"github.com/pulcy/yard/topics"
+	"github.com/pulcy/yard/topics/iptables"
 )
 
 var (
