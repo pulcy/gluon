@@ -100,6 +100,8 @@ func createTopics(args []string) []topics.Topic {
 }
 
 func initSetupFlags(flags *pflag.FlagSet, f *topics.TopicFlags) {
+	flags.BoolVar(&f.Force, "force", false, "Restart services, even if nothing has changed")
+	//Yard
 	flags.StringVar(&f.YardPassphrase, "yard-passphrase", "", "Passphrase for yard image")
 	flags.StringVar(&f.YardImage, "yard-image", "", "Yard docker image name")
 	// ETCD

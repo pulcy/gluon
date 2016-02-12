@@ -46,7 +46,7 @@ func (t *EnvTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlag
 func createBashrc(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
 	deps.Logger.Info("creating %s", bashrcPath)
 	os.Remove(bashrcPath)
-	if err := templates.Render(bashrcTemplate, bashrcPath, nil, fileMode); err != nil {
+	if _, err := templates.Render(bashrcTemplate, bashrcPath, nil, fileMode); err != nil {
 		return maskAny(err)
 	}
 

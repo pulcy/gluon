@@ -25,22 +25,24 @@ const (
 )
 
 func ConfigureEtcd2(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
-	if err := createEtcd2Conf(deps, flags); err != nil {
+	changedConf, err := createEtcd2Conf(deps, flags)
+	if err != nil {
 		return maskAny(err)
 	}
 
-	if err := deps.Systemd.Reload(); err != nil {
-		return maskAny(err)
-	}
-
-	if err := deps.Systemd.Restart(serviceName); err != nil {
-		return maskAny(err)
+	if flags.Force || changedConf {
+		if err := deps.Systemd.Reload(); err != nil {
+			return maskAny(err)
+		}
+		if err := deps.Systemd.Restart(serviceName); err != nil {
+			return maskAny(err)
+		}
 	}
 
 	return nil
 }
 
-func createEtcd2Conf(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func createEtcd2Conf(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
 	deps.Logger.Info("creating %s", confPath)
 	members, err := flags.GetClusterMembers()
 	if err != nil {
@@ -62,9 +64,6 @@ func createEtcd2Conf(deps *topics.TopicDependencies, flags *topics.TopicFlags) e
 		opts.InitialCluster = strings.Join(items, ",")
 		opts.InitialClusterState = "existing"
 	}
-	if err := templates.Render(confTemplate, confPath, opts, fileMode); err != nil {
-		return maskAny(err)
-	}
-
-	return nil
+	changed, err := templates.Render(confTemplate, confPath, opts, fileMode)
+	return changed, maskAny(err)
 }

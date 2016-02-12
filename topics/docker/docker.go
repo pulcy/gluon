@@ -3,7 +3,6 @@ package docker
 import (
 	"encoding/base64"
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -11,6 +10,7 @@ import (
 
 	"github.com/pulcy/yard/templates"
 	"github.com/pulcy/yard/topics"
+	"github.com/pulcy/yard/util"
 )
 
 var (
@@ -59,40 +59,40 @@ func (t *DockerTopic) Defaults(flags *topics.TopicFlags) error {
 }
 
 func (t *DockerTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
-	if err := createDockerConfig(deps, flags); err != nil {
+	changedConfig, err := createDockerConfig(deps, flags)
+	if err != nil {
 		return maskAny(err)
 	}
 
-	if err := createDockerService(deps, flags); err != nil {
+	changedService, err := createDockerService(deps, flags)
+	if err != nil {
 		return maskAny(err)
 	}
 
-	if err := deps.Systemd.Reload(); err != nil {
-		return maskAny(err)
-	}
-
-	if err := deps.Systemd.Restart(serviceName); err != nil {
-		return maskAny(err)
+	if flags.Force || changedConfig || changedService {
+		if err := deps.Systemd.Reload(); err != nil {
+			return maskAny(err)
+		}
+		if err := deps.Systemd.Restart(serviceName); err != nil {
+			return maskAny(err)
+		}
 	}
 
 	return nil
 }
 
-func createDockerService(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func createDockerService(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
 	deps.Logger.Info("creating %s", servicePath)
 	opts := struct {
 		DockerIP string
 	}{
 		DockerIP: flags.DockerIP,
 	}
-	if err := templates.Render(serviceTemplate, servicePath, opts, fileMode); err != nil {
-		return maskAny(err)
-	}
-
-	return nil
+	changed, err := templates.Render(serviceTemplate, servicePath, opts, fileMode)
+	return changed, maskAny(err)
 }
 
-func createDockerConfig(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func createDockerConfig(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
 	if flags.PrivateRegistryPassword != "" && flags.PrivateRegistryUrl != "" && flags.PrivateRegistryUserName != "" {
 		deps.Logger.Info("creating %s", rootConfigPath)
 		// Load config file
@@ -113,16 +113,15 @@ func createDockerConfig(deps *topics.TopicDependencies, flags *topics.TopicFlags
 		os.MkdirAll(filepath.Dir(rootConfigPath), 0700)
 		raw, err := json.MarshalIndent(cf, "", "\t")
 		if err != nil {
-			return maskAny(err)
+			return false, maskAny(err)
 		}
-		if err := ioutil.WriteFile(rootConfigPath, raw, 0600); err != nil {
-			return maskAny(err)
-		}
+		changed, err := util.UpdateFile(rootConfigPath, raw, 0600)
+		return changed, maskAny(err)
 	} else {
 		deps.Logger.Warning("Skip creating .docker config")
 	}
 
-	return nil
+	return false, nil
 }
 
 // encodeAuth creates a base64 encoded string to containing authorization information

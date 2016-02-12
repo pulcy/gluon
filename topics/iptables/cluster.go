@@ -13,7 +13,7 @@ func UpdatePrivateCluster(deps *topics.TopicDependencies, flags *topics.TopicFla
 	if err := updatePrivateClusterChain(deps, flags); err != nil {
 		return maskAny(err)
 	}
-	if err := createRules(deps, flags); err != nil {
+	if _, err := createRules(deps, flags); err != nil {
 		return maskAny(err)
 	}
 	return nil

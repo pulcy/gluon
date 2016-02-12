@@ -1,22 +1,26 @@
 package templates
 
 import (
+	"bytes"
 	"os"
-	"path/filepath"
 	"strconv"
 	"text/template"
 
 	"github.com/juju/errgo"
+
+	"github.com/pulcy/yard/util"
 )
 
 var (
 	maskAny = errgo.MaskFunc(errgo.Any)
 )
 
-func Render(templateName, destinationPath string, options interface{}, destinationFileMode os.FileMode) error {
+// Render updates the given destinationPath according to the given template and options.
+// Returns true if the file was created or changed, false if nothing has changed.
+func Render(templateName, destinationPath string, options interface{}, destinationFileMode os.FileMode) (bool, error) {
 	asset, err := Asset(templateName)
 	if err != nil {
-		return maskAny(err)
+		return false, maskAny(err)
 	}
 
 	// parse template
@@ -29,25 +33,19 @@ func Render(templateName, destinationPath string, options interface{}, destinati
 	tmpl.Funcs(funcMap)
 	_, err = tmpl.Parse(string(asset))
 	if err != nil {
-		return maskAny(err)
+		return false, maskAny(err)
 	}
-	destinationDir := filepath.Dir(destinationPath)
-	if err := os.MkdirAll(destinationDir, destinationFileMode); err != nil {
-		return maskAny(err)
-	}
-	f, err := os.Create(destinationPath)
-	if err != nil {
-		return maskAny(err)
-	}
-	// write file to host
+	// execute template to buffer
+	buf := &bytes.Buffer{}
 	tmpl.Funcs(funcMap)
-	err = tmpl.Execute(f, options)
+	err = tmpl.Execute(buf, options)
 	if err != nil {
-		return maskAny(err)
+		return false, maskAny(err)
 	}
-	f.Chmod(destinationFileMode)
 
-	return nil
+	// Update file
+	changed, err := util.UpdateFile(destinationPath, buf.Bytes(), destinationFileMode)
+	return changed, maskAny(err)
 }
 
 func escape(s string) string {

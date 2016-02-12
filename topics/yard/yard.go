@@ -39,32 +39,36 @@ func Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags, yardVersion
 		return errgo.New("private-registry-password is missing")
 	}
 
-	if err := flags.Save(); err != nil {
+	changedFlags, err := flags.Save()
+	if err != nil {
 		return maskAny(err)
 	}
 
-	if err := createService(deps, flags); err != nil {
+	changedService, err := createService(deps, flags)
+	if err != nil {
 		return maskAny(err)
 	}
 
-	if err := os.Remove(yardPath); err != nil {
-		if !os.IsNotExist(err) {
+	if flags.Force || changedFlags || changedService {
+		if err := os.Remove(yardPath); err != nil {
+			if !os.IsNotExist(err) {
+				return maskAny(err)
+			}
+		}
+
+		if err := deps.Systemd.Reload(); err != nil {
 			return maskAny(err)
 		}
-	}
 
-	if err := deps.Systemd.Reload(); err != nil {
-		return maskAny(err)
-	}
-
-	if err := deps.Systemd.Restart(serviceName); err != nil {
-		return maskAny(err)
+		if err := deps.Systemd.Restart(serviceName); err != nil {
+			return maskAny(err)
+		}
 	}
 
 	return nil
 }
 
-func createService(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func createService(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
 	deps.Logger.Info("creating %s", servicePath)
 	opts := struct {
 		DiscoveryURL            string
@@ -83,9 +87,6 @@ func createService(deps *topics.TopicDependencies, flags *topics.TopicFlags) err
 		PrivateRegistryUserName: flags.PrivateRegistryUserName,
 		PrivateRegistryPassword: flags.PrivateRegistryPassword,
 	}
-	if err := templates.Render(serviceTemplate, servicePath, opts, fileMode); err != nil {
-		return maskAny(err)
-	}
-
-	return nil
+	changed, err := templates.Render(serviceTemplate, servicePath, opts, fileMode)
+	return changed, maskAny(err)
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/op/go-logging"
 
 	"github.com/pulcy/yard/systemd"
+	"github.com/pulcy/yard/util"
 )
 
 const (
@@ -31,6 +32,8 @@ type TopicDependencies struct {
 }
 
 type TopicFlags struct {
+	Force bool // Start/reload even if nothing has changed
+
 	// yard
 	YardPassphrase string
 	YardImage      string
@@ -101,23 +104,31 @@ func (flags *TopicFlags) SetupDefaults(yardVersion string) error {
 }
 
 // Save applicable flags to their respective files
-func (flags *TopicFlags) Save() error {
+// Returns true if anything has changed, false otherwise
+func (flags *TopicFlags) Save() (bool, error) {
+	changes := 0
 	if flags.DiscoveryURL != "" {
-		if err := updateContent(discoveryUrlPath, flags.DiscoveryURL, 0644); err != nil {
-			return maskAny(err)
+		if changed, err := updateContent(discoveryUrlPath, flags.DiscoveryURL, 0644); err != nil {
+			return false, maskAny(err)
+		} else if changed {
+			changes++
 		}
 	}
 	if flags.YardPassphrase != "" {
-		if err := updateContent(yardPassphrasePath, flags.YardPassphrase, 0400); err != nil {
-			return maskAny(err)
+		if changed, err := updateContent(yardPassphrasePath, flags.YardPassphrase, 0400); err != nil {
+			return false, maskAny(err)
+		} else if changed {
+			changes++
 		}
 	}
 	if flags.PrivateRegistryUrl != "" {
-		if err := updateContent(privateRegistryUrlPath, flags.PrivateRegistryUrl, 0644); err != nil {
-			return maskAny(err)
+		if changed, err := updateContent(privateRegistryUrlPath, flags.PrivateRegistryUrl, 0644); err != nil {
+			return false, maskAny(err)
+		} else if changed {
+			changes++
 		}
 	}
-	return nil
+	return (changes > 0), nil
 }
 
 // GetClusterMembers returns a list of the private IP
@@ -164,14 +175,9 @@ func (flags *TopicFlags) getClusterMembersFromFS() ([]ClusterMember, error) {
 	return members, nil
 }
 
-func updateContent(path, content string, fileMode os.FileMode) error {
-	oldContent, err := ioutil.ReadFile(path)
-	if err != nil && !os.IsNotExist(err) {
-		return maskAny(err)
-	}
+func updateContent(path, content string, fileMode os.FileMode) (bool, error) {
+	content = strings.TrimSpace(content)
 	os.MkdirAll(filepath.Dir(path), 0755)
-	if strings.TrimSpace(string(oldContent)) != strings.TrimSpace(content) {
-		ioutil.WriteFile(path, []byte(content), fileMode)
-	}
-	return nil
+	changed, err := util.UpdateFile(path, []byte(content), fileMode)
+	return changed, maskAny(err)
 }

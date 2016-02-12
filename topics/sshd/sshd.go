@@ -37,23 +37,23 @@ func (t *SshdTopic) Defaults(flags *topics.TopicFlags) error {
 }
 
 func (t *SshdTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
-	if err := createSshdConfig(deps, flags); err != nil {
+	changedConfig, err := createSshdConfig(deps, flags)
+	if err != nil {
 		return maskAny(err)
 	}
 
-	if err := deps.Systemd.Reload(); err != nil {
-		return maskAny(err)
+	if flags.Force || changedConfig {
+		if err := deps.Systemd.Reload(); err != nil {
+			return maskAny(err)
+		}
 	}
 
 	return nil
 }
 
-func createSshdConfig(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func createSshdConfig(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
 	deps.Logger.Info("creating %s", confPath)
 	os.Remove(confPath)
-	if err := templates.Render(confTemplate, confPath, nil, fileMode); err != nil {
-		return maskAny(err)
-	}
-
-	return nil
+	changed, err := templates.Render(confTemplate, confPath, nil, fileMode)
+	return changed, maskAny(err)
 }

@@ -48,50 +48,54 @@ func (t *IPTablesTopic) Defaults(flags *topics.TopicFlags) error {
 }
 
 func (t *IPTablesTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
-	if err := createRules(deps, flags); err != nil {
+	changedRules, err := createRules(deps, flags)
+	if err != nil {
 		return maskAny(err)
 	}
 
-	if err := createNetfilterService(deps, flags); err != nil {
+	changedNetfilterService, err := createNetfilterService(deps, flags)
+	if err != nil {
 		return maskAny(err)
 	}
 
-	if err := createIptablesService(deps, flags); err != nil {
+	changedIptableService, err := createIptablesService(deps, flags)
+	if err != nil {
 		return maskAny(err)
 	}
 
-	if err := createUpdateClusterService(deps, flags); err != nil {
+	changedUpdateCluster, err := createUpdateClusterService(deps, flags)
+	if err != nil {
 		return maskAny(err)
 	}
 
-	if err := createUpdateClusterTimer(deps, flags); err != nil {
+	changedUpdateClusterTimer, err := createUpdateClusterTimer(deps, flags)
+	if err != nil {
 		return maskAny(err)
 	}
 
-	if err := deps.Systemd.Reload(); err != nil {
-		return maskAny(err)
-	}
-
-	if err := deps.Systemd.Start(netfilterServiceName); err != nil {
-		return maskAny(err)
-	}
-
-	if err := deps.Systemd.Start(serviceName); err != nil {
-		return maskAny(err)
-	}
-
-	if err := deps.Systemd.Start(updateClusterTimerName); err != nil {
-		return maskAny(err)
+	if flags.Force || changedRules || changedNetfilterService || changedIptableService || changedUpdateCluster || changedUpdateClusterTimer {
+		if err := deps.Systemd.Reload(); err != nil {
+			return maskAny(err)
+		}
+		if err := deps.Systemd.Start(netfilterServiceName); err != nil {
+			return maskAny(err)
+		}
+		if err := deps.Systemd.Start(serviceName); err != nil {
+			return maskAny(err)
+		}
+		if err := deps.Systemd.Start(updateClusterTimerName); err != nil {
+			return maskAny(err)
+		}
 	}
 
 	return nil
 }
 
-func createRules(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func createRules(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
 	deps.Logger.Info("creating %s", rulesPath)
 	members, err := flags.GetClusterMembers()
 	if err != nil {
-		return maskAny(err)
+		return false, maskAny(err)
 	}
 	opts := struct {
 		ClusterMemberIPs     []string
@@ -105,23 +109,17 @@ func createRules(deps *topics.TopicDependencies, flags *topics.TopicFlags) error
 	for _, cm := range members {
 		opts.ClusterMemberIPs = append(opts.ClusterMemberIPs, cm.PrivateIP)
 	}
-	if err := templates.Render(rulesTemplate, rulesPath, opts, fileMode); err != nil {
-		return maskAny(err)
-	}
-
-	return nil
+	changed, err := templates.Render(rulesTemplate, rulesPath, opts, fileMode)
+	return changed, maskAny(err)
 }
 
-func createNetfilterService(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func createNetfilterService(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
 	deps.Logger.Info("creating %s", netfilterServicePath)
-	if err := templates.Render(netfilterTemplate, netfilterServicePath, nil, fileMode); err != nil {
-		return maskAny(err)
-	}
-
-	return nil
+	changed, err := templates.Render(netfilterTemplate, netfilterServicePath, nil, fileMode)
+	return changed, maskAny(err)
 }
 
-func createUpdateClusterService(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func createUpdateClusterService(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
 	deps.Logger.Info("creating %s", updateClusterServicePath)
 	opts := struct {
 		DiscoveryUrl         string
@@ -130,27 +128,18 @@ func createUpdateClusterService(deps *topics.TopicDependencies, flags *topics.To
 		DiscoveryUrl:         flags.DiscoveryURL,
 		PrivateClusterDevice: flags.PrivateClusterDevice,
 	}
-	if err := templates.Render(updateClusterServiceTemplate, updateClusterServicePath, opts, fileMode); err != nil {
-		return maskAny(err)
-	}
-
-	return nil
+	changed, err := templates.Render(updateClusterServiceTemplate, updateClusterServicePath, opts, fileMode)
+	return changed, maskAny(err)
 }
 
-func createUpdateClusterTimer(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func createUpdateClusterTimer(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
 	deps.Logger.Info("creating %s", updateClusterTimerPath)
-	if err := templates.Render(updateClusterTimerTemplate, updateClusterTimerPath, nil, fileMode); err != nil {
-		return maskAny(err)
-	}
-
-	return nil
+	changed, err := templates.Render(updateClusterTimerTemplate, updateClusterTimerPath, nil, fileMode)
+	return changed, maskAny(err)
 }
 
-func createIptablesService(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func createIptablesService(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
 	deps.Logger.Info("creating %s", servicePath)
-	if err := templates.Render(serviceTemplate, servicePath, nil, fileMode); err != nil {
-		return maskAny(err)
-	}
-
-	return nil
+	changed, err := templates.Render(serviceTemplate, servicePath, nil, fileMode)
+	return changed, maskAny(err)
 }
