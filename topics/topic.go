@@ -67,6 +67,7 @@ type discoveryNode struct {
 type ClusterMember struct {
 	MachineID string
 	PrivateIP string
+	EtcdProxy bool
 }
 
 // SetupDefaults fills given flags with default value
@@ -116,12 +117,12 @@ func (flags *TopicFlags) Save() (bool, error) {
 
 // GetClusterMembers returns a list of the private IP
 // addresses of all the cluster members
-func (flags *TopicFlags) GetClusterMembers() ([]ClusterMember, error) {
+func (flags *TopicFlags) GetClusterMembers(log *logging.Logger) ([]ClusterMember, error) {
 	if flags.clusterMembers != nil {
 		return flags.clusterMembers, nil
 	}
 
-	members, err := flags.getClusterMembersFromFS()
+	members, err := flags.getClusterMembersFromFS(log)
 	if err != nil {
 		return nil, maskAny(err)
 	}
@@ -132,7 +133,7 @@ func (flags *TopicFlags) GetClusterMembers() ([]ClusterMember, error) {
 
 // getClusterMembersFromFS returns a list of the private IP
 // addresses from a local configuration file
-func (flags *TopicFlags) getClusterMembersFromFS() ([]ClusterMember, error) {
+func (flags *TopicFlags) getClusterMembersFromFS(log *logging.Logger) ([]ClusterMember, error) {
 	content, err := ioutil.ReadFile(clusterMembersPath)
 	if err != nil {
 		return nil, maskAny(err)
@@ -143,16 +144,34 @@ func (flags *TopicFlags) getClusterMembersFromFS() ([]ClusterMember, error) {
 	members := []ClusterMember{}
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		if line != "" {
-			parts := strings.Split(line, "=")
-			if len(parts) == 2 {
-				members = append(members, ClusterMember{
-					MachineID: parts[0],
-					PrivateIP: parts[1],
-				})
+		if line == "" {
+			continue
+		}
+		parts := strings.Split(line, "=")
+		if len(parts) != 2 {
+			continue
+		}
+		id := parts[0]
+		parts = strings.Split(parts[1], " ")
+		ip := parts[0]
+		etcdProxy := false
+		for index, x := range parts {
+			if index == 0 {
+				continue
+			}
+			switch x {
+			case "etcd-proxy":
+				etcdProxy = true
+			default:
+				log.Error("Unknown option '%s' in %s", x, clusterMembersPath)
 			}
 		}
 
+		members = append(members, ClusterMember{
+			MachineID: id,
+			PrivateIP: ip,
+			EtcdProxy: etcdProxy,
+		})
 	}
 
 	return members, nil

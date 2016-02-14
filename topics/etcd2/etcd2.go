@@ -69,17 +69,21 @@ func createEtcd2Conf(deps *topics.TopicDependencies, flags *topics.TopicFlags) (
 	}
 	deps.Logger.Info("creating %s", confPath)
 
-	members, err := flags.GetClusterMembers()
+	members, err := flags.GetClusterMembers(deps.Logger)
 	if err != nil {
 		deps.Logger.Warning("GetClusterMembers failed: %v", err)
 	}
 	clusterItems := []string{}
 	name := ""
+	etcdProxy := false
 	for _, cm := range members {
-		clusterItems = append(clusterItems,
-			fmt.Sprintf("%s=http://%s:2380", cm.MachineID, cm.PrivateIP))
+		if !cm.EtcdProxy {
+			clusterItems = append(clusterItems,
+				fmt.Sprintf("%s=http://%s:2380", cm.MachineID, cm.PrivateIP))
+		}
 		if cm.PrivateIP == flags.PrivateIP {
 			name = cm.MachineID
+			etcdProxy = cm.EtcdProxy
 		}
 	}
 
@@ -94,6 +98,9 @@ func createEtcd2Conf(deps *topics.TopicDependencies, flags *topics.TopicFlags) (
 	}
 	if name != "" {
 		lines = append(lines, "Environment=ETCD_NAME="+name)
+	}
+	if etcdProxy {
+		lines = append(lines, "Environment=ETCD_PROXY=on")
 	}
 
 	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), fileMode)

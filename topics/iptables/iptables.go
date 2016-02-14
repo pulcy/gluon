@@ -74,7 +74,7 @@ func (t *IPTablesTopic) Setup(deps *topics.TopicDependencies, flags *topics.Topi
 
 func createRules(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
 	deps.Logger.Info("creating %s", rulesPath)
-	members, err := flags.GetClusterMembers()
+	members, err := flags.GetClusterMembers(deps.Logger)
 	if err != nil {
 		return false, maskAny(err)
 	}
