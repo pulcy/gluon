@@ -40,7 +40,7 @@ func (t *fleetTopic) Defaults(flags *topics.TopicFlags) error {
 }
 
 func (t *fleetTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
-	_, err := createFleetConf(deps, flags)
+	changedConf, err := createFleetConf(deps, flags)
 	if err != nil {
 		return maskAny(err)
 	}
@@ -48,8 +48,16 @@ func (t *fleetTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFl
 	if err := deps.Systemd.Reload(); err != nil {
 		return maskAny(err)
 	}
-	if err := deps.Systemd.Restart(serviceName); err != nil {
+
+	isActive, err := deps.Systemd.IsActive(serviceName)
+	if err != nil {
 		return maskAny(err)
+	}
+
+	if !isActive || changedConf || flags.Force {
+		if err := deps.Systemd.Restart(serviceName); err != nil {
+			return maskAny(err)
+		}
 	}
 
 	return nil

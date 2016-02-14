@@ -202,3 +202,26 @@ func (sdc *SystemdClient) Exists(unit string) (bool, error) {
 
 	return false, nil
 }
+
+// See https://godoc.org/github.com/coreos/go-systemd/dbus#Conn.ListUnits
+func (sdc *SystemdClient) IsActive(unit string) (bool, error) {
+	sdc.Logger.Debug("call systemd is-active %s", unit)
+
+	conn, err := systemdPkg.New()
+	if err != nil {
+		return false, Mask(err)
+	}
+
+	ustates, err := conn.ListUnits()
+	if err != nil {
+		return false, Mask(err)
+	}
+
+	for _, ustate := range ustates {
+		if ustate.Name == unit {
+			return ustate.ActiveState == "active", nil
+		}
+	}
+
+	return false, nil
+}

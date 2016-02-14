@@ -40,7 +40,7 @@ func (t *etcd2Topic) Defaults(flags *topics.TopicFlags) error {
 }
 
 func (t *etcd2Topic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
-	_, err := createEtcd2Conf(deps, flags)
+	changedConf, err := createEtcd2Conf(deps, flags)
 	if err != nil {
 		return maskAny(err)
 	}
@@ -48,8 +48,16 @@ func (t *etcd2Topic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFl
 	if err := deps.Systemd.Reload(); err != nil {
 		return maskAny(err)
 	}
-	if err := deps.Systemd.Restart(serviceName); err != nil {
+
+	isActive, err := deps.Systemd.IsActive(serviceName)
+	if err != nil {
 		return maskAny(err)
+	}
+
+	if !isActive || changedConf || flags.Force {
+		if err := deps.Systemd.Restart(serviceName); err != nil {
+			return maskAny(err)
+		}
 	}
 
 	return nil
