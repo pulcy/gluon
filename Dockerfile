@@ -1,11 +1,7 @@
-FROM alpine:3.2
+FROM alpine:3.3
 
-RUN apk add -U gpgme \
-&& rm -rf /var/cache/apk/*
-
-ADD ./yard.gpg /
+ADD ./gluon /
 ADD ./copy.sh /
 RUN chmod +x /copy.sh
 
 ENTRYPOINT ["/copy.sh"]
-

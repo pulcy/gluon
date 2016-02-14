@@ -8,7 +8,7 @@ import (
 
 	"github.com/juju/errgo"
 
-	"github.com/pulcy/yard/util"
+	"github.com/pulcy/gluon/util"
 )
 
 var (

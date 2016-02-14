@@ -1,8 +1,0 @@
-[Unit]
-Description=Update PRIVATECLUSTER iptables chain
-
-[Service]
-Type=oneshot
-ExecStart=/home/core/bin/yard cluster update \
---discovery-url={{.DiscoveryUrl}} \
---private-cluster-device={{.PrivateClusterDevice}}

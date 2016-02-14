@@ -1,4 +1,3 @@
 .gobuild
-/yard
-yard.gpg
+/gluon
 templates/templates_bindata.go

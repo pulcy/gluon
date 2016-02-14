@@ -1,4 +1,4 @@
-PROJECT := yard
+PROJECT := gluon
 SCRIPTDIR := $(shell pwd)
 ROOTDIR := $(shell cd $(SCRIPTDIR) && pwd)
 VERSION:= $(shell cat $(ROOTDIR)/VERSION)
@@ -15,7 +15,6 @@ REPONAME := $(PROJECT)
 REPODIR := $(ORGDIR)/$(REPONAME)
 REPOPATH := $(ORGPATH)/$(REPONAME)
 BIN := $(BINDIR)/$(PROJECT)
-BINGPG := $(BIN).gpg
 GOBINDATA := $(GOBUILDDIR)/bin/go-bindata
 
 GOPATH := $(GOBUILDDIR)
@@ -69,18 +68,6 @@ $(BIN): $(GOBUILDDIR) $(GOBINDATA) $(SOURCES) templates/templates_bindata.go
 		-w /usr/code/ \
 		golang:$(GOVERSION) \
 		go build -a -ldflags "-X main.projectVersion=$(VERSION) -X main.projectBuild=$(COMMIT)" -o /usr/code/$(PROJECT) $(REPOPATH)
-
-$(BINGPG): $(BIN)
-	@sh -c 'if [ -z $(YARD_PASSPHRASE) ]; then echo YARD_PASSPHRASE missing && exit 1; fi'
-	@rm -Rf $(BINGPG)
-	@docker run \
-	    --rm \
-		-t \
-	    -v $(ROOTDIR):/usr/code \
-		-e YARD_PASSPHRASE=$(YARD_PASSPHRASE) \
-	    -w /usr/code/ \
-		pulcy/gpg \
-		--batch --armor --output yard.gpg --passphrase $(YARD_PASSPHRASE) --symmetric yard
 
 # Special rule, because this file is generated
 templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)

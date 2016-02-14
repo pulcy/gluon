@@ -15,9 +15,9 @@ var (
 
 var (
 	cmdMain = &cobra.Command{
-		Use:   "yard",
-		Short: "yard provisions machines to run jobs",
-		Long:  "yard provisions machines to run jobs",
+		Use:   "gluon",
+		Short: "gluon provisions machines to run jobs",
+		Long:  "gluon provisions machines to run jobs",
 		Run:   showUsage,
 	}
 	log = logging.MustGetLogger(cmdMain.Use)

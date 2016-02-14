@@ -1,7 +1,6 @@
 package topics
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -9,15 +8,14 @@ import (
 
 	"github.com/op/go-logging"
 
-	"github.com/pulcy/yard/systemd"
-	"github.com/pulcy/yard/util"
+	"github.com/pulcy/gluon/systemd"
+	"github.com/pulcy/gluon/util"
 )
 
 const (
-	discoveryUrlPath       = "/etc/pulcy/discovery-url"
 	clusterMembersPath     = "/etc/pulcy/cluster-members"
-	yardPassphrasePath     = "/etc/pulcy/yard-passphrase"
 	privateRegistryUrlPath = "/etc/pulcy/private-registry-url"
+	fleetMetadataPath      = "/etc/pulcy/fleet-metadata"
 )
 
 type Topic interface {
@@ -34,12 +32,8 @@ type TopicDependencies struct {
 type TopicFlags struct {
 	Force bool // Start/reload even if nothing has changed
 
-	// yard
-	YardPassphrase string
-	YardImage      string
-
-	// ETCD discovery URL
-	DiscoveryURL string
+	// gluon
+	GluonImage string
 
 	// Docker
 	DockerIP                string
@@ -50,6 +44,10 @@ type TopicFlags struct {
 
 	// IPTables
 	PrivateClusterDevice string
+	PrivateIP            string // Private IPv4 address of this machine
+
+	// Fleet
+	FleetMetadata string
 
 	// private cache
 	clusterMembers []ClusterMember
@@ -72,30 +70,22 @@ type ClusterMember struct {
 }
 
 // SetupDefaults fills given flags with default value
-func (flags *TopicFlags) SetupDefaults(yardVersion string) error {
-	if flags.DiscoveryURL == "" {
-		url, err := ioutil.ReadFile(discoveryUrlPath)
-		if err != nil {
-			return maskAny(err)
-		}
-		flags.DiscoveryURL = string(url)
-	}
-	if flags.YardPassphrase == "" {
-		passphrase, err := ioutil.ReadFile(yardPassphrasePath)
-		if err != nil {
-			return maskAny(err)
-		}
-		flags.YardPassphrase = string(passphrase)
-	}
+func (flags *TopicFlags) SetupDefaults() error {
 	if flags.PrivateRegistryUrl == "" {
 		url, err := ioutil.ReadFile(privateRegistryUrlPath)
-		if err != nil {
+		if err != nil && !os.IsNotExist(err) {
 			return maskAny(err)
+		} else if err == nil {
+			flags.PrivateRegistryUrl = string(url)
 		}
-		flags.PrivateRegistryUrl = string(url)
 	}
-	if flags.YardImage == "" && yardVersion != "" {
-		flags.YardImage = fmt.Sprintf("pulcy/yard:%s", yardVersion)
+	if flags.FleetMetadata == "" {
+		metadata, err := ioutil.ReadFile(fleetMetadataPath)
+		if err != nil && !os.IsNotExist(err) {
+			return maskAny(err)
+		} else if err == nil {
+			flags.FleetMetadata = string(metadata)
+		}
 	}
 	if flags.PrivateClusterDevice == "" {
 		flags.PrivateClusterDevice = "eth1"
@@ -107,22 +97,15 @@ func (flags *TopicFlags) SetupDefaults(yardVersion string) error {
 // Returns true if anything has changed, false otherwise
 func (flags *TopicFlags) Save() (bool, error) {
 	changes := 0
-	if flags.DiscoveryURL != "" {
-		if changed, err := updateContent(discoveryUrlPath, flags.DiscoveryURL, 0644); err != nil {
-			return false, maskAny(err)
-		} else if changed {
-			changes++
-		}
-	}
-	if flags.YardPassphrase != "" {
-		if changed, err := updateContent(yardPassphrasePath, flags.YardPassphrase, 0400); err != nil {
-			return false, maskAny(err)
-		} else if changed {
-			changes++
-		}
-	}
 	if flags.PrivateRegistryUrl != "" {
 		if changed, err := updateContent(privateRegistryUrlPath, flags.PrivateRegistryUrl, 0644); err != nil {
+			return false, maskAny(err)
+		} else if changed {
+			changes++
+		}
+	}
+	if flags.FleetMetadata != "" {
+		if changed, err := updateContent(fleetMetadataPath, flags.FleetMetadata, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++

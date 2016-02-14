@@ -11,7 +11,6 @@ export PS1="\e[0;32m\u@$(cat /etc/environment | grep COREOS_PUBLIC_IPV4 | cut -d
 
 # General
 alias jq="docker run --rm -i realguess/jq:latest jq"
-alias vault="docker run --rm -i pulcy/vault:latest"
 
 # Docker
 alias dockercleancontainers="docker ps -a --no-trunc| grep 'Exit' | awk '{print \$1}' | xargs -L 1 -r docker rm"
@@ -22,5 +21,10 @@ alias dockerclean="dockercleancontainers && dockercleanimages"
 # Fleet
 alias fc="fleetctl cat"
 alias fj="fleetctl journal"
+alias fstart="fleetctl start"
+alias fstop="fleetctl stop"
+alias fdestroy="fleetctl destroy"
+alias flm="fleetctl list-machines"
 alias flu="fleetctl list-units"
+alias wflm="watch fleetctl list-machines"
 alias wflu="watch fleetctl list-units"

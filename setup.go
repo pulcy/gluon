@@ -6,12 +6,15 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/pulcy/yard/systemd"
-	"github.com/pulcy/yard/topics"
-	"github.com/pulcy/yard/topics/docker"
-	"github.com/pulcy/yard/topics/env"
-	"github.com/pulcy/yard/topics/iptables"
-	"github.com/pulcy/yard/topics/sshd"
+	"github.com/pulcy/gluon/systemd"
+	"github.com/pulcy/gluon/topics"
+	"github.com/pulcy/gluon/topics/docker"
+	"github.com/pulcy/gluon/topics/env"
+	"github.com/pulcy/gluon/topics/etcd2"
+	"github.com/pulcy/gluon/topics/fleet"
+	"github.com/pulcy/gluon/topics/gluon"
+	"github.com/pulcy/gluon/topics/iptables"
+	"github.com/pulcy/gluon/topics/sshd"
 )
 
 const (
@@ -38,16 +41,10 @@ func init() {
 func runSetup(cmd *cobra.Command, args []string) {
 	showVersion(cmd, args)
 
-	if err := setupFlags.SetupDefaults(projectVersion); err != nil {
+	if err := setupFlags.SetupDefaults(); err != nil {
 		Exitf("SetupDefaults failed: %#v\n", err)
 	}
 
-	if setupFlags.DockerIP == "" {
-		Exitf("docker-ip missing\n")
-	}
-	if setupFlags.DockerSubnet == "" {
-		Exitf("docker-subnet missing\n")
-	}
 	if setupFlags.PrivateClusterDevice == "" {
 		Exitf("private-cluster-device missing\n")
 	}
@@ -77,7 +74,10 @@ func createTopics(args []string) []topics.Topic {
 		env.NewTopic(),
 		iptables.NewTopic(),
 		docker.NewTopic(),
+		etcd2.NewTopic(),
+		fleet.NewTopic(),
 		sshd.NewTopic(),
+		gluon.NewTopic(),
 	}
 	list := []topics.Topic{}
 	isSelected := func(name string) bool {
@@ -101,17 +101,17 @@ func createTopics(args []string) []topics.Topic {
 
 func initSetupFlags(flags *pflag.FlagSet, f *topics.TopicFlags) {
 	flags.BoolVar(&f.Force, "force", false, "Restart services, even if nothing has changed")
-	//Yard
-	flags.StringVar(&f.YardPassphrase, "yard-passphrase", "", "Passphrase for yard image")
-	flags.StringVar(&f.YardImage, "yard-image", "", "Yard docker image name")
-	// ETCD
-	flags.StringVar(&f.DiscoveryURL, "discovery-url", "", "ETCD discovery URL")
+	// Gluon
+	flags.StringVar(&f.GluonImage, "gluon-image", "", "Gluon docker image name")
 	// Docker
 	flags.StringVar(&f.DockerIP, "docker-ip", "", "IP address docker binds ports to")
 	flags.StringVar(&f.DockerSubnet, "docker-subnet", defaultDockerSubnet, "Subnet used by docker")
 	flags.StringVar(&f.PrivateRegistryUrl, "private-registry-url", defaultPrivateRegistryUrl, "URL of private docker registry")
 	flags.StringVar(&f.PrivateRegistryUserName, "private-registry-username", defaultPrivateRegistryUserName, "Username for private registry")
 	flags.StringVar(&f.PrivateRegistryPassword, "private-registry-password", defaultPrivateRegistryPassword, "Password for private registry")
-	// IPTables
+	// Network
+	flags.StringVar(&f.PrivateIP, "private-ip", "", "IP address of private network")
 	flags.StringVar(&f.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the private IP")
+	// Fleet
+	flags.StringVar(&f.FleetMetadata, "fleet-metadata", "", "Metadata list for fleet")
 }

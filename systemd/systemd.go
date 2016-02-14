@@ -164,6 +164,23 @@ func (sdc *SystemdClient) Stop(unit string) error {
 	return nil
 }
 
+// See http://godoc.org/github.com/coreos/go-systemd/dbus#Conn.EnableUnitFiles
+func (sdc *SystemdClient) Enable(unit string) error {
+	sdc.Logger.Debug("call systemd enable %s", unit)
+
+	conn, err := systemdPkg.New()
+	if err != nil {
+		return Mask(err)
+	}
+
+	if _, _, err := conn.EnableUnitFiles([]string{unit}, false, false); err != nil {
+		sdc.Logger.Debug("systemd enable failed: %#v", err)
+		return Mask(err)
+	}
+
+	return nil
+}
+
 func (sdc *SystemdClient) Exists(unit string) (bool, error) {
 	sdc.Logger.Debug("call systemd exists %s", unit)
 
