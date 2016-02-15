@@ -7,7 +7,7 @@ if [[ $- != *i* ]] ; then
 fi
 
 # Alter prompt
-export PS1="\e[0;32m\u@$(cat /etc/environment | grep COREOS_PUBLIC_IPV4 | cut -d "=" -f 2)> \e[m"
+export PS1="\e[0;32m\u@$(cat /etc/environment | grep COREOS_PUBLIC_IPV4 | cut -d "=" -f 2) \e[0;34m\w \e[m$ "
 
 # General
 alias jq="docker run --rm -i realguess/jq:latest jq"
@@ -17,6 +17,9 @@ alias dockercleancontainers="docker ps -a --no-trunc| grep 'Exit' | awk '{print 
 alias dockerrmcontainers="docker ps -a --no-trunc |awk '{print \$1}' | xargs -L 1 -r docker rm -f"
 alias dockercleanimages="docker images -a --no-trunc | grep none | awk '{print \$3}' | xargs -L 1 -r docker rmi"
 alias dockerclean="dockercleancontainers && dockercleanimages"
+
+# Etcd
+alias cluster-health="etcdctl cluster-health"
 
 # Fleet
 alias fc="fleetctl cat"
@@ -28,3 +31,6 @@ alias flm="fleetctl list-machines"
 alias flu="fleetctl list-units"
 alias wflm="watch fleetctl list-machines"
 alias wflu="watch fleetctl list-units"
+
+# Journalctl
+alias jc="journalctl"
