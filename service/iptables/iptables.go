@@ -28,11 +28,18 @@ var (
 )
 
 const (
-	rulesTemplate        = "templates/iptables.rules.tmpl"
-	rulesPath            = "/home/core/iptables.rules"
-	serviceTemplate      = "templates/iptables.service.tmpl"
-	serviceName          = "iptables.service"
-	servicePath          = "/etc/systemd/system/" + serviceName
+	v4rulesTemplate   = "templates/ip4tables.rules.tmpl"
+	v4rulesPath       = "/home/core/ip4tables.rules"
+	v4serviceTemplate = "templates/ip4tables.service.tmpl"
+	v4serviceName     = "ip4tables.service"
+	v4servicePath     = "/etc/systemd/system/" + v4serviceName
+
+	v6rulesTemplate   = "templates/ip6tables.rules.tmpl"
+	v6rulesPath       = "/home/core/ip6tables.rules"
+	v6serviceTemplate = "templates/ip6tables.service.tmpl"
+	v6serviceName     = "ip6tables.service"
+	v6servicePath     = "/etc/systemd/system/" + v6serviceName
+
 	netfilterTemplate    = "templates/netfilter.service.tmpl"
 	netfilterServiceName = "netfilter.service"
 	netfilterServicePath = "/etc/systemd/system/" + netfilterServiceName
@@ -51,7 +58,12 @@ func (t *iptablesService) Name() string {
 }
 
 func (t *iptablesService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
-	changedRules, err := createRules(deps, flags)
+	changedV4Rules, err := createV4Rules(deps, flags)
+	if err != nil {
+		return maskAny(err)
+	}
+
+	changedV6Rules, err := createV6Rules(deps, flags)
 	if err != nil {
 		return maskAny(err)
 	}
@@ -61,19 +73,27 @@ func (t *iptablesService) Setup(deps service.ServiceDependencies, flags *service
 		return maskAny(err)
 	}
 
-	changedIptableService, err := createIptablesService(deps, flags)
+	changedIp4tableService, err := createIp4tablesService(deps, flags)
 	if err != nil {
 		return maskAny(err)
 	}
 
-	if flags.Force || changedRules || changedNetfilterService || changedIptableService {
+	changedIp6tableService, err := createIp6tablesService(deps, flags)
+	if err != nil {
+		return maskAny(err)
+	}
+
+	if flags.Force || changedV4Rules || changedV6Rules || changedNetfilterService || changedIp4tableService || changedIp6tableService {
 		if err := deps.Systemd.Reload(); err != nil {
 			return maskAny(err)
 		}
 		if err := deps.Systemd.Restart(netfilterServiceName); err != nil {
 			return maskAny(err)
 		}
-		if err := deps.Systemd.Restart(serviceName); err != nil {
+		if err := deps.Systemd.Restart(v4serviceName); err != nil {
+			return maskAny(err)
+		}
+		if err := deps.Systemd.Restart(v6serviceName); err != nil {
 			return maskAny(err)
 		}
 	}
@@ -81,8 +101,8 @@ func (t *iptablesService) Setup(deps service.ServiceDependencies, flags *service
 	return nil
 }
 
-func createRules(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
-	deps.Logger.Info("creating %s", rulesPath)
+func createV4Rules(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	deps.Logger.Info("creating %s", v4rulesPath)
 	members, err := flags.GetClusterMembers(deps.Logger)
 	if err != nil {
 		return false, maskAny(err)
@@ -99,7 +119,13 @@ func createRules(deps service.ServiceDependencies, flags *service.ServiceFlags) 
 	for _, cm := range members {
 		opts.ClusterMemberIPs = append(opts.ClusterMemberIPs, cm.PrivateIP)
 	}
-	changed, err := templates.Render(rulesTemplate, rulesPath, opts, fileMode)
+	changed, err := templates.Render(v4rulesTemplate, v4rulesPath, opts, fileMode)
+	return changed, maskAny(err)
+}
+
+func createV6Rules(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	deps.Logger.Info("creating %s", v6rulesPath)
+	changed, err := templates.Render(v6rulesTemplate, v6rulesPath, nil, fileMode)
 	return changed, maskAny(err)
 }
 
@@ -109,8 +135,14 @@ func createNetfilterService(deps service.ServiceDependencies, flags *service.Ser
 	return changed, maskAny(err)
 }
 
-func createIptablesService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
-	deps.Logger.Info("creating %s", servicePath)
-	changed, err := templates.Render(serviceTemplate, servicePath, nil, fileMode)
+func createIp4tablesService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	deps.Logger.Info("creating %s", v4servicePath)
+	changed, err := templates.Render(v4serviceTemplate, v4servicePath, nil, fileMode)
+	return changed, maskAny(err)
+}
+
+func createIp6tablesService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	deps.Logger.Info("creating %s", v6servicePath)
+	changed, err := templates.Render(v6serviceTemplate, v6servicePath, nil, fileMode)
 	return changed, maskAny(err)
 }

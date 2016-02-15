@@ -1,13 +1,13 @@
 [Unit]
-Description=Packet Filtering Framework
+Description=Packet Filtering Framework IPv4
 DefaultDependencies=no
 After=systemd-sysctl.service
 Before=sysinit.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/iptables-restore /home/core/iptables.rules
-ExecReload=/usr/sbin/iptables-restore /home/core/iptables.rules
+ExecStart=/usr/sbin/iptables-restore /home/core/ip4tables.rules
+ExecReload=/usr/sbin/iptables-restore /home/core/ip4tables.rules
 ExecStop=/usr/sbin/iptables --flush
 RemainAfterExit=yes
 
