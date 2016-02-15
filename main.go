@@ -54,10 +54,8 @@ func Exitf(format string, args ...interface{}) {
 	os.Exit(1)
 }
 
-func def(envKey, defaultValue string) string {
-	s := os.Getenv(envKey)
-	if s == "" {
-		s = defaultValue
+func assertArgIsSet(arg, argKey string) {
+	if arg == "" {
+		Exitf("%s must be set\n", argKey)
 	}
-	return s
 }

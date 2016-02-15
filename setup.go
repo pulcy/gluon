@@ -18,7 +18,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	"github.com/pulcy/gluon/service"
 	"github.com/pulcy/gluon/service/docker"
@@ -32,11 +31,8 @@ import (
 )
 
 const (
-	defaultDockerSubnet            = "172.17.0.0/16"
-	defaultPrivateClusterDevice    = "eth1"
-	defaultPrivateRegistryUrl      = ""
-	defaultPrivateRegistryUserName = "server"
-	defaultPrivateRegistryPassword = ""
+	defaultDockerSubnet         = "172.17.0.0/16"
+	defaultPrivateClusterDevice = "eth1"
 )
 
 var (
@@ -48,7 +44,20 @@ var (
 )
 
 func init() {
-	initSetupFlags(cmdSetup.Flags(), setupFlags)
+	cmdSetup.Flags().BoolVar(&setupFlags.Force, "force", false, "Restart services, even if nothing has changed")
+	// Gluon
+	cmdSetup.Flags().StringVar(&setupFlags.GluonImage, "gluon-image", "", "Gluon docker image name")
+	// Docker
+	cmdSetup.Flags().StringVar(&setupFlags.DockerIP, "docker-ip", "", "IP address docker binds ports to")
+	cmdSetup.Flags().StringVar(&setupFlags.DockerSubnet, "docker-subnet", defaultDockerSubnet, "Subnet used by docker")
+	cmdSetup.Flags().StringVar(&setupFlags.PrivateRegistryUrl, "private-registry-url", "", "URL of private docker registry")
+	cmdSetup.Flags().StringVar(&setupFlags.PrivateRegistryUserName, "private-registry-username", "", "Username for private registry")
+	cmdSetup.Flags().StringVar(&setupFlags.PrivateRegistryPassword, "private-registry-password", "", "Password for private registry")
+	// Network
+	cmdSetup.Flags().StringVar(&setupFlags.PrivateIP, "private-ip", "", "IP address of private network")
+	cmdSetup.Flags().StringVar(&setupFlags.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the private IP")
+	// Fleet
+	cmdSetup.Flags().StringVar(&setupFlags.FleetMetadata, "fleet-metadata", "", "Metadata list for fleet")
 	cmdMain.AddCommand(cmdSetup)
 }
 
@@ -59,27 +68,18 @@ func runSetup(cmd *cobra.Command, args []string) {
 		Exitf("SetupDefaults failed: %#v\n", err)
 	}
 
-	if setupFlags.PrivateClusterDevice == "" {
-		Exitf("private-cluster-device missing\n")
-	}
+	assertArgIsSet(setupFlags.GluonImage, "--gluon-image")
+	assertArgIsSet(setupFlags.DockerIP, "--docker-ip")
+	assertArgIsSet(setupFlags.DockerSubnet, "--docker-subnet")
+	assertArgIsSet(setupFlags.PrivateIP, "--private-ip")
+	assertArgIsSet(setupFlags.PrivateClusterDevice, "--private-cluster-device")
 
 	deps := service.ServiceDependencies{
 		Systemd: systemd.NewSystemdClient(log),
 		Logger:  log,
 	}
 
-	setupList := createServices(args)
-	for _, t := range setupList {
-		fmt.Printf("Setup %s\n", t.Name())
-		if err := t.Setup(deps, setupFlags); err != nil {
-			Exitf("Setup %s failed: %#v\n", t.Name(), err)
-		}
-	}
-}
-
-// Service creates an ordered list of services to configure
-func createServices(args []string) []service.Service {
-	allServices := []service.Service{
+	services := []service.Service{
 		env.NewService(),
 		iptables.NewService(),
 		docker.NewService(),
@@ -88,39 +88,10 @@ func createServices(args []string) []service.Service {
 		sshd.NewService(),
 		gluon.NewService(),
 	}
-	list := []service.Service{}
-	isSelected := func(name string) bool {
-		if len(args) == 0 {
-			return true
-		}
-		for _, a := range args {
-			if name == a {
-				return true
-			}
-		}
-		return false
-	}
-	for _, s := range allServices {
-		if isSelected(s.Name()) {
-			list = append(list, s)
+	for _, t := range services {
+		fmt.Printf("Setup %s\n", t.Name())
+		if err := t.Setup(deps, setupFlags); err != nil {
+			Exitf("Setup %s failed: %#v\n", t.Name(), err)
 		}
 	}
-	return list
-}
-
-func initSetupFlags(flags *pflag.FlagSet, f *service.ServiceFlags) {
-	flags.BoolVar(&f.Force, "force", false, "Restart services, even if nothing has changed")
-	// Gluon
-	flags.StringVar(&f.GluonImage, "gluon-image", "", "Gluon docker image name")
-	// Docker
-	flags.StringVar(&f.DockerIP, "docker-ip", "", "IP address docker binds ports to")
-	flags.StringVar(&f.DockerSubnet, "docker-subnet", defaultDockerSubnet, "Subnet used by docker")
-	flags.StringVar(&f.PrivateRegistryUrl, "private-registry-url", defaultPrivateRegistryUrl, "URL of private docker registry")
-	flags.StringVar(&f.PrivateRegistryUserName, "private-registry-username", defaultPrivateRegistryUserName, "Username for private registry")
-	flags.StringVar(&f.PrivateRegistryPassword, "private-registry-password", defaultPrivateRegistryPassword, "Password for private registry")
-	// Network
-	flags.StringVar(&f.PrivateIP, "private-ip", "", "IP address of private network")
-	flags.StringVar(&f.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the private IP")
-	// Fleet
-	flags.StringVar(&f.FleetMetadata, "fleet-metadata", "", "Metadata list for fleet")
 }
