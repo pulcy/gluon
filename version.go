@@ -1,8 +1,19 @@
 package main
 
 import (
-	"fmt"
+	"strings"
+
 	"github.com/spf13/cobra"
+)
+
+const (
+	hdr = ` ____          _                 ____  _
+|  _ \  _   _ | |  ___  _   _   / ___|| | _   _   ___   _ __
+| |_) || | | || | / __|| | | | | |  _ | || | | | / _ \ | '_ \
+|  __/ | |_| || || (__ | |_| | | |_| || || |_| || (_) || | | |
+|_|     \__,_||_| \___| \__, |  \____||_| \__,_| \___/ |_| |_|
+                        |___/
+`
 )
 
 var (
@@ -17,5 +28,8 @@ func init() {
 }
 
 func showVersion(cmd *cobra.Command, args []string) {
-	fmt.Printf("%s %s, build %s\n", cmdMain.Use, projectVersion, projectBuild)
+	for _, line := range strings.Split(hdr, "\n") {
+		log.Info(line)
+	}
+	log.Info("%s %s, build %s\n", cmdMain.Use, projectVersion, projectBuild)
 }

@@ -15,7 +15,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/op/go-logging"
@@ -50,7 +49,7 @@ func showUsage(cmd *cobra.Command, args []string) {
 }
 
 func Exitf(format string, args ...interface{}) {
-	fmt.Printf(format, args...)
+	log.Errorf(format, args...)
 	os.Exit(1)
 }
 

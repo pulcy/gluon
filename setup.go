@@ -15,8 +15,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 
 	"github.com/pulcy/gluon/service"
@@ -88,10 +86,11 @@ func runSetup(cmd *cobra.Command, args []string) {
 		sshd.NewService(),
 		gluon.NewService(),
 	}
-	for _, t := range services {
-		fmt.Printf("Setup %s\n", t.Name())
+	for i, t := range services {
+		log.Info("%d/%d Setup %s", i+1, len(services), t.Name())
 		if err := t.Setup(deps, setupFlags); err != nil {
 			Exitf("Setup %s failed: %#v\n", t.Name(), err)
 		}
 	}
+	log.Info("Done")
 }
