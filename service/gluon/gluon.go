@@ -5,8 +5,8 @@ import (
 
 	"github.com/juju/errgo"
 
+	"github.com/pulcy/gluon/service"
 	"github.com/pulcy/gluon/templates"
-	"github.com/pulcy/gluon/topics"
 )
 
 var (
@@ -22,22 +22,17 @@ const (
 	fileMode = os.FileMode(0644)
 )
 
-type gluonTopic struct {
+func NewService() service.Service {
+	return &gluonService{}
 }
 
-func NewTopic() *gluonTopic {
-	return &gluonTopic{}
-}
+type gluonService struct{}
 
-func (t *gluonTopic) Name() string {
+func (t *gluonService) Name() string {
 	return "gluon"
 }
 
-func (t *gluonTopic) Defaults(flags *topics.TopicFlags) error {
-	return nil
-}
-
-func (t *gluonTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func (t *gluonService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
 	if err := flags.SetupDefaults(); err != nil {
 		return maskAny(err)
 	}
@@ -73,7 +68,7 @@ func (t *gluonTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFl
 	return nil
 }
 
-func createService(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
+func createService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", servicePath)
 	opts := struct {
 		GluonImage           string

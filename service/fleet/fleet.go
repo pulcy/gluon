@@ -7,7 +7,7 @@ import (
 
 	"github.com/juju/errgo"
 
-	"github.com/pulcy/gluon/topics"
+	"github.com/pulcy/gluon/service"
 	"github.com/pulcy/gluon/util"
 )
 
@@ -24,22 +24,17 @@ const (
 	fileMode = os.FileMode(0755)
 )
 
-type fleetTopic struct {
+func NewService() service.Service {
+	return &fleetService{}
 }
 
-func NewTopic() *fleetTopic {
-	return &fleetTopic{}
-}
+type fleetService struct{}
 
-func (t *fleetTopic) Name() string {
+func (t *fleetService) Name() string {
 	return "fleet"
 }
 
-func (t *fleetTopic) Defaults(flags *topics.TopicFlags) error {
-	return nil
-}
-
-func (t *fleetTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func (t *fleetService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
 	changedConf, err := createFleetConf(deps, flags)
 	if err != nil {
 		return maskAny(err)
@@ -63,7 +58,7 @@ func (t *fleetTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFl
 	return nil
 }
 
-func createFleetConf(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
+func createFleetConf(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	lines := []string{
 		"[Service]",
 		fmt.Sprintf("Environment=FLEET_METADATA=%s", flags.FleetMetadata),

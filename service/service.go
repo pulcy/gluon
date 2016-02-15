@@ -1,4 +1,4 @@
-package topics
+package service
 
 import (
 	"io/ioutil"
@@ -18,18 +18,17 @@ const (
 	fleetMetadataPath      = "/etc/pulcy/fleet-metadata"
 )
 
-type Topic interface {
+type Service interface {
 	Name() string
-	Defaults(flags *TopicFlags) error
-	Setup(deps *TopicDependencies, flags *TopicFlags) error
+	Setup(deps ServiceDependencies, flags *ServiceFlags) error
 }
 
-type TopicDependencies struct {
+type ServiceDependencies struct {
 	Systemd *systemd.SystemdClient
 	Logger  *logging.Logger
 }
 
-type TopicFlags struct {
+type ServiceFlags struct {
 	Force bool // Start/reload even if nothing has changed
 
 	// gluon
@@ -71,7 +70,7 @@ type ClusterMember struct {
 }
 
 // SetupDefaults fills given flags with default value
-func (flags *TopicFlags) SetupDefaults() error {
+func (flags *ServiceFlags) SetupDefaults() error {
 	if flags.PrivateRegistryUrl == "" {
 		url, err := ioutil.ReadFile(privateRegistryUrlPath)
 		if err != nil && !os.IsNotExist(err) {
@@ -96,7 +95,7 @@ func (flags *TopicFlags) SetupDefaults() error {
 
 // Save applicable flags to their respective files
 // Returns true if anything has changed, false otherwise
-func (flags *TopicFlags) Save() (bool, error) {
+func (flags *ServiceFlags) Save() (bool, error) {
 	changes := 0
 	if flags.PrivateRegistryUrl != "" {
 		if changed, err := updateContent(privateRegistryUrlPath, flags.PrivateRegistryUrl, 0644); err != nil {
@@ -117,7 +116,7 @@ func (flags *TopicFlags) Save() (bool, error) {
 
 // GetClusterMembers returns a list of the private IP
 // addresses of all the cluster members
-func (flags *TopicFlags) GetClusterMembers(log *logging.Logger) ([]ClusterMember, error) {
+func (flags *ServiceFlags) GetClusterMembers(log *logging.Logger) ([]ClusterMember, error) {
 	if flags.clusterMembers != nil {
 		return flags.clusterMembers, nil
 	}
@@ -133,7 +132,7 @@ func (flags *TopicFlags) GetClusterMembers(log *logging.Logger) ([]ClusterMember
 
 // getClusterMembersFromFS returns a list of the private IP
 // addresses from a local configuration file
-func (flags *TopicFlags) getClusterMembersFromFS(log *logging.Logger) ([]ClusterMember, error) {
+func (flags *ServiceFlags) getClusterMembersFromFS(log *logging.Logger) ([]ClusterMember, error) {
 	content, err := ioutil.ReadFile(clusterMembersPath)
 	if err != nil {
 		return nil, maskAny(err)

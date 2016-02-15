@@ -7,7 +7,7 @@ import (
 
 	"github.com/juju/errgo"
 
-	"github.com/pulcy/gluon/topics"
+	"github.com/pulcy/gluon/service"
 	"github.com/pulcy/gluon/util"
 )
 
@@ -24,22 +24,17 @@ const (
 	fileMode = os.FileMode(0755)
 )
 
-type etcd2Topic struct {
+func NewService() service.Service {
+	return &etcd2Service{}
 }
 
-func NewTopic() *etcd2Topic {
-	return &etcd2Topic{}
-}
+type etcd2Service struct{}
 
-func (t *etcd2Topic) Name() string {
+func (t *etcd2Service) Name() string {
 	return "etcd2"
 }
 
-func (t *etcd2Topic) Defaults(flags *topics.TopicFlags) error {
-	return nil
-}
-
-func (t *etcd2Topic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func (t *etcd2Service) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
 	changedConf, err := createEtcd2Conf(deps, flags)
 	if err != nil {
 		return maskAny(err)
@@ -63,7 +58,7 @@ func (t *etcd2Topic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFl
 	return nil
 }
 
-func createEtcd2Conf(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
+func createEtcd2Conf(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	if flags.PrivateIP == "" {
 		return false, maskAny(fmt.Errorf("PrivateIP empty"))
 	}

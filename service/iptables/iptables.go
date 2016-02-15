@@ -5,8 +5,8 @@ import (
 
 	"github.com/juju/errgo"
 
+	"github.com/pulcy/gluon/service"
 	"github.com/pulcy/gluon/templates"
-	"github.com/pulcy/gluon/topics"
 )
 
 var (
@@ -26,22 +26,17 @@ const (
 	fileMode = os.FileMode(0755)
 )
 
-type IPTablesTopic struct {
+func NewService() service.Service {
+	return &iptablesService{}
 }
 
-func NewTopic() *IPTablesTopic {
-	return &IPTablesTopic{}
-}
+type iptablesService struct{}
 
-func (t *IPTablesTopic) Name() string {
+func (t *iptablesService) Name() string {
 	return "iptables"
 }
 
-func (t *IPTablesTopic) Defaults(flags *topics.TopicFlags) error {
-	return nil
-}
-
-func (t *IPTablesTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func (t *iptablesService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
 	changedRules, err := createRules(deps, flags)
 	if err != nil {
 		return maskAny(err)
@@ -72,7 +67,7 @@ func (t *IPTablesTopic) Setup(deps *topics.TopicDependencies, flags *topics.Topi
 	return nil
 }
 
-func createRules(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
+func createRules(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", rulesPath)
 	members, err := flags.GetClusterMembers(deps.Logger)
 	if err != nil {
@@ -94,13 +89,13 @@ func createRules(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool
 	return changed, maskAny(err)
 }
 
-func createNetfilterService(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
+func createNetfilterService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", netfilterServicePath)
 	changed, err := templates.Render(netfilterTemplate, netfilterServicePath, nil, fileMode)
 	return changed, maskAny(err)
 }
 
-func createIptablesService(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
+func createIptablesService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", servicePath)
 	changed, err := templates.Render(serviceTemplate, servicePath, nil, fileMode)
 	return changed, maskAny(err)

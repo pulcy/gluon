@@ -6,21 +6,21 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"github.com/pulcy/gluon/service"
+	"github.com/pulcy/gluon/service/docker"
+	"github.com/pulcy/gluon/service/env"
+	"github.com/pulcy/gluon/service/etcd2"
+	"github.com/pulcy/gluon/service/fleet"
+	"github.com/pulcy/gluon/service/gluon"
+	"github.com/pulcy/gluon/service/iptables"
+	"github.com/pulcy/gluon/service/sshd"
 	"github.com/pulcy/gluon/systemd"
-	"github.com/pulcy/gluon/topics"
-	"github.com/pulcy/gluon/topics/docker"
-	"github.com/pulcy/gluon/topics/env"
-	"github.com/pulcy/gluon/topics/etcd2"
-	"github.com/pulcy/gluon/topics/fleet"
-	"github.com/pulcy/gluon/topics/gluon"
-	"github.com/pulcy/gluon/topics/iptables"
-	"github.com/pulcy/gluon/topics/sshd"
 )
 
 const (
 	defaultDockerSubnet            = "172.17.0.0/16"
 	defaultPrivateClusterDevice    = "eth1"
-	defaultPrivateRegistryUrl      = "https://registry.pulcy.com"
+	defaultPrivateRegistryUrl      = ""
 	defaultPrivateRegistryUserName = "server"
 	defaultPrivateRegistryPassword = ""
 )
@@ -30,7 +30,7 @@ var (
 		Use: "setup",
 		Run: runSetup,
 	}
-	setupFlags = &topics.TopicFlags{}
+	setupFlags = &service.ServiceFlags{}
 )
 
 func init() {
@@ -49,17 +49,12 @@ func runSetup(cmd *cobra.Command, args []string) {
 		Exitf("private-cluster-device missing\n")
 	}
 
-	deps := &topics.TopicDependencies{
+	deps := service.ServiceDependencies{
 		Systemd: systemd.NewSystemdClient(log),
 		Logger:  log,
 	}
 
-	setupList := createTopics(args)
-	for _, t := range setupList {
-		if err := t.Defaults(setupFlags); err != nil {
-			Exitf("Defaults %s failed: %#v\n", t.Name(), err)
-		}
-	}
+	setupList := createServices(args)
 	for _, t := range setupList {
 		fmt.Printf("Setup %s\n", t.Name())
 		if err := t.Setup(deps, setupFlags); err != nil {
@@ -68,18 +63,18 @@ func runSetup(cmd *cobra.Command, args []string) {
 	}
 }
 
-// Topics creates an ordered list of topics o provision
-func createTopics(args []string) []topics.Topic {
-	allTopics := []topics.Topic{
-		env.NewTopic(),
-		iptables.NewTopic(),
-		docker.NewTopic(),
-		etcd2.NewTopic(),
-		fleet.NewTopic(),
-		sshd.NewTopic(),
-		gluon.NewTopic(),
+// Service creates an ordered list of services to configure
+func createServices(args []string) []service.Service {
+	allServices := []service.Service{
+		env.NewService(),
+		iptables.NewService(),
+		docker.NewService(),
+		etcd2.NewService(),
+		fleet.NewService(),
+		sshd.NewService(),
+		gluon.NewService(),
 	}
-	list := []topics.Topic{}
+	list := []service.Service{}
 	isSelected := func(name string) bool {
 		if len(args) == 0 {
 			return true
@@ -91,15 +86,15 @@ func createTopics(args []string) []topics.Topic {
 		}
 		return false
 	}
-	for _, t := range allTopics {
-		if isSelected(t.Name()) {
-			list = append(list, t)
+	for _, s := range allServices {
+		if isSelected(s.Name()) {
+			list = append(list, s)
 		}
 	}
 	return list
 }
 
-func initSetupFlags(flags *pflag.FlagSet, f *topics.TopicFlags) {
+func initSetupFlags(flags *pflag.FlagSet, f *service.ServiceFlags) {
 	flags.BoolVar(&f.Force, "force", false, "Restart services, even if nothing has changed")
 	// Gluon
 	flags.StringVar(&f.GluonImage, "gluon-image", "", "Gluon docker image name")

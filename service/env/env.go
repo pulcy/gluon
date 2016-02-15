@@ -5,8 +5,8 @@ import (
 
 	"github.com/juju/errgo"
 
+	"github.com/pulcy/gluon/service"
 	"github.com/pulcy/gluon/templates"
-	"github.com/pulcy/gluon/topics"
 )
 
 var (
@@ -20,22 +20,17 @@ const (
 	fileMode = os.FileMode(0644)
 )
 
-type EnvTopic struct {
+func NewService() service.Service {
+	return &envService{}
 }
 
-func NewTopic() *EnvTopic {
-	return &EnvTopic{}
-}
+type envService struct{}
 
-func (t *EnvTopic) Name() string {
+func (t *envService) Name() string {
 	return "env"
 }
 
-func (t *EnvTopic) Defaults(flags *topics.TopicFlags) error {
-	return nil
-}
-
-func (t *EnvTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func (t *envService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
 	if err := createBashrc(deps, flags); err != nil {
 		return maskAny(err)
 	}
@@ -43,7 +38,7 @@ func (t *EnvTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlag
 	return nil
 }
 
-func createBashrc(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func createBashrc(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
 	deps.Logger.Info("creating %s", bashrcPath)
 	os.Remove(bashrcPath)
 	if _, err := templates.Render(bashrcTemplate, bashrcPath, nil, fileMode); err != nil {

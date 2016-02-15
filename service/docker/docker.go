@@ -8,8 +8,8 @@ import (
 
 	"github.com/juju/errgo"
 
+	"github.com/pulcy/gluon/service"
 	"github.com/pulcy/gluon/templates"
-	"github.com/pulcy/gluon/topics"
 	"github.com/pulcy/gluon/util"
 )
 
@@ -43,22 +43,17 @@ type AuthConfig struct {
 	RegistryToken string `json:"registrytoken,omitempty"`
 }
 
-type DockerTopic struct {
+func NewService() service.Service {
+	return &dockerService{}
 }
 
-func NewTopic() *DockerTopic {
-	return &DockerTopic{}
-}
+type dockerService struct{}
 
-func (t *DockerTopic) Name() string {
+func (t *dockerService) Name() string {
 	return "docker"
 }
 
-func (t *DockerTopic) Defaults(flags *topics.TopicFlags) error {
-	return nil
-}
-
-func (t *DockerTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func (t *dockerService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
 	changedConfig, err := createDockerConfig(deps, flags)
 	if err != nil {
 		return maskAny(err)
@@ -81,7 +76,7 @@ func (t *DockerTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicF
 	return nil
 }
 
-func createDockerService(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
+func createDockerService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", servicePath)
 	opts := struct {
 		DockerIP string
@@ -92,7 +87,7 @@ func createDockerService(deps *topics.TopicDependencies, flags *topics.TopicFlag
 	return changed, maskAny(err)
 }
 
-func createDockerConfig(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
+func createDockerConfig(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	if flags.PrivateRegistryPassword != "" && flags.PrivateRegistryUrl != "" && flags.PrivateRegistryUserName != "" {
 		deps.Logger.Info("creating %s", rootConfigPath)
 		// Load config file

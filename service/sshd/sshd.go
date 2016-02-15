@@ -5,8 +5,8 @@ import (
 
 	"github.com/juju/errgo"
 
+	"github.com/pulcy/gluon/service"
 	"github.com/pulcy/gluon/templates"
-	"github.com/pulcy/gluon/topics"
 )
 
 var (
@@ -21,22 +21,17 @@ const (
 	fileMode = os.FileMode(0600)
 )
 
-type SshdTopic struct {
+func NewService() service.Service {
+	return &sshdService{}
 }
 
-func NewTopic() *SshdTopic {
-	return &SshdTopic{}
-}
+type sshdService struct{}
 
-func (t *SshdTopic) Name() string {
+func (t *sshdService) Name() string {
 	return "sshd"
 }
 
-func (t *SshdTopic) Defaults(flags *topics.TopicFlags) error {
-	return nil
-}
-
-func (t *SshdTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFlags) error {
+func (t *sshdService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
 	changedConfig, err := createSshdConfig(deps, flags)
 	if err != nil {
 		return maskAny(err)
@@ -51,7 +46,7 @@ func (t *SshdTopic) Setup(deps *topics.TopicDependencies, flags *topics.TopicFla
 	return nil
 }
 
-func createSshdConfig(deps *topics.TopicDependencies, flags *topics.TopicFlags) (bool, error) {
+func createSshdConfig(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", confPath)
 	os.Remove(confPath)
 	changed, err := templates.Render(confTemplate, confPath, nil, fileMode)
