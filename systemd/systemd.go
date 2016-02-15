@@ -1,142 +1,136 @@
 package systemd
 
 import (
-	systemdPkg "github.com/coreos/go-systemd/dbus"
+	"time"
+
+	"github.com/coreos/go-systemd/dbus"
+	"github.com/juju/errgo"
 	"github.com/op/go-logging"
+)
+
+const (
+	jobTimeout = time.Minute
 )
 
 type SystemdClient struct {
 	Logger *logging.Logger
 }
 
+// NewSystemdClient creates a new systemd client
 func NewSystemdClient(logger *logging.Logger) *SystemdClient {
 	return &SystemdClient{
 		Logger: logger,
 	}
 }
 
+// Reload behaves as `systemctl daemon-reload`
 func (sdc *SystemdClient) Reload() error {
-	sdc.Logger.Debug("call systemd reload")
+	sdc.Logger.Debug("reloading daemon")
 
-	conn, err := systemdPkg.New()
+	conn, err := dbus.New()
 	if err != nil {
-		return Mask(err)
+		return maskAny(err)
 	}
 
 	if err := conn.Reload(); err != nil {
-		sdc.Logger.Debug("systemd reload failed: %#v", err)
-		return Mask(err)
+		sdc.Logger.Error("reloading daemon failed: %#v", err)
+		return maskAny(err)
 	}
 
 	return nil
 }
 
-// See http://godoc.org/github.com/coreos/go-systemd/dbus#Conn.StartUnit
+// Start behaves as `systemctl start <unit>`
 func (sdc *SystemdClient) Start(unit string) error {
-	sdc.Logger.Debug("call systemd start %s", unit)
+	sdc.Logger.Debug("starting %s", unit)
 
-	conn, err := systemdPkg.New()
+	conn, err := dbus.New()
 	if err != nil {
-		return Mask(err)
+		return maskAny(err)
 	}
 
-	strChan := make(chan string, 1)
-	if _, err := conn.StartUnit(unit, "replace", strChan); err != nil {
-		sdc.Logger.Debug("systemd start failed: %#v", err)
-		return Mask(err)
+	responseChan := make(chan string, 1)
+	if _, err := conn.StartUnit(unit, "replace", responseChan); err != nil {
+		sdc.Logger.Error("starting %s failed: %#v", unit, err)
+		return maskAny(err)
 	}
 
 	select {
-	case res := <-strChan:
-		sdc.Logger.Debug("systemd start responded %s", res)
+	case res := <-responseChan:
 		switch res {
 		case "done":
 			return nil
-		case "canceled":
-			return Mask(ErrJobCanceled)
-		case "timeout":
-			return Mask(ErrJobTimeout)
 		case "failed":
 			// We need a start considered to be failed, when the unit is already running.
 			return nil
-		case "dependency":
-			return Mask(ErrJobDependency)
-		case "skipped":
-			return Mask(ErrJobSkipped)
+		case "canceled", "timeout", "dependency", "skipped":
+			return maskAny(errgo.WithCausef(nil, SystemdError, res))
 		default:
 			// that should never happen
 			sdc.Logger.Error("unexpected systemd response: '%s'", res)
-			return Mask(ErrUnknownSystemdResponse)
+			return maskAny(errgo.WithCausef(nil, SystemdError, res))
 		}
-	case <-timeoutJobExecution():
-		return Mask(ErrJobExecutionTookTooLong)
+	case <-time.After(jobTimeout):
+		return maskAny(errgo.WithCausef(nil, SystemdError, "job timeout"))
 	}
 
 	return nil
 }
 
-// See http://godoc.org/github.com/coreos/go-systemd/dbus#Conn.RestartUnit
+// Restart behaves as `systemctl restart <unit>`
 func (sdc *SystemdClient) Restart(unit string) error {
-	sdc.Logger.Debug("call systemd restart %s", unit)
+	sdc.Logger.Debug("restarting %s", unit)
 
-	conn, err := systemdPkg.New()
+	conn, err := dbus.New()
 	if err != nil {
-		return Mask(err)
+		return maskAny(err)
 	}
 
-	strChan := make(chan string, 1)
-	if _, err := conn.RestartUnit(unit, "replace", strChan); err != nil {
-		sdc.Logger.Debug("systemd restart failed: %#v", err)
-		return Mask(err)
+	responseChan := make(chan string, 1)
+	if _, err := conn.RestartUnit(unit, "replace", responseChan); err != nil {
+		sdc.Logger.Error("restarting %s failed: %#v", unit, err)
+		return maskAny(err)
 	}
 
 	select {
-	case res := <-strChan:
-		sdc.Logger.Debug("systemd restart responded %s", res)
+	case res := <-responseChan:
 		switch res {
 		case "done":
 			return nil
-		case "canceled":
-			return Mask(ErrJobCanceled)
-		case "timeout":
-			return Mask(ErrJobTimeout)
 		case "failed":
 			// We need a start considered to be failed, when the unit is already running.
 			return nil
-		case "dependency":
-			return Mask(ErrJobDependency)
-		case "skipped":
-			return Mask(ErrJobSkipped)
+		case "canceled", "timeout", "dependency", "skipped":
+			return maskAny(errgo.WithCausef(nil, SystemdError, res))
 		default:
 			// that should never happen
 			sdc.Logger.Error("unexpected systemd response: '%s'", res)
-			return Mask(ErrUnknownSystemdResponse)
+			return maskAny(errgo.WithCausef(nil, SystemdError, res))
 		}
-	case <-timeoutJobExecution():
-		return Mask(ErrJobExecutionTookTooLong)
+	case <-time.After(jobTimeout):
+		return maskAny(errgo.WithCausef(nil, SystemdError, "job timeout"))
 	}
 
 	return nil
 }
 
-// See http://godoc.org/github.com/coreos/go-systemd/dbus#Conn.StartUnit
+// Stop behaves as `systemctl stop <unit>`
 func (sdc *SystemdClient) Stop(unit string) error {
-	sdc.Logger.Debug("call systemd stop %s", unit)
+	sdc.Logger.Debug("stopping %s", unit)
 
-	conn, err := systemdPkg.New()
+	conn, err := dbus.New()
 	if err != nil {
-		return Mask(err)
+		return maskAny(err)
 	}
 
-	strChan := make(chan string, 1)
-	if _, err := conn.StopUnit(unit, "replace", strChan); err != nil {
-		sdc.Logger.Debug("systemd stop failed: %#v", err)
-		return Mask(err)
+	responseChan := make(chan string, 1)
+	if _, err := conn.StopUnit(unit, "replace", responseChan); err != nil {
+		sdc.Logger.Debug("stopping %s failed: %#v", unit, err)
+		return maskAny(err)
 	}
 
 	select {
-	case res := <-strChan:
-		sdc.Logger.Debug("systemd stop responded %s", res)
+	case res := <-responseChan:
 		switch res {
 		case "done":
 			return nil
@@ -144,54 +138,47 @@ func (sdc *SystemdClient) Stop(unit string) error {
 			// In case the job that is stopped is canceled (because it was running),
 			// it is stopped, so all good.
 			return nil
-		case "timeout":
-			return Mask(ErrJobTimeout)
-		case "failed":
-			return Mask(ErrJobFailed)
-		case "dependency":
-			return Mask(ErrJobDependency)
-		case "skipped":
-			return Mask(ErrJobSkipped)
+		case "timeout", "failed", "dependency", "skipped":
+			return maskAny(errgo.WithCausef(nil, SystemdError, res))
 		default:
 			// that should never happen
 			sdc.Logger.Error("unexpected systemd response: '%s'", res)
-			return Mask(ErrUnknownSystemdResponse)
+			return maskAny(errgo.WithCausef(nil, SystemdError, res))
 		}
-	case <-timeoutJobExecution():
-		return Mask(ErrJobExecutionTookTooLong)
+	case <-time.After(jobTimeout):
+		return maskAny(errgo.WithCausef(nil, SystemdError, "job timeout"))
 	}
 
 	return nil
 }
 
-// See http://godoc.org/github.com/coreos/go-systemd/dbus#Conn.EnableUnitFiles
+// Enable behaves as `systemctl enable <unit>`
 func (sdc *SystemdClient) Enable(unit string) error {
-	sdc.Logger.Debug("call systemd enable %s", unit)
+	sdc.Logger.Debug("enabling %s", unit)
 
-	conn, err := systemdPkg.New()
+	conn, err := dbus.New()
 	if err != nil {
-		return Mask(err)
+		return maskAny(err)
 	}
 
 	if _, _, err := conn.EnableUnitFiles([]string{unit}, false, false); err != nil {
-		sdc.Logger.Debug("systemd enable failed: %#v", err)
-		return Mask(err)
+		sdc.Logger.Debug("enabling %s failed: %#v", unit, err)
+		return maskAny(err)
 	}
 
 	return nil
 }
 
+// Exists returns true if the given unit exists, false otherwise.
 func (sdc *SystemdClient) Exists(unit string) (bool, error) {
-	sdc.Logger.Debug("call systemd exists %s", unit)
-
-	conn, err := systemdPkg.New()
+	conn, err := dbus.New()
 	if err != nil {
-		return false, Mask(err)
+		return false, maskAny(err)
 	}
 
 	ustates, err := conn.ListUnits()
 	if err != nil {
-		return false, Mask(err)
+		return false, maskAny(err)
 	}
 
 	for _, ustate := range ustates {
@@ -203,18 +190,17 @@ func (sdc *SystemdClient) Exists(unit string) (bool, error) {
 	return false, nil
 }
 
-// See https://godoc.org/github.com/coreos/go-systemd/dbus#Conn.ListUnits
+// IsActive returns true if the given unit exists and its ActiveState is 'active',
+// false otherwise.
 func (sdc *SystemdClient) IsActive(unit string) (bool, error) {
-	sdc.Logger.Debug("call systemd is-active %s", unit)
-
-	conn, err := systemdPkg.New()
+	conn, err := dbus.New()
 	if err != nil {
-		return false, Mask(err)
+		return false, maskAny(err)
 	}
 
 	ustates, err := conn.ListUnits()
 	if err != nil {
-		return false, Mask(err)
+		return false, maskAny(err)
 	}
 
 	for _, ustate := range ustates {
