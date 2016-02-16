@@ -49,7 +49,7 @@ $(GOBUILDDIR):
 
 update-vendor:
 	@rm -Rf $(VENDORDIR)
-	@pulcy go vendor -V $(VENDORDIR) \
+	@pulsar go vendor -V $(VENDORDIR) \
 		github.com/coreos/go-systemd/dbus \
 		github.com/dchest/uniuri \
 		github.com/juju/errgo \
