@@ -40,12 +40,29 @@ alias wflu-inactive="watch 'fleetctl list-units | grep inactive'"
 alias wflu-failed="watch 'fleetctl list-units | grep failed'"
 alias wflu-running="watch 'fleetctl list-units | grep running'"
 
+function frestart() {
+	fleetctl stop $@
+	fleetctl start $@
+}
+
+# Systemd
+alias reset-failed="sudo systemctl reset-failed"
+
 # Journalctl
 alias jc="journalctl"
 alias jcu="journalctl --unit"
 alias jcuf="journalctl -f --unit"
 
-function frestart() {
-	fleetctl stop $@
-	fleetctl start $@
+# Gluon
+
+function update-gluon() {
+	local image=${1}
+	if [ -z ${image} ]; then
+		echo Pass image argument
+	else
+		docker pull ${image}
+		docker run --rm -v /home/core/bin/:/destination/ ${image}
+		echo ${image} | sudo tee /etc/pulcy/gluon-image
+		sudo systemctl restart gluon
+	fi
 }
