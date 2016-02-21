@@ -43,6 +43,7 @@ alias wflu-running="watch 'fleetctl list-units | grep running'"
 # Journalctl
 alias jc="journalctl"
 alias jcu="journalctl --unit"
+alias jcuf="journalctl -f --unit"
 
 function frestart() {
 	fleetctl stop $@
