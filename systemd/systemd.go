@@ -47,7 +47,7 @@ func (sdc *SystemdClient) Reload() error {
 	}
 
 	if err := conn.Reload(); err != nil {
-		sdc.Logger.Error("reloading daemon failed: %#v", err)
+		sdc.Logger.Errorf("reloading daemon failed: %#v", err)
 		return maskAny(err)
 	}
 
@@ -56,7 +56,7 @@ func (sdc *SystemdClient) Reload() error {
 
 // Start behaves as `systemctl start <unit>`
 func (sdc *SystemdClient) Start(unit string) error {
-	sdc.Logger.Debug("starting %s", unit)
+	sdc.Logger.Debugf("starting %s", unit)
 
 	conn, err := dbus.New()
 	if err != nil {
@@ -65,7 +65,7 @@ func (sdc *SystemdClient) Start(unit string) error {
 
 	responseChan := make(chan string, 1)
 	if _, err := conn.StartUnit(unit, "replace", responseChan); err != nil {
-		sdc.Logger.Error("starting %s failed: %#v", unit, err)
+		sdc.Logger.Errorf("starting %s failed: %#v", unit, err)
 		return maskAny(err)
 	}
 
@@ -81,7 +81,7 @@ func (sdc *SystemdClient) Start(unit string) error {
 			return maskAny(errgo.WithCausef(nil, SystemdError, res))
 		default:
 			// that should never happen
-			sdc.Logger.Error("unexpected systemd response: '%s'", res)
+			sdc.Logger.Errorf("unexpected systemd response: '%s'", res)
 			return maskAny(errgo.WithCausef(nil, SystemdError, res))
 		}
 	case <-time.After(jobTimeout):
@@ -93,7 +93,7 @@ func (sdc *SystemdClient) Start(unit string) error {
 
 // Restart behaves as `systemctl restart <unit>`
 func (sdc *SystemdClient) Restart(unit string) error {
-	sdc.Logger.Debug("restarting %s", unit)
+	sdc.Logger.Debugf("restarting %s", unit)
 
 	conn, err := dbus.New()
 	if err != nil {
@@ -102,7 +102,7 @@ func (sdc *SystemdClient) Restart(unit string) error {
 
 	responseChan := make(chan string, 1)
 	if _, err := conn.RestartUnit(unit, "replace", responseChan); err != nil {
-		sdc.Logger.Error("restarting %s failed: %#v", unit, err)
+		sdc.Logger.Errorf("restarting %s failed: %#v", unit, err)
 		return maskAny(err)
 	}
 
@@ -118,7 +118,7 @@ func (sdc *SystemdClient) Restart(unit string) error {
 			return maskAny(errgo.WithCausef(nil, SystemdError, res))
 		default:
 			// that should never happen
-			sdc.Logger.Error("unexpected systemd response: '%s'", res)
+			sdc.Logger.Errorf("unexpected systemd response: '%s'", res)
 			return maskAny(errgo.WithCausef(nil, SystemdError, res))
 		}
 	case <-time.After(jobTimeout):
@@ -130,7 +130,7 @@ func (sdc *SystemdClient) Restart(unit string) error {
 
 // Stop behaves as `systemctl stop <unit>`
 func (sdc *SystemdClient) Stop(unit string) error {
-	sdc.Logger.Debug("stopping %s", unit)
+	sdc.Logger.Debugf("stopping %s", unit)
 
 	conn, err := dbus.New()
 	if err != nil {
@@ -139,7 +139,7 @@ func (sdc *SystemdClient) Stop(unit string) error {
 
 	responseChan := make(chan string, 1)
 	if _, err := conn.StopUnit(unit, "replace", responseChan); err != nil {
-		sdc.Logger.Debug("stopping %s failed: %#v", unit, err)
+		sdc.Logger.Debugf("stopping %s failed: %#v", unit, err)
 		return maskAny(err)
 	}
 
@@ -156,7 +156,7 @@ func (sdc *SystemdClient) Stop(unit string) error {
 			return maskAny(errgo.WithCausef(nil, SystemdError, res))
 		default:
 			// that should never happen
-			sdc.Logger.Error("unexpected systemd response: '%s'", res)
+			sdc.Logger.Errorf("unexpected systemd response: '%s'", res)
 			return maskAny(errgo.WithCausef(nil, SystemdError, res))
 		}
 	case <-time.After(jobTimeout):
@@ -168,7 +168,7 @@ func (sdc *SystemdClient) Stop(unit string) error {
 
 // Enable behaves as `systemctl enable <unit>`
 func (sdc *SystemdClient) Enable(unit string) error {
-	sdc.Logger.Debug("enabling %s", unit)
+	sdc.Logger.Debugf("enabling %s", unit)
 
 	conn, err := dbus.New()
 	if err != nil {
@@ -176,7 +176,7 @@ func (sdc *SystemdClient) Enable(unit string) error {
 	}
 
 	if _, _, err := conn.EnableUnitFiles([]string{unit}, false, false); err != nil {
-		sdc.Logger.Debug("enabling %s failed: %#v", unit, err)
+		sdc.Logger.Errorf("enabling %s failed: %#v", unit, err)
 		return maskAny(err)
 	}
 
