@@ -9,7 +9,6 @@ ExecStartPre=/bin/sh -c 'mkdir -p /home/core/bin'
 ExecStartPre=/bin/sh -c '/usr/bin/docker pull {{.GluonImage}}'
 ExecStartPre=/bin/sh -c 'test -e /home/core/bin/gluon || /usr/bin/docker run --rm -v /home/core/bin/:/destination/ {{.GluonImage}}'
 ExecStart=/home/core/bin/gluon setup \
---gluon-image={{.GluonImage}} \
 --docker-ip=${COREOS_PRIVATE_IPV4} \
 --docker-subnet={{.DockerSubnet}} \
 --private-ip=${COREOS_PRIVATE_IPV4} \

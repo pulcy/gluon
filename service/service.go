@@ -30,6 +30,7 @@ const (
 	clusterMembersPath     = "/etc/pulcy/cluster-members"
 	privateRegistryUrlPath = "/etc/pulcy/private-registry-url"
 	fleetMetadataPath      = "/etc/pulcy/fleet-metadata"
+	gluonImagePath         = "/etc/pulcy/gluon-image"
 )
 
 type Service interface {
@@ -94,15 +95,24 @@ func (flags *ServiceFlags) SetupDefaults() error {
 		}
 	}
 	if flags.FleetMetadata == "" {
-		metadata, err := ioutil.ReadFile(fleetMetadataPath)
+		raw, err := ioutil.ReadFile(fleetMetadataPath)
 		if err != nil && !os.IsNotExist(err) {
 			return maskAny(err)
 		} else if err == nil {
-			flags.FleetMetadata = string(metadata)
+			lines := trimLines(strings.Split(string(raw), "\n"))
+			flags.FleetMetadata = strings.Join(lines, ",")
 		}
 	}
 	if flags.PrivateClusterDevice == "" {
 		flags.PrivateClusterDevice = "eth1"
+	}
+	if flags.GluonImage == "" {
+		content, err := ioutil.ReadFile(gluonImagePath)
+		if err != nil && !os.IsNotExist(err) {
+			return maskAny(err)
+		} else if err == nil {
+			flags.GluonImage = strings.TrimSpace(string(content))
+		}
 	}
 	return nil
 }
@@ -119,7 +129,16 @@ func (flags *ServiceFlags) Save() (bool, error) {
 		}
 	}
 	if flags.FleetMetadata != "" {
-		if changed, err := updateContent(fleetMetadataPath, flags.FleetMetadata, 0644); err != nil {
+		parts := strings.Split(flags.FleetMetadata, ",")
+		content := strings.Join(parts, "\n")
+		if changed, err := updateContent(fleetMetadataPath, content, 0644); err != nil {
+			return false, maskAny(err)
+		} else if changed {
+			changes++
+		}
+	}
+	if flags.GluonImage != "" {
+		if changed, err := updateContent(gluonImagePath, flags.GluonImage, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++
@@ -195,4 +214,16 @@ func updateContent(path, content string, fileMode os.FileMode) (bool, error) {
 	os.MkdirAll(filepath.Dir(path), 0755)
 	changed, err := util.UpdateFile(path, []byte(content), fileMode)
 	return changed, maskAny(err)
+}
+
+// trimLines trims the spaces away from every given line and leaves out any empty lines.
+func trimLines(lines []string) []string {
+	result := []string{}
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			result = append(result, line)
+		}
+	}
+	return result
 }
