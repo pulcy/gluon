@@ -29,8 +29,22 @@ alias fstop="fleetctl stop"
 alias fdestroy="fleetctl destroy"
 alias flm="fleetctl list-machines"
 alias flu="fleetctl list-units"
+alias flu-active="fleetctl list-units | grep -v inactive"
+alias flu-inactive="fleetctl list-units | grep inactive"
+alias flu-failed="fleetctl list-units | grep failed"
+alias flu-running="fleetctl list-units | grep running"
 alias wflm="watch fleetctl list-machines"
 alias wflu="watch fleetctl list-units"
+alias wflu-active="watch 'fleetctl list-units | grep -v inactive'"
+alias wflu-inactive="watch 'fleetctl list-units | grep inactive'"
+alias wflu-failed="watch 'fleetctl list-units | grep failed'"
+alias wflu-running="watch 'fleetctl list-units | grep running'"
 
 # Journalctl
 alias jc="journalctl"
+alias jcu="journalctl --unit"
+
+function frestart() {
+	fleetctl stop $@
+	fleetctl start $@
+}
