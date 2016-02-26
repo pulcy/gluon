@@ -43,6 +43,7 @@ alias wflu-running="watch 'fleetctl list-units | grep running'"
 
 function frestart() {
 	fleetctl stop $@
+	fleetctl ssh $1 sudo systemctl reset-failed $1
 	fleetctl start $@
 }
 
