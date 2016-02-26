@@ -35,7 +35,8 @@ const (
 	serviceTemplate = "templates/docker.service.tmpl"
 	serviceName     = "docker.service"
 	servicePath     = "/etc/systemd/system/" + serviceName
-	rootConfigPath  = "/root/.docker/config"
+	rootConfigPath1 = "/root/.docker/config"
+	rootConfigPath2 = "/root/.docker/config.json"
 
 	fileMode = os.FileMode(0755)
 )
@@ -68,7 +69,11 @@ func (t *dockerService) Name() string {
 }
 
 func (t *dockerService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
-	changedConfig, err := createDockerConfig(deps, flags)
+	changedConfig1, err := createDockerConfig(rootConfigPath1, deps, flags)
+	if err != nil {
+		return maskAny(err)
+	}
+	changedConfig2, err := createDockerConfig(rootConfigPath2, deps, flags)
 	if err != nil {
 		return maskAny(err)
 	}
@@ -78,7 +83,7 @@ func (t *dockerService) Setup(deps service.ServiceDependencies, flags *service.S
 		return maskAny(err)
 	}
 
-	if flags.Force || changedConfig || changedService {
+	if flags.Force || changedConfig1 || changedConfig2 || changedService {
 		if err := deps.Systemd.Reload(); err != nil {
 			return maskAny(err)
 		}
@@ -101,7 +106,7 @@ func createDockerService(deps service.ServiceDependencies, flags *service.Servic
 	return changed, maskAny(err)
 }
 
-func createDockerConfig(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+func createDockerConfig(rootConfigPath string, deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	if flags.PrivateRegistryPassword != "" && flags.PrivateRegistryUrl != "" && flags.PrivateRegistryUserName != "" {
 		deps.Logger.Info("creating %s", rootConfigPath)
 		// Load config file
