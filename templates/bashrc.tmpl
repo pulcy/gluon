@@ -7,7 +7,7 @@ if [[ $- != *i* ]] ; then
 fi
 
 # Alter prompt
-export PS1="\e[0;32m$(cat /etc/machine-id | cut -c 1-8) $(cat /etc/environment | grep COREOS_PRIVATE_IPV4 | cut -d "=" -f 2) \e[0;34m\w \e[m$ "
+export PS1="\e[1;30m$(cat /etc/machine-id | cut -c 1-8) \e[0;32m$(cat /etc/environment | grep COREOS_PRIVATE_IPV4 | cut -d "=" -f 2) \e[0;34m\w \e[m$ "
 
 # General
 alias jq="docker run --rm -i realguess/jq:latest jq"
@@ -20,6 +20,8 @@ alias dockerclean="dockercleancontainers && dockercleanimages"
 
 # Etcd
 alias cluster-health="etcdctl cluster-health"
+alias els="etcdctl ls --recursive --sort"
+alias eget="etcdctl get"
 
 # Fleet
 alias fc="fleetctl cat"
@@ -49,6 +51,10 @@ function frestart() {
 
 # Systemd
 alias reset-failed="sudo systemctl reset-failed"
+alias srestart="sudo systemctl restart"
+alias sstatus="sudo systemctl status"
+alias sstart="sudo systemctl start"
+alias sstop="sudo systemctl stop"
 
 # Journalctl
 alias jc="journalctl"
