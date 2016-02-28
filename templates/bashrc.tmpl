@@ -7,7 +7,7 @@ if [[ $- != *i* ]] ; then
 fi
 
 # Alter prompt
-export PS1="\e[0;32m\u@$(cat /etc/machine-id | cut -c 1-8) \e[0;34m\w \e[m$ "
+export PS1="\e[0;32m$(cat /etc/machine-id | cut -c 1-8) $(cat /etc/environment | grep COREOS_PRIVATE_IPV4 | cut -d "=" -f 2) \e[0;34m\w \e[m$ "
 
 # General
 alias jq="docker run --rm -i realguess/jq:latest jq"
