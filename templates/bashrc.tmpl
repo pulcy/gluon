@@ -32,6 +32,7 @@ alias fstop="fleetctl stop"
 alias fdestroy="fleetctl destroy"
 alias flm="fleetctl list-machines"
 alias flu="fleetctl list-units"
+alias fluf="fleetctl list-unit-files"
 alias flu-active="fleetctl list-units | grep -v inactive"
 alias flu-inactive="fleetctl list-units | grep inactive"
 alias flu-failed="fleetctl list-units | grep failed"
@@ -47,6 +48,12 @@ function frestart() {
 	fleetctl stop $@
 	fleetctl ssh $1 sudo systemctl reset-failed $1
 	fleetctl start $@
+}
+function xcluster() {
+	local IPs=$(fleetctl list-machines -fields=ip -no-legend)
+	for ip in ${IPs}; do
+		ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -A -q core@${ip} $@
+	done
 }
 
 # Systemd
