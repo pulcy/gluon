@@ -29,6 +29,7 @@ import (
 const (
 	clusterMembersPath     = "/etc/pulcy/cluster-members"
 	privateRegistryUrlPath = "/etc/pulcy/private-registry-url"
+	etcdClusterStatePath   = "/etc/pulcy/etcd-cluster-state"
 	fleetMetadataPath      = "/etc/pulcy/fleet-metadata"
 	gluonImagePath         = "/etc/pulcy/gluon-image"
 )
@@ -59,6 +60,9 @@ type ServiceFlags struct {
 	// IPTables
 	PrivateClusterDevice string
 	PrivateIP            string // Private IPv4 address of this machine
+
+	// ETCD
+	EtcdClusterState string
 
 	// Fleet
 	FleetMetadata string
@@ -103,6 +107,15 @@ func (flags *ServiceFlags) SetupDefaults() error {
 			flags.FleetMetadata = strings.Join(lines, ",")
 		}
 	}
+	if flags.EtcdClusterState == "" {
+		raw, err := ioutil.ReadFile(etcdClusterStatePath)
+		if err != nil && !os.IsNotExist(err) {
+			return maskAny(err)
+		} else if err == nil {
+			lines := trimLines(strings.Split(string(raw), "\n"))
+			flags.EtcdClusterState = strings.TrimSpace(strings.Join(lines, " "))
+		}
+	}
 	if flags.PrivateClusterDevice == "" {
 		flags.PrivateClusterDevice = "eth1"
 	}
@@ -132,6 +145,13 @@ func (flags *ServiceFlags) Save() (bool, error) {
 		parts := strings.Split(flags.FleetMetadata, ",")
 		content := strings.Join(parts, "\n")
 		if changed, err := updateContent(fleetMetadataPath, content, 0644); err != nil {
+			return false, maskAny(err)
+		} else if changed {
+			changes++
+		}
+	}
+	if flags.EtcdClusterState != "" {
+		if changed, err := updateContent(etcdClusterStatePath, flags.EtcdClusterState, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++

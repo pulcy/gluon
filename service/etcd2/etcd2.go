@@ -84,6 +84,10 @@ func createEtcd2Conf(deps service.ServiceDependencies, flags *service.ServiceFla
 	}
 	clusterItems := []string{}
 	name := ""
+	clusterState := flags.EtcdClusterState
+	if clusterState == "" {
+		clusterState = "new"
+	}
 	etcdProxy := false
 	for _, cm := range members {
 		if !cm.EtcdProxy {
@@ -101,7 +105,7 @@ func createEtcd2Conf(deps service.ServiceDependencies, flags *service.ServiceFla
 		"Environment=ETCD_LISTEN_PEER_URLS=" + fmt.Sprintf("http://%s:2380", flags.PrivateIP),
 		"Environment=ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379,http://0.0.0.0:4001",
 		"Environment=ETCD_INITIAL_CLUSTER=" + strings.Join(clusterItems, ","),
-		"Environment=ETCD_INITIAL_CLUSTER_STATE=new",
+		"Environment=ETCD_INITIAL_CLUSTER_STATE=" + clusterState,
 		"Environment=ETCD_INITIAL_ADVERTISE_PEER_URLS=" + fmt.Sprintf("http://%s:2380", flags.PrivateIP),
 		"Environment=ETCD_ADVERTISE_CLIENT_URLS=" + fmt.Sprintf("http://%s:2379,http://%s:4001", flags.PrivateIP, flags.PrivateIP),
 	}
