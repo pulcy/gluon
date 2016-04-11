@@ -31,7 +31,6 @@ import (
 const (
 	defaultDockerSubnet         = "172.17.0.0/16"
 	defaultPrivateClusterDevice = "eth1"
-	defaultEtcdClusterState     = "new"
 )
 
 var (
@@ -58,7 +57,7 @@ func init() {
 	// Fleet
 	cmdSetup.Flags().StringVar(&setupFlags.FleetMetadata, "fleet-metadata", "", "Metadata list for fleet")
 	// ETCD
-	cmdSetup.Flags().StringVar(&setupFlags.EtcdClusterState, "etcd-cluster-state", defaultEtcdClusterState, "State of the ETCD cluster new|existing")
+	cmdSetup.Flags().StringVar(&setupFlags.EtcdClusterState, "etcd-cluster-state", "", "State of the ETCD cluster new|existing")
 	cmdMain.AddCommand(cmdSetup)
 }
 
