@@ -33,8 +33,8 @@ var (
 
 const (
 	serviceTemplate = "templates/docker.service.tmpl"
-	serviceName     = "docker.service"
-	servicePath     = "/etc/systemd/system/" + serviceName
+	ServiceName     = "docker.service"
+	servicePath     = "/etc/systemd/system/" + ServiceName
 	rootConfigPath1 = "/root/.docker/config"
 	rootConfigPath2 = "/root/.docker/config.json"
 
@@ -87,7 +87,7 @@ func (t *dockerService) Setup(deps service.ServiceDependencies, flags *service.S
 		if err := deps.Systemd.Reload(); err != nil {
 			return maskAny(err)
 		}
-		if err := deps.Systemd.Restart(serviceName); err != nil {
+		if err := deps.Systemd.Restart(ServiceName); err != nil {
 			return maskAny(err)
 		}
 	}
