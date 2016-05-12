@@ -20,6 +20,7 @@ import (
 	"github.com/juju/errgo"
 
 	"github.com/pulcy/gluon/service"
+	"github.com/pulcy/gluon/service/docker"
 	"github.com/pulcy/gluon/templates"
 )
 
@@ -43,6 +44,8 @@ const (
 	netfilterTemplate    = "templates/netfilter.service.tmpl"
 	netfilterServiceName = "netfilter.service"
 	netfilterServicePath = "/etc/systemd/system/" + netfilterServiceName
+
+	dockerServiceName = docker.ServiceName
 
 	fileMode = os.FileMode(0755)
 )
@@ -94,6 +97,9 @@ func (t *iptablesService) Setup(deps service.ServiceDependencies, flags *service
 			return maskAny(err)
 		}
 		if err := deps.Systemd.Restart(v6serviceName); err != nil {
+			return maskAny(err)
+		}
+		if err := deps.Systemd.Restart(dockerServiceName); err != nil {
 			return maskAny(err)
 		}
 	}
