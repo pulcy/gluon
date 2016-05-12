@@ -52,8 +52,8 @@ func init() {
 	cmdSetup.Flags().StringVar(&setupFlags.PrivateRegistryUserName, "private-registry-username", "", "Username for private registry")
 	cmdSetup.Flags().StringVar(&setupFlags.PrivateRegistryPassword, "private-registry-password", "", "Password for private registry")
 	// Network
-	cmdSetup.Flags().StringVar(&setupFlags.PrivateIP, "private-ip", "", "IP address of private network")
-	cmdSetup.Flags().StringVar(&setupFlags.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the private IP")
+	cmdSetup.Flags().StringVar(&setupFlags.ClusterIP, "private-ip", "", "IP address of this host in the cluster network")
+	cmdSetup.Flags().StringVar(&setupFlags.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the cluster IP")
 	// Fleet
 	cmdSetup.Flags().StringVar(&setupFlags.FleetMetadata, "fleet-metadata", "", "Metadata list for fleet")
 	// ETCD
@@ -71,7 +71,7 @@ func runSetup(cmd *cobra.Command, args []string) {
 	assertArgIsSet(setupFlags.GluonImage, "--gluon-image")
 	assertArgIsSet(setupFlags.DockerIP, "--docker-ip")
 	assertArgIsSet(setupFlags.DockerSubnet, "--docker-subnet")
-	assertArgIsSet(setupFlags.PrivateIP, "--private-ip")
+	assertArgIsSet(setupFlags.ClusterIP, "--private-ip")
 	assertArgIsSet(setupFlags.PrivateClusterDevice, "--private-cluster-device")
 
 	deps := service.ServiceDependencies{

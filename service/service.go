@@ -32,6 +32,7 @@ const (
 	etcdClusterStatePath   = "/etc/pulcy/etcd-cluster-state"
 	fleetMetadataPath      = "/etc/pulcy/fleet-metadata"
 	gluonImagePath         = "/etc/pulcy/gluon-image"
+	privateHostIPPrefix    = "private-host-ip="
 )
 
 type Service interface {
@@ -59,7 +60,7 @@ type ServiceFlags struct {
 
 	// IPTables
 	PrivateClusterDevice string
-	PrivateIP            string // Private IPv4 address of this machine
+	ClusterIP            string // IP address of member used for internal cluster traffic (e.g. etcd)
 
 	// ETCD
 	EtcdClusterState string
@@ -83,9 +84,10 @@ type discoveryNode struct {
 }
 
 type ClusterMember struct {
-	MachineID string
-	PrivateIP string
-	EtcdProxy bool
+	MachineID     string
+	ClusterIP     string // IP address of member used for internal cluster traffic (e.g. etcd)
+	PrivateHostIP string // IP address of member host (can be same as ClusterIP)
+	EtcdProxy     bool
 }
 
 // SetupDefaults fills given flags with default value
@@ -199,13 +201,14 @@ func (flags *ServiceFlags) getClusterMembersFromFS(log *logging.Logger) ([]Clust
 		if line == "" {
 			continue
 		}
-		parts := strings.Split(line, "=")
+		parts := strings.SplitN(line, "=", 2)
 		if len(parts) != 2 {
 			continue
 		}
 		id := parts[0]
 		parts = strings.Split(parts[1], " ")
-		ip := parts[0]
+		clusterIP := parts[0]
+		privateHostIP := clusterIP
 		etcdProxy := false
 		for index, x := range parts {
 			if index == 0 {
@@ -215,14 +218,19 @@ func (flags *ServiceFlags) getClusterMembersFromFS(log *logging.Logger) ([]Clust
 			case "etcd-proxy":
 				etcdProxy = true
 			default:
-				log.Error("Unknown option '%s' in %s", x, clusterMembersPath)
+				if strings.HasPrefix(x, privateHostIPPrefix) {
+					privateHostIP = x[len(privateHostIPPrefix):]
+				} else {
+					log.Error("Unknown option '%s' in %s", x, clusterMembersPath)
+				}
 			}
 		}
 
 		members = append(members, ClusterMember{
-			MachineID: id,
-			PrivateIP: ip,
-			EtcdProxy: etcdProxy,
+			MachineID:     id,
+			ClusterIP:     clusterIP,
+			PrivateHostIP: privateHostIP,
+			EtcdProxy:     etcdProxy,
 		})
 	}
 
