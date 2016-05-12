@@ -108,16 +108,19 @@ func createV4Rules(deps service.ServiceDependencies, flags *service.ServiceFlags
 		return false, maskAny(err)
 	}
 	opts := struct {
-		ClusterMemberIPs     []string
+		ClusterMemberIPs     []string // Cluster specific IP addresses
+		PrivateMemberIPs     []string // Private (host) specific IP addresses
 		DockerSubnet         string
 		PrivateClusterDevice string
 	}{
 		ClusterMemberIPs:     []string{},
+		PrivateMemberIPs:     []string{},
 		DockerSubnet:         flags.DockerSubnet,
 		PrivateClusterDevice: flags.PrivateClusterDevice,
 	}
 	for _, cm := range members {
-		opts.ClusterMemberIPs = append(opts.ClusterMemberIPs, cm.PrivateIP)
+		opts.ClusterMemberIPs = append(opts.ClusterMemberIPs, cm.ClusterIP)
+		opts.PrivateMemberIPs = append(opts.PrivateMemberIPs, cm.PrivateHostIP)
 	}
 	changed, err := templates.Render(v4rulesTemplate, v4rulesPath, opts, fileMode)
 	return changed, maskAny(err)

@@ -19,8 +19,13 @@ COMMIT
 -A INPUT -p tcp --dport 443 -m state --state NEW,ESTABLISHED -j ACCEPT
 -A INPUT -p tcp --dport 7088 -m state --state NEW,ESTABLISHED -j ACCEPT
 -A INPUT -p tcp --dport 8200 -m state --state NEW,ESTABLISHED -j ACCEPT
--A INPUT -p tcp --dport 655 -j ACCEPT
--A INPUT -p udp --dport 655 -j ACCEPT
+
+{{range .PrivateMemberIPs }}
+-A INPUT -p tcp -s {{.}} --dport 8288 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A INPUT -p tcp -s {{.}} --dport 655 -j ACCEPT
+-A INPUT -p udp -s {{.}} --dport 655 -j ACCEPT
+{{end}}
+
 -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A INPUT -i {{.PrivateClusterDevice}} -j PRIVATECLUSTER
 

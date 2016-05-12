@@ -76,7 +76,7 @@ func createFleetConf(deps service.ServiceDependencies, flags *service.ServiceFla
 	lines := []string{
 		"[Service]",
 		fmt.Sprintf("Environment=FLEET_METADATA=%s", flags.FleetMetadata),
-		fmt.Sprintf("Environment=FLEET_PUBLIC_IP=%s", flags.PrivateIP),
+		fmt.Sprintf("Environment=FLEET_PUBLIC_IP=%s", flags.ClusterIP),
 	}
 
 	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), fileMode)
