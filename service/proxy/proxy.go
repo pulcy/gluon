@@ -91,7 +91,8 @@ func updateNoProxy(path, noProxy string, deps service.ServiceDependencies, flags
 	lines := strings.Split(string(origContent), "\n")
 	updatedLines := []string{}
 	for _, line := range lines {
-		if !strings.HasPrefix(strings.ToUpper(line), noProxyPrefix) {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(strings.ToUpper(line), noProxyPrefix) && line != "" {
 			updatedLines = append(updatedLines, line)
 		}
 	}
