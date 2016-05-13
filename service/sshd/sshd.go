@@ -31,7 +31,7 @@ const (
 	confTemplate = "templates/sshd_config.tmpl"
 	confName     = "sshd_config"
 	confPath     = "/etc/ssh/" + confName
-	ServiceName  = "sshd"
+	ServiceName  = "ssh"
 
 	fileMode = os.FileMode(0600)
 )
