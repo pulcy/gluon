@@ -21,6 +21,7 @@ import (
 
 	"github.com/pulcy/gluon/service"
 	"github.com/pulcy/gluon/service/docker"
+	"github.com/pulcy/gluon/service/sshd"
 	"github.com/pulcy/gluon/templates"
 )
 
@@ -45,9 +46,17 @@ const (
 	netfilterServiceName = "netfilter.service"
 	netfilterServicePath = "/etc/systemd/system/" + netfilterServiceName
 
-	dockerServiceName = docker.ServiceName
-
 	fileMode = os.FileMode(0755)
+)
+
+var (
+	restartServiceNames = []string{
+		netfilterServiceName,
+		v4serviceName,
+		v6serviceName,
+		sshd.ServiceName,
+		docker.ServiceName,
+	}
 )
 
 func NewService() service.Service {
@@ -90,17 +99,10 @@ func (t *iptablesService) Setup(deps service.ServiceDependencies, flags *service
 		if err := deps.Systemd.Reload(); err != nil {
 			return maskAny(err)
 		}
-		if err := deps.Systemd.Restart(netfilterServiceName); err != nil {
-			return maskAny(err)
-		}
-		if err := deps.Systemd.Restart(v4serviceName); err != nil {
-			return maskAny(err)
-		}
-		if err := deps.Systemd.Restart(v6serviceName); err != nil {
-			return maskAny(err)
-		}
-		if err := deps.Systemd.Restart(dockerServiceName); err != nil {
-			return maskAny(err)
+		for _, name := range restartServiceNames {
+			if err := deps.Systemd.Restart(name); err != nil {
+				return maskAny(err)
+			}
 		}
 	}
 
