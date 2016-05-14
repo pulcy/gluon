@@ -7,7 +7,9 @@ Before=sysinit.target
 [Service]
 Type=oneshot
 ExecStart=/usr/sbin/iptables-restore /home/core/ip4tables.rules
+ExecStart=/home/core/ip4tables.members.sh
 ExecReload=/usr/sbin/iptables-restore /home/core/ip4tables.rules
+ExecReload=/home/core/ip4tables.members.sh
 ExecStop=/usr/sbin/iptables --flush
 RemainAfterExit=yes
 

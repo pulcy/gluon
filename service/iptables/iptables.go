@@ -16,6 +16,7 @@ package iptables
 
 import (
 	"os"
+	"os/exec"
 
 	"github.com/juju/errgo"
 
@@ -30,6 +31,8 @@ var (
 )
 
 const (
+	v4membersTemplate = "templates/ip4tables.members.sh.tmpl"
+	v4membersPath     = "/home/core/ip4tables.members.sh"
 	v4rulesTemplate   = "templates/ip4tables.rules.tmpl"
 	v4rulesPath       = "/home/core/ip4tables.rules"
 	v4serviceTemplate = "templates/ip4tables.service.tmpl"
@@ -46,7 +49,8 @@ const (
 	netfilterServiceName = "netfilter.service"
 	netfilterServicePath = "/etc/systemd/system/" + netfilterServiceName
 
-	fileMode = os.FileMode(0755)
+	fileMode     = os.FileMode(0600)
+	fileModeExec = os.FileMode(0700)
 )
 
 var (
@@ -70,6 +74,11 @@ func (t *iptablesService) Name() string {
 }
 
 func (t *iptablesService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
+	changedV4Members, err := createV4Members(deps, flags)
+	if err != nil {
+		return maskAny(err)
+	}
+
 	changedV4Rules, err := createV4Rules(deps, flags)
 	if err != nil {
 		return maskAny(err)
@@ -105,12 +114,21 @@ func (t *iptablesService) Setup(deps service.ServiceDependencies, flags *service
 			}
 		}
 	}
+	if flags.Force || changedV4Members {
+		deps.Logger.Debugf("executing %s", v4membersPath)
+		cmd := exec.Command(v4membersPath)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			deps.Logger.Errorf("%s failed:\n%s\n%#v\n", v4membersPath, string(output), err)
+			return maskAny(err)
+		}
+	}
 
 	return nil
 }
 
-func createV4Rules(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
-	deps.Logger.Info("creating %s", v4rulesPath)
+func createV4Members(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	deps.Logger.Info("creating %s", v4membersPath)
 	members, err := flags.GetClusterMembers(deps.Logger)
 	if err != nil {
 		return false, maskAny(err)
@@ -129,6 +147,19 @@ func createV4Rules(deps service.ServiceDependencies, flags *service.ServiceFlags
 	for _, cm := range members {
 		opts.ClusterMemberIPs = append(opts.ClusterMemberIPs, cm.ClusterIP)
 		opts.PrivateMemberIPs = append(opts.PrivateMemberIPs, cm.PrivateHostIP)
+	}
+	changed, err := templates.Render(v4membersTemplate, v4membersPath, opts, fileModeExec)
+	return changed, maskAny(err)
+}
+
+func createV4Rules(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	deps.Logger.Info("creating %s", v4rulesPath)
+	opts := struct {
+		DockerSubnet         string
+		PrivateClusterDevice string
+	}{
+		DockerSubnet:         flags.DockerSubnet,
+		PrivateClusterDevice: flags.PrivateClusterDevice,
 	}
 	changed, err := templates.Render(v4rulesTemplate, v4rulesPath, opts, fileMode)
 	return changed, maskAny(err)

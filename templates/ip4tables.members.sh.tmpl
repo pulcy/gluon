@@ -1,0 +1,11 @@
+#!/bin/sh
+
+iptables -F PRIVATECLUSTER
+{{range .ClusterMemberIPs }}
+iptables -A PRIVATECLUSTER -s {{.}} -j ACCEPT{{end}}
+iptables -A PRIVATECLUSTER -j DROP
+
+iptables -F PRIVATEHOST
+{{range .PrivateMemberIPs }}
+iptables -A PRIVATEHOST -s {{.}} -j ACCEPT{{end}}
+iptables -A PRIVATEHOST -j DROP
