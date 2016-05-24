@@ -37,6 +37,8 @@ const (
 	servicePath     = "/etc/systemd/system/" + ServiceName
 	rootConfigPath1 = "/root/.docker/config"
 	rootConfigPath2 = "/root/.docker/config.json"
+	cleanupSource   = "templates/docker-cleanup.sh"
+	cleanupPath     = "/home/core/bin/docker-cleanup.sh"
 
 	fileMode = os.FileMode(0755)
 )
@@ -90,6 +92,10 @@ func (t *dockerService) Setup(deps service.ServiceDependencies, flags *service.S
 		if err := deps.Systemd.Restart(ServiceName); err != nil {
 			return maskAny(err)
 		}
+	}
+
+	if _, err := createDockerCleanup(deps, flags); err != nil {
+		return maskAny(err)
 	}
 
 	return nil
@@ -146,4 +152,16 @@ func encodeAuth(authConfig AuthConfig) string {
 	encoded := make([]byte, base64.StdEncoding.EncodedLen(len(msg)))
 	base64.StdEncoding.Encode(encoded, msg)
 	return string(encoded)
+}
+
+// create/update /home/core/bin/docker-cleanup.sh
+func createDockerCleanup(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	deps.Logger.Info("creating %s", cleanupPath)
+	asset, err := templates.Asset(cleanupSource)
+	if err != nil {
+		return false, maskAny(err)
+	}
+
+	changed, err := util.UpdateFile(cleanupPath, asset, 0755)
+	return changed, maskAny(err)
 }
