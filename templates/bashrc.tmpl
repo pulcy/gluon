@@ -89,6 +89,8 @@ alias wslu-running="watch 'sudo systemctl list-units -a | grep running'"
 alias jc="journalctl"
 alias jcu="journalctl --unit"
 alias jcuf="journalctl -f --unit"
+alias jrotate="sudo pkill -USR2 systemd-journald"
+alias jverify="journalctl --verify"
 
 # Gluon
 
