@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 docker_disconnect() {
     local network=$1
@@ -12,7 +12,7 @@ docker_network_cleanup() {
     for nw in ${networks}; do
         containers=$(docker network inspect --format='{{range .Containers}}{{.Name}} {{end}}' $nw)
         for ct in ${containers}; do
-            docker inspect ${ct} &> /dev/null || docker_disconnect ${nw} ${ct}
+            docker inspect --format='{{.Id}}' ${ct} &> /dev/null || docker_disconnect ${nw} ${ct}
         done
     done
 }
