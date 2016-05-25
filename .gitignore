@@ -1,3 +1,4 @@
+.build
 .gobuild
 /gluon
 templates/templates_bindata.go

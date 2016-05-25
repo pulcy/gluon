@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/pulcy/gluon/service"
+	"github.com/pulcy/gluon/service/binaries"
 	"github.com/pulcy/gluon/service/docker"
 	"github.com/pulcy/gluon/service/env"
 	"github.com/pulcy/gluon/service/etcd2"
@@ -81,6 +82,7 @@ func runSetup(cmd *cobra.Command, args []string) {
 	}
 
 	services := []service.Service{
+		binaries.NewService(),
 		env.NewService(),
 		proxy.NewService(),
 		iptables.NewService(),

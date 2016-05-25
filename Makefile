@@ -20,6 +20,8 @@ GOBINDATA := $(GOBUILDDIR)/bin/go-bindata
 GOPATH := $(GOBUILDDIR)
 GOVERSION := 1.6.2-alpine
 
+ETCDVERSION := v2.3.5
+
 ifndef GOOS
 	GOOS := linux
 endif
@@ -30,12 +32,12 @@ endif
 SOURCES := $(shell find $(SRCDIR) -name '*.go')
 TEMPLATES := $(shell find $(SRCDIR) -name '*.tmpl')
 
-.PHONY: all clean deps
+.PHONY: all clean deps .build/etcd
 
-all: $(BIN) $(BINGPG)
+all: $(BIN) $(BINGPG) .build/etcd
 
 clean:
-	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR)
+	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR) .build
 
 deps:
 	@${MAKE} -B -s $(GOBUILDDIR) $(GOBINDATA)
@@ -72,3 +74,10 @@ $(BIN): $(GOBUILDDIR) $(GOBINDATA) $(SOURCES) templates/templates_bindata.go
 # Special rule, because this file is generated
 templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)
 	$(GOBINDATA) -pkg templates -o templates/templates_bindata.go templates/
+
+.build/etcd: .build/etcd.tar.gz
+	cd .build && tar zxf etcd.tar.gz && cp etcd-${ETCDVERSION}-linux-amd64/etcd* . && touch ./etcd
+
+.build/etcd.tar.gz:
+	mkdir -p .build
+	curl -L  https://github.com/coreos/etcd/releases/download/$(ETCDVERSION)/etcd-$(ETCDVERSION)-linux-amd64.tar.gz -o .build/etcd.tar.gz

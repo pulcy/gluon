@@ -1,0 +1,15 @@
+[Unit]
+Description=Mount for custom Gluon binaries
+Before=etcd2.service
+Before=docker.service
+Before=fleet.service
+
+[Mount]
+What=overlay
+Where={{ .MountPoint }}
+Type=overlay
+Options=lowerdir={{.LowerDir}},upperdir={{.UpperDir}},workdir={{.WorkDir}}
+
+[Install]
+RequiredBy=etcd2.service fleet.service docker.service
+WantedBy=multi-user.target umount.target
