@@ -22,6 +22,9 @@ GOVERSION := 1.6.2-alpine
 
 ETCDVERSION := v2.3.5
 
+FLEETVERSION := v0.11.7
+FLEETBUILDDIR := $(ROOTDIR)/.build/fleet
+
 ifndef GOOS
 	GOOS := linux
 endif
@@ -32,12 +35,12 @@ endif
 SOURCES := $(shell find $(SRCDIR) -name '*.go')
 TEMPLATES := $(shell find $(SRCDIR) -name '*.tmpl')
 
-.PHONY: all clean deps .build/etcd
+.PHONY: all clean deps
 
-all: $(BIN) $(BINGPG) .build/etcd
+all: $(BIN) $(BINGPG) .build/etcd .build/fleetd
 
 clean:
-	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR) .build
+	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR) .build $(FLEETBUILDDIR)
 
 deps:
 	@${MAKE} -B -s $(GOBUILDDIR) $(GOBINDATA)
@@ -81,3 +84,19 @@ templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)
 .build/etcd.tar.gz:
 	mkdir -p .build
 	curl -L  https://github.com/coreos/etcd/releases/download/$(ETCDVERSION)/etcd-$(ETCDVERSION)-linux-amd64.tar.gz -o .build/etcd.tar.gz
+
+.build/fleetd: $(FLEETBUILDDIR)
+	docker run \
+		--rm \
+		-v $(FLEETBUILDDIR):/usr/code \
+		-e GOOS=$(GOOS) \
+		-e GOARCH=$(GOARCH) \
+		-e CGO_ENABLED=0 \
+		-w /usr/code/ \
+		golang:1.6.2 \
+		/usr/code/build
+	cp $(FLEETBUILDDIR)/bin/fleetd .build/
+	cp $(FLEETBUILDDIR)/bin/fleetctl .build/
+
+$(FLEETBUILDDIR):
+	@pulsar get -b $(FLEETVERSION) https://github.com/coreos/fleet.git $(FLEETBUILDDIR)
