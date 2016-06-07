@@ -77,6 +77,11 @@ func createFleetConf(deps service.ServiceDependencies, flags *service.ServiceFla
 		"[Service]",
 		fmt.Sprintf("Environment=FLEET_METADATA=%s", flags.FleetMetadata),
 		fmt.Sprintf("Environment=FLEET_PUBLIC_IP=%s", flags.ClusterIP),
+		fmt.Sprintf("Environment=FLEET_AGENT_TTL=%v", flags.FleetAgentTTL),
+		fmt.Sprintf("Environment=FLEET_DISABLE_ENGINE=%v", flags.FleetDisableEngine),
+		fmt.Sprintf("Environment=FLEET_DISABLE_WATCHES=%v", flags.FleetDisableWatches),
+		fmt.Sprintf("Environment=FLEET_ENGINE_RECONCILE_INTERVAL=%d", flags.FleetEngineReconcileInterval),
+		fmt.Sprintf("Environment=FLEET_TOKEN_LIMIT=%d", flags.FleetTokenLimit),
 	}
 
 	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), fileMode)

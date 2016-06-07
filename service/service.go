@@ -66,7 +66,12 @@ type ServiceFlags struct {
 	EtcdClusterState string
 
 	// Fleet
-	FleetMetadata string
+	FleetMetadata                string
+	FleetAgentTTL                string
+	FleetDisableEngine           bool
+	FleetDisableWatches          bool
+	FleetEngineReconcileInterval int
+	FleetTokenLimit              int
 
 	// private cache
 	clusterMembers []ClusterMember

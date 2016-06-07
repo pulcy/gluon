@@ -34,6 +34,12 @@ import (
 const (
 	defaultDockerSubnet         = "172.17.0.0/16"
 	defaultPrivateClusterDevice = "eth1"
+
+	defaultFleetAgentTTL                = "30s"
+	defaultFleetDisableEngine           = false
+	defaultFleetDisableWatches          = true
+	defaultFleetEngineReconcileInterval = 10
+	defaultFleetTokenLimit              = 50
 )
 
 var (
@@ -59,6 +65,11 @@ func init() {
 	cmdSetup.Flags().StringVar(&setupFlags.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the cluster IP")
 	// Fleet
 	cmdSetup.Flags().StringVar(&setupFlags.FleetMetadata, "fleet-metadata", "", "Metadata list for fleet")
+	cmdSetup.Flags().StringVar(&setupFlags.FleetAgentTTL, "fleet-agent-ttl", defaultFleetAgentTTL, "agent_ttl option for fleet")
+	cmdSetup.Flags().BoolVar(&setupFlags.FleetDisableEngine, "fleet-disable-engine", defaultFleetDisableEngine, "disable_engine option for fleet")
+	cmdSetup.Flags().BoolVar(&setupFlags.FleetDisableWatches, "fleet-disable-watches", defaultFleetDisableWatches, "disable_watches option for fleet")
+	cmdSetup.Flags().IntVar(&setupFlags.FleetEngineReconcileInterval, "fleet-engine-reconcile-interval", defaultFleetEngineReconcileInterval, "engine_reconcile_interval option for fleet")
+	cmdSetup.Flags().IntVar(&setupFlags.FleetTokenLimit, "fleet-token-limit", defaultFleetTokenLimit, "token_limit option for fleet")
 	// ETCD
 	cmdSetup.Flags().StringVar(&setupFlags.EtcdClusterState, "etcd-cluster-state", "", "State of the ETCD cluster new|existing")
 	cmdMain.AddCommand(cmdSetup)
