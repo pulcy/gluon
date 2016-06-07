@@ -32,7 +32,7 @@ alias fstop="fleetctl stop"
 alias fdestroy="fleetctl destroy"
 alias fcheck="fleet-check.sh --dry-run"
 alias ffix="fleet-check.sh"
-alias fcleanup="docker run -it --rm --net=host pulcy/fleet-cleanup:latest"
+alias fcleanup-etcd="docker run -it --rm --net=host pulcy/fleet-cleanup:latest"
 alias flm="fleetctl list-machines"
 alias flu="fleetctl list-units"
 alias fluf="fleetctl list-unit-files"
@@ -51,6 +51,12 @@ function frestart() {
 	fleetctl stop $@
 	fleetctl ssh $1 sudo systemctl reset-failed $1
 	fleetctl start $@
+}
+function frestart-failed() {
+	local failedUnits=$(fleetctl list-units -no-legend | grep failed | awk '{print $1}' | uniq)
+	for unit in ${failedUnits}; do
+		frestart ${unit}
+	done
 }
 function xcluster() {
 	local IPs=$(fleetctl list-machines -fields=ip -no-legend)
