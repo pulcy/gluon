@@ -22,6 +22,7 @@ import (
 	"github.com/juju/errgo"
 
 	"github.com/pulcy/gluon/service"
+	"github.com/pulcy/gluon/templates"
 	"github.com/pulcy/gluon/util"
 )
 
@@ -30,10 +31,12 @@ var (
 )
 
 const (
-	confTemplate = "templates/99-fleet.conf.tmpl"
-	confName     = "99-fleet.conf"
-	confPath     = "/etc/systemd/system/fleet.service.d/" + confName
-	serviceName  = "fleet.service"
+	confTemplate      = "templates/99-fleet.conf.tmpl"
+	confName          = "99-fleet.conf"
+	confPath          = "/etc/systemd/system/fleet.service.d/" + confName
+	serviceName       = "fleet.service"
+	checkScriptSource = "templates/fleet-check.sh"
+	checkScriptPath   = "/home/core/bin/fleet-check.sh"
 
 	fileMode = os.FileMode(0755)
 )
@@ -69,6 +72,10 @@ func (t *fleetService) Setup(deps service.ServiceDependencies, flags *service.Se
 		}
 	}
 
+	if _, err := createFleetCheck(deps, flags); err != nil {
+		return maskAny(err)
+	}
+
 	return nil
 }
 
@@ -85,5 +92,17 @@ func createFleetConf(deps service.ServiceDependencies, flags *service.ServiceFla
 	}
 
 	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), fileMode)
+	return changed, maskAny(err)
+}
+
+// create/update /home/core/bin/fleet-check.sh
+func createFleetCheck(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	deps.Logger.Info("creating %s", checkScriptPath)
+	asset, err := templates.Asset(checkScriptSource)
+	if err != nil {
+		return false, maskAny(err)
+	}
+
+	changed, err := util.UpdateFile(checkScriptPath, asset, 0755)
 	return changed, maskAny(err)
 }
