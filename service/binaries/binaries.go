@@ -16,6 +16,7 @@ package binaries
 
 import (
 	"os"
+	"os/exec"
 
 	"github.com/juju/errgo"
 
@@ -66,6 +67,10 @@ func (t *binariesService) Setup(deps service.ServiceDependencies, flags *service
 		}
 	}
 
+	if err := remount(deps, mountPoint); err != nil {
+		return maskAny(err)
+	}
+
 	return nil
 }
 
@@ -84,4 +89,15 @@ func createBinariesMount(deps service.ServiceDependencies, flags *service.Servic
 	}
 	changed, err := templates.Render(mountTemplate, mountPath, opts, fileMode)
 	return changed, maskAny(err)
+}
+
+func remount(deps service.ServiceDependencies, path string) error {
+	deps.Logger.Infof("Remounting %s", path)
+	cmd := exec.Command("mount", "-o", "remount", path)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		deps.Logger.Errorf("Remount failed: %s", string(output))
+		return maskAny(err)
+	}
+	return nil
 }
