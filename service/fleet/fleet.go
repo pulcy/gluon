@@ -80,12 +80,16 @@ func (t *fleetService) Setup(deps service.ServiceDependencies, flags *service.Se
 }
 
 func createFleetConf(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	proxy, err := isEtcdProxy(deps, flags)
+	if err != nil {
+		return false, maskAny(err)
+	}
 	lines := []string{
 		"[Service]",
 		fmt.Sprintf("Environment=FLEET_METADATA=%s", flags.FleetMetadata),
 		fmt.Sprintf("Environment=FLEET_PUBLIC_IP=%s", flags.ClusterIP),
 		fmt.Sprintf("Environment=FLEET_AGENT_TTL=%v", flags.FleetAgentTTL),
-		fmt.Sprintf("Environment=FLEET_DISABLE_ENGINE=%v", flags.FleetDisableEngine),
+		fmt.Sprintf("Environment=FLEET_DISABLE_ENGINE=%v", proxy || flags.FleetDisableEngine),
 		fmt.Sprintf("Environment=FLEET_DISABLE_WATCHES=%v", flags.FleetDisableWatches),
 		fmt.Sprintf("Environment=FLEET_ENGINE_RECONCILE_INTERVAL=%d", flags.FleetEngineReconcileInterval),
 		fmt.Sprintf("Environment=FLEET_TOKEN_LIMIT=%d", flags.FleetTokenLimit),
@@ -105,4 +109,18 @@ func createFleetCheck(deps service.ServiceDependencies, flags *service.ServiceFl
 
 	changed, err := util.UpdateFile(checkScriptPath, asset, 0755)
 	return changed, maskAny(err)
+}
+
+func isEtcdProxy(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	members, err := flags.GetClusterMembers(deps.Logger)
+	if err != nil {
+		return false, maskAny(err)
+	}
+	for _, member := range members {
+		if member.ClusterIP == flags.ClusterIP {
+			return member.EtcdProxy, nil
+		}
+	}
+
+	return false, nil
 }
