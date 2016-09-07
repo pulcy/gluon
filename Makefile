@@ -18,7 +18,7 @@ BIN := $(BINDIR)/$(PROJECT)
 GOBINDATA := $(GOBUILDDIR)/bin/go-bindata
 
 GOPATH := $(GOBUILDDIR)
-GOVERSION := 1.6.2-alpine
+GOVERSION := 1.7.0-alpine
 
 ETCDVERSION := v3.0.1
 
@@ -93,7 +93,7 @@ templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)
 		-e GOARCH=$(GOARCH) \
 		-e CGO_ENABLED=0 \
 		-w /usr/code/ \
-		golang:1.6.2 \
+		golang:1.7.0 \
 		/usr/code/build
 	cp $(FLEETBUILDDIR)/bin/fleetd .build/
 	cp $(FLEETBUILDDIR)/bin/fleetctl .build/
