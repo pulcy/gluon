@@ -35,11 +35,11 @@ ifndef GOARCH
 endif
 
 SOURCES := $(shell find $(SRCDIR) -name '*.go')
-TEMPLATES := $(shell find $(SRCDIR) -name '*.tmpl')
+TEMPLATES := $(shell find $(SRCDIR)/templates -name '*')
 
 .PHONY: all clean deps
 
-all: $(BIN) $(BINGPG) .build/etcd .build/fleetd .build/rkt
+all: .build/rkt $(BIN) $(BINGPG) .build/etcd .build/fleetd
 
 clean:
 	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR) .build $(FLEETBUILDDIR)
@@ -104,7 +104,8 @@ $(FLEETBUILDDIR):
 	@pulsar get -b $(FLEETVERSION) https://github.com/coreos/fleet.git $(FLEETBUILDDIR)
 
 .build/rkt: .build/rkt.tar.gz
-	cd .build && tar zxf rkt.tar.gz && cp rkt-${RKTVERSION}/rkt* . && cp rkt-${RKTVERSION}/stage1* . && touch ./rkt
+	cd .build && tar zxf rkt.tar.gz && mv rkt-${RKTVERSION} rkt && touch ./rkt/rkt
+	cp .build/rkt/init/systemd/tmpfiles.d/rkt.conf templates/
 
 .build/rkt.tar.gz:
 	mkdir -p .build
