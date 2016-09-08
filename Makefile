@@ -25,6 +25,8 @@ ETCDVERSION := v3.0.1
 FLEETVERSION := v0.11.7
 FLEETBUILDDIR := $(ROOTDIR)/.build/fleet
 
+RKTVERSION := v1.14.0
+
 ifndef GOOS
 	GOOS := linux
 endif
@@ -33,11 +35,11 @@ ifndef GOARCH
 endif
 
 SOURCES := $(shell find $(SRCDIR) -name '*.go')
-TEMPLATES := $(shell find $(SRCDIR) -name '*.tmpl')
+TEMPLATES := $(shell find $(SRCDIR)/templates -name '*')
 
 .PHONY: all clean deps
 
-all: $(BIN) $(BINGPG) .build/etcd .build/fleetd
+all: .build/rkt $(BIN) $(BINGPG) .build/etcd .build/fleetd
 
 clean:
 	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR) .build $(FLEETBUILDDIR)
@@ -100,3 +102,11 @@ templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)
 
 $(FLEETBUILDDIR):
 	@pulsar get -b $(FLEETVERSION) https://github.com/coreos/fleet.git $(FLEETBUILDDIR)
+
+.build/rkt: .build/rkt.tar.gz
+	cd .build && tar zxf rkt.tar.gz && mv rkt-${RKTVERSION} rkt && touch ./rkt/rkt
+	cp .build/rkt/init/systemd/tmpfiles.d/rkt.conf templates/
+
+.build/rkt.tar.gz:
+	mkdir -p .build
+	curl -L  https://github.com/coreos/rkt/releases/download/$(RKTVERSION)/rkt-$(RKTVERSION).tar.gz -o .build/rkt.tar.gz

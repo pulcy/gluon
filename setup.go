@@ -27,6 +27,7 @@ import (
 	"github.com/pulcy/gluon/service/iptables"
 	"github.com/pulcy/gluon/service/journal"
 	"github.com/pulcy/gluon/service/proxy"
+	"github.com/pulcy/gluon/service/rkt"
 	"github.com/pulcy/gluon/service/sshd"
 	"github.com/pulcy/gluon/systemd"
 )
@@ -100,6 +101,7 @@ func runSetup(cmd *cobra.Command, args []string) {
 		iptables.NewService(),
 		journal.NewService(),
 		docker.NewService(),
+		rkt.NewService(),
 		etcd2.NewService(),
 		fleet.NewService(),
 		sshd.NewService(),

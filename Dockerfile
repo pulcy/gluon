@@ -1,10 +1,13 @@
 FROM alpine:3.3
 
-ADD ./gluon /
-ADD .build/etcd /etcd2
-ADD .build/etcdctl /
-ADD .build/fleetd /
-ADD .build/fleetctl /
+ADD ./gluon /dist/
+ADD .build/etcd /dist/etcd2
+ADD .build/etcdctl /dist/
+ADD .build/fleetd /dist/
+ADD .build/fleetctl /dist/
+ADD .build/rkt/rkt /dist/rkt/
+COPY .build/rkt/stage1-coreos.aci /dist/rkt/
+COPY .build/rkt/scripts/setup-data-dir.sh /dist/rkt/
 
 ADD ./copy.sh /
 RUN chmod +x /copy.sh
