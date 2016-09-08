@@ -16,6 +16,7 @@ package rkt
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 
 	"github.com/juju/errgo"
@@ -28,6 +29,14 @@ import (
 var (
 	tmpFilesConfPath   = "/usr/lib/tmpfiles.d/rkt.conf"
 	tmpFilesConfSource = "templates/rkt.conf"
+
+	apiServiceName      = "rkt-api.service"
+	gcServiceName       = "rkt-gc.service"
+	gcTimerName         = "rkt-gc.timer"
+	metadataServiceName = "rkt-metadata.service"
+	metadataSocketName  = "rkt-metadata.socket"
+
+	serviceFileMode = os.FileMode(0755)
 
 	maskAny = errgo.MaskFunc(errgo.Any)
 )
@@ -51,6 +60,31 @@ func (t *rktService) Setup(deps service.ServiceDependencies, flags *service.Serv
 	}
 	if err := addCoreToRktGroup(deps, flags); err != nil {
 		return maskAny(err)
+	}
+
+	for _, serviceName := range []string{
+		apiServiceName,
+		gcServiceName,
+		gcTimerName,
+		metadataSocketName, // Keep this before metadataServiceName
+		metadataServiceName,
+	} {
+		changed, err := createService(serviceName, deps, flags)
+		if err != nil {
+			return maskAny(err)
+		}
+
+		if flags.Force || changed {
+			if err := deps.Systemd.Enable(serviceName); err != nil {
+				return maskAny(err)
+			}
+			if err := deps.Systemd.Reload(); err != nil {
+				return maskAny(err)
+			}
+			if err := deps.Systemd.Restart(serviceName); err != nil {
+				return maskAny(err)
+			}
+		}
 	}
 
 	return nil
@@ -86,4 +120,21 @@ func addCoreToRktGroup(deps service.ServiceDependencies, flags *service.ServiceF
 		return maskAny(err)
 	}
 	return nil
+}
+
+func createService(serviceName string, deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	serviceTemplate := serviceTemplate(serviceName)
+	servicePath := servicePath(serviceName)
+	deps.Logger.Info("creating %s", servicePath)
+	opts := struct{}{}
+	changed, err := templates.Render(serviceTemplate, servicePath, opts, serviceFileMode)
+	return changed, maskAny(err)
+}
+
+func serviceTemplate(serviceName string) string {
+	return fmt.Sprintf("templates/%s.tmpl", serviceName)
+}
+
+func servicePath(serviceName string) string {
+	return "/etc/systemd/system/" + serviceName
 }
