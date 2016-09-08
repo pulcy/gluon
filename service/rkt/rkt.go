@@ -15,9 +15,11 @@
 package rkt
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/juju/errgo"
 
@@ -35,6 +37,8 @@ var (
 	gcTimerName         = "rkt-gc.timer"
 	metadataServiceName = "rkt-metadata.service"
 	metadataSocketName  = "rkt-metadata.socket"
+
+	privateRegistryAuthConfPath = "/etc/rkt/auth.d/gluon-private-registry.json"
 
 	serviceFileMode = os.FileMode(0755)
 
@@ -59,6 +63,9 @@ func (t *rktService) Setup(deps service.ServiceDependencies, flags *service.Serv
 		return maskAny(err)
 	}
 	if err := addCoreToRktGroup(deps, flags); err != nil {
+		return maskAny(err)
+	}
+	if _, err := createPrivateRegistryAuthConf(deps, flags); err != nil {
 		return maskAny(err)
 	}
 
@@ -137,4 +144,51 @@ func serviceTemplate(serviceName string) string {
 
 func servicePath(serviceName string) string {
 	return "/etc/systemd/system/" + serviceName
+}
+
+func createPrivateRegistryAuthConf(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	if flags.PrivateRegistryPassword != "" && flags.PrivateRegistryUrl != "" && flags.PrivateRegistryUserName != "" {
+		deps.Logger.Info("creating %s", privateRegistryAuthConfPath)
+		// Create config
+		/*	{
+			"rktKind": "auth",
+			"rktVersion": "v1",
+			"domains": ["coreos.com", "tectonic.com"],
+			"type": "basic",
+			"credentials": {
+				"user": "foo",
+				"password": "bar"
+			}
+		}*/
+		cf := struct {
+			Kind        string   `json:"rktKind"`
+			Version     string   `json:"rktVersion"`
+			Registries  []string `json:"registries"`
+			Type        string   `json:"type"`
+			Credentials struct {
+				User     string `json:"user"`
+				Password string `json:"password"`
+			} `json:"credentials"`
+		}{
+			Kind:       "dockerAuth",
+			Version:    "v1",
+			Registries: []string{flags.PrivateRegistryUrl},
+			Type:       "basic",
+		}
+		cf.Credentials.User = flags.PrivateRegistryUserName
+		cf.Credentials.Password = flags.PrivateRegistryPassword
+
+		// Save
+		os.MkdirAll(filepath.Dir(privateRegistryAuthConfPath), 0700)
+		raw, err := json.MarshalIndent(cf, "", "\t")
+		if err != nil {
+			return false, maskAny(err)
+		}
+		changed, err := util.UpdateFile(privateRegistryAuthConfPath, raw, 0600)
+		return changed, maskAny(err)
+	} else {
+		deps.Logger.Warningf("Skip creating %s", privateRegistryAuthConfPath)
+	}
+
+	return false, nil
 }
