@@ -18,7 +18,7 @@ BIN := $(BINDIR)/$(PROJECT)
 GOBINDATA := $(GOBUILDDIR)/bin/go-bindata
 
 GOPATH := $(GOBUILDDIR)
-GOVERSION := 1.7.0-alpine
+GOVERSION := 1.7.1-alpine
 
 ETCDVERSION := v3.0.1
 
@@ -39,7 +39,7 @@ TEMPLATES := $(shell find $(SRCDIR)/templates -name '*')
 
 .PHONY: all clean deps
 
-all: .build/rkt $(BIN) $(BINGPG) .build/etcd .build/fleetd
+all: .build/weave .build/rkt $(BIN) $(BINGPG) .build/etcd .build/fleetd
 
 clean:
 	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR) .build $(FLEETBUILDDIR)
@@ -110,3 +110,8 @@ $(FLEETBUILDDIR):
 .build/rkt.tar.gz:
 	mkdir -p .build
 	curl -L  https://github.com/coreos/rkt/releases/download/$(RKTVERSION)/rkt-$(RKTVERSION).tar.gz -o .build/rkt.tar.gz
+
+.build/weave:
+	mkdir -p .build
+	curl -L git.io/weave -o .build/weave
+

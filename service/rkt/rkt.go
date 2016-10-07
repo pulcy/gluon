@@ -147,7 +147,7 @@ func servicePath(serviceName string) string {
 }
 
 func createPrivateRegistryAuthConf(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
-	if flags.PrivateRegistryPassword != "" && flags.PrivateRegistryUrl != "" && flags.PrivateRegistryUserName != "" {
+	if flags.Docker.PrivateRegistryPassword != "" && flags.Docker.PrivateRegistryUrl != "" && flags.Docker.PrivateRegistryUserName != "" {
 		deps.Logger.Info("creating %s", privateRegistryAuthConfPath)
 		// Create config
 		/*	{
@@ -172,11 +172,11 @@ func createPrivateRegistryAuthConf(deps service.ServiceDependencies, flags *serv
 		}{
 			Kind:       "dockerAuth",
 			Version:    "v1",
-			Registries: []string{flags.PrivateRegistryUrl},
+			Registries: []string{flags.Docker.PrivateRegistryUrl},
 			Type:       "basic",
 		}
-		cf.Credentials.User = flags.PrivateRegistryUserName
-		cf.Credentials.Password = flags.PrivateRegistryPassword
+		cf.Credentials.User = flags.Docker.PrivateRegistryUserName
+		cf.Credentials.Password = flags.Docker.PrivateRegistryPassword
 
 		// Save
 		os.MkdirAll(filepath.Dir(privateRegistryAuthConfPath), 0700)

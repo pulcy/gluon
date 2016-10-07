@@ -141,8 +141,8 @@ func createV4Members(deps service.ServiceDependencies, flags *service.ServiceFla
 	}{
 		ClusterMemberIPs:     []string{},
 		PrivateMemberIPs:     []string{},
-		DockerSubnet:         flags.DockerSubnet,
-		PrivateClusterDevice: flags.PrivateClusterDevice,
+		DockerSubnet:         flags.Docker.DockerSubnet,
+		PrivateClusterDevice: flags.Network.PrivateClusterDevice,
 	}
 	for _, cm := range members {
 		opts.ClusterMemberIPs = append(opts.ClusterMemberIPs, cm.ClusterIP)
@@ -158,8 +158,8 @@ func createV4Rules(deps service.ServiceDependencies, flags *service.ServiceFlags
 		DockerSubnet         string
 		PrivateClusterDevice string
 	}{
-		DockerSubnet:         flags.DockerSubnet,
-		PrivateClusterDevice: flags.PrivateClusterDevice,
+		DockerSubnet:         flags.Docker.DockerSubnet,
+		PrivateClusterDevice: flags.Network.PrivateClusterDevice,
 	}
 	changed, err := templates.Render(v4rulesTemplate, v4rulesPath, opts, fileMode)
 	return changed, maskAny(err)

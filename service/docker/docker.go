@@ -106,14 +106,14 @@ func createDockerService(deps service.ServiceDependencies, flags *service.Servic
 	opts := struct {
 		DockerIP string
 	}{
-		DockerIP: flags.DockerIP,
+		DockerIP: flags.Docker.DockerIP,
 	}
 	changed, err := templates.Render(serviceTemplate, servicePath, opts, fileMode)
 	return changed, maskAny(err)
 }
 
 func createDockerConfig(rootConfigPath string, deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
-	if flags.PrivateRegistryPassword != "" && flags.PrivateRegistryUrl != "" && flags.PrivateRegistryUserName != "" {
+	if flags.Docker.PrivateRegistryPassword != "" && flags.Docker.PrivateRegistryUrl != "" && flags.Docker.PrivateRegistryUserName != "" {
 		deps.Logger.Info("creating %s", rootConfigPath)
 		// Load config file
 		cf := ConfigFile{
@@ -121,10 +121,10 @@ func createDockerConfig(rootConfigPath string, deps service.ServiceDependencies,
 		}
 
 		// Set authentication entries
-		cf.AuthConfigs[flags.PrivateRegistryUrl] = AuthConfig{
+		cf.AuthConfigs[flags.Docker.PrivateRegistryUrl] = AuthConfig{
 			Auth: encodeAuth(AuthConfig{
-				Username: flags.PrivateRegistryUserName,
-				Password: flags.PrivateRegistryPassword,
+				Username: flags.Docker.PrivateRegistryUserName,
+				Password: flags.Docker.PrivateRegistryPassword,
 				Email:    "",
 			}),
 		}

@@ -32,6 +32,7 @@ const (
 	etcdClusterStatePath   = "/etc/pulcy/etcd-cluster-state"
 	fleetMetadataPath      = "/etc/pulcy/fleet-metadata"
 	gluonImagePath         = "/etc/pulcy/gluon-image"
+	weaveSeedPath          = "/etc/pulcy/weave-seed"
 	privateHostIPPrefix    = "private-host-ip="
 )
 
@@ -52,26 +53,39 @@ type ServiceFlags struct {
 	GluonImage string
 
 	// Docker
-	DockerIP                string
-	DockerSubnet            string
-	PrivateRegistryUrl      string
-	PrivateRegistryUserName string
-	PrivateRegistryPassword string
+	Docker struct {
+		DockerIP                string
+		DockerSubnet            string
+		PrivateRegistryUrl      string
+		PrivateRegistryUserName string
+		PrivateRegistryPassword string
+	}
 
-	// IPTables
-	PrivateClusterDevice string
-	ClusterIP            string // IP address of member used for internal cluster traffic (e.g. etcd)
+	// Network
+	Network struct {
+		PrivateClusterDevice string
+		ClusterIP            string // IP address of member used for internal cluster traffic (e.g. etcd)
+	}
 
 	// ETCD
-	EtcdClusterState string
+	Etcd struct {
+		ClusterState string
+	}
 
 	// Fleet
-	FleetMetadata                string
-	FleetAgentTTL                string
-	FleetDisableEngine           bool
-	FleetDisableWatches          bool
-	FleetEngineReconcileInterval int
-	FleetTokenLimit              int
+	Fleet struct {
+		Metadata                string
+		AgentTTL                string
+		DisableEngine           bool
+		DisableWatches          bool
+		EngineReconcileInterval int
+		TokenLimit              int
+	}
+
+	// Weave
+	Weave struct {
+		Seed string
+	}
 
 	// private cache
 	clusterMembers []ClusterMember
@@ -96,35 +110,35 @@ type ClusterMember struct {
 }
 
 // SetupDefaults fills given flags with default value
-func (flags *ServiceFlags) SetupDefaults() error {
-	if flags.PrivateRegistryUrl == "" {
+func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
+	if flags.Docker.PrivateRegistryUrl == "" {
 		url, err := ioutil.ReadFile(privateRegistryUrlPath)
 		if err != nil && !os.IsNotExist(err) {
 			return maskAny(err)
 		} else if err == nil {
-			flags.PrivateRegistryUrl = string(url)
+			flags.Docker.PrivateRegistryUrl = string(url)
 		}
 	}
-	if flags.FleetMetadata == "" {
+	if flags.Fleet.Metadata == "" {
 		raw, err := ioutil.ReadFile(fleetMetadataPath)
 		if err != nil && !os.IsNotExist(err) {
 			return maskAny(err)
 		} else if err == nil {
 			lines := trimLines(strings.Split(string(raw), "\n"))
-			flags.FleetMetadata = strings.Join(lines, ",")
+			flags.Fleet.Metadata = strings.Join(lines, ",")
 		}
 	}
-	if flags.EtcdClusterState == "" {
+	if flags.Etcd.ClusterState == "" {
 		raw, err := ioutil.ReadFile(etcdClusterStatePath)
 		if err != nil && !os.IsNotExist(err) {
 			return maskAny(err)
 		} else if err == nil {
 			lines := trimLines(strings.Split(string(raw), "\n"))
-			flags.EtcdClusterState = strings.TrimSpace(strings.Join(lines, " "))
+			flags.Etcd.ClusterState = strings.TrimSpace(strings.Join(lines, " "))
 		}
 	}
-	if flags.PrivateClusterDevice == "" {
-		flags.PrivateClusterDevice = "eth1"
+	if flags.Network.PrivateClusterDevice == "" {
+		flags.Network.PrivateClusterDevice = "eth1"
 	}
 	if flags.GluonImage == "" {
 		content, err := ioutil.ReadFile(gluonImagePath)
@@ -134,6 +148,26 @@ func (flags *ServiceFlags) SetupDefaults() error {
 			flags.GluonImage = strings.TrimSpace(string(content))
 		}
 	}
+	if flags.Weave.Seed == "" {
+		seed, err := ioutil.ReadFile(weaveSeedPath)
+		if err != nil && !os.IsNotExist(err) {
+			return maskAny(err)
+		} else if err == nil {
+			flags.Weave.Seed = string(seed)
+		} else {
+			members, err := flags.GetClusterMembers(log)
+			if err != nil {
+				return maskAny(err)
+			}
+			var seeds []string
+			for _, m := range members {
+				if !m.EtcdProxy {
+					seeds = append(seeds, m.ClusterIP)
+				}
+			}
+			flags.Weave.Seed = strings.Join(seeds, ",")
+		}
+	}
 	return nil
 }
 
@@ -141,15 +175,15 @@ func (flags *ServiceFlags) SetupDefaults() error {
 // Returns true if anything has changed, false otherwise
 func (flags *ServiceFlags) Save() (bool, error) {
 	changes := 0
-	if flags.PrivateRegistryUrl != "" {
-		if changed, err := updateContent(privateRegistryUrlPath, flags.PrivateRegistryUrl, 0644); err != nil {
+	if flags.Docker.PrivateRegistryUrl != "" {
+		if changed, err := updateContent(privateRegistryUrlPath, flags.Docker.PrivateRegistryUrl, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++
 		}
 	}
-	if flags.FleetMetadata != "" {
-		parts := strings.Split(flags.FleetMetadata, ",")
+	if flags.Fleet.Metadata != "" {
+		parts := strings.Split(flags.Fleet.Metadata, ",")
 		content := strings.Join(parts, "\n")
 		if changed, err := updateContent(fleetMetadataPath, content, 0644); err != nil {
 			return false, maskAny(err)
@@ -157,8 +191,8 @@ func (flags *ServiceFlags) Save() (bool, error) {
 			changes++
 		}
 	}
-	if flags.EtcdClusterState != "" {
-		if changed, err := updateContent(etcdClusterStatePath, flags.EtcdClusterState, 0644); err != nil {
+	if flags.Etcd.ClusterState != "" {
+		if changed, err := updateContent(etcdClusterStatePath, flags.Etcd.ClusterState, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++
@@ -166,6 +200,13 @@ func (flags *ServiceFlags) Save() (bool, error) {
 	}
 	if flags.GluonImage != "" {
 		if changed, err := updateContent(gluonImagePath, flags.GluonImage, 0644); err != nil {
+			return false, maskAny(err)
+		} else if changed {
+			changes++
+		}
+	}
+	if flags.Weave.Seed != "" {
+		if changed, err := updateContent(weaveSeedPath, flags.Weave.Seed, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++

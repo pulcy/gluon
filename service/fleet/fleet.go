@@ -86,13 +86,13 @@ func createFleetConf(deps service.ServiceDependencies, flags *service.ServiceFla
 	}
 	lines := []string{
 		"[Service]",
-		fmt.Sprintf("Environment=FLEET_METADATA=%s", flags.FleetMetadata),
-		fmt.Sprintf("Environment=FLEET_PUBLIC_IP=%s", flags.ClusterIP),
-		fmt.Sprintf("Environment=FLEET_AGENT_TTL=%v", flags.FleetAgentTTL),
-		fmt.Sprintf("Environment=FLEET_DISABLE_ENGINE=%v", proxy || flags.FleetDisableEngine),
-		fmt.Sprintf("Environment=FLEET_DISABLE_WATCHES=%v", flags.FleetDisableWatches),
-		fmt.Sprintf("Environment=FLEET_ENGINE_RECONCILE_INTERVAL=%d", flags.FleetEngineReconcileInterval),
-		fmt.Sprintf("Environment=FLEET_TOKEN_LIMIT=%d", flags.FleetTokenLimit),
+		fmt.Sprintf("Environment=FLEET_METADATA=%s", flags.Fleet.Metadata),
+		fmt.Sprintf("Environment=FLEET_PUBLIC_IP=%s", flags.Network.ClusterIP),
+		fmt.Sprintf("Environment=FLEET_AGENT_TTL=%v", flags.Fleet.AgentTTL),
+		fmt.Sprintf("Environment=FLEET_DISABLE_ENGINE=%v", proxy || flags.Fleet.DisableEngine),
+		fmt.Sprintf("Environment=FLEET_DISABLE_WATCHES=%v", flags.Fleet.DisableWatches),
+		fmt.Sprintf("Environment=FLEET_ENGINE_RECONCILE_INTERVAL=%d", flags.Fleet.EngineReconcileInterval),
+		fmt.Sprintf("Environment=FLEET_TOKEN_LIMIT=%d", flags.Fleet.TokenLimit),
 	}
 
 	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), fileMode)
@@ -117,7 +117,7 @@ func isEtcdProxy(deps service.ServiceDependencies, flags *service.ServiceFlags) 
 		return false, maskAny(err)
 	}
 	for _, member := range members {
-		if member.ClusterIP == flags.ClusterIP {
+		if member.ClusterIP == flags.Network.ClusterIP {
 			return member.EtcdProxy, nil
 		}
 	}
