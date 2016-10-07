@@ -32,7 +32,7 @@ const (
 	socketPath = "/lib/systemd/system/" + socketName
 	socketName = "systemd-journal-gatewayd.socket"
 
-	fileMode = os.FileMode(0755)
+	configFileMode = os.FileMode(0644)
 )
 
 func NewService() service.Service {
@@ -82,6 +82,6 @@ func createJournalConf(deps service.ServiceDependencies, flags *service.ServiceF
 		"WantedBy=sockets.target",
 	}
 
-	changed, err := util.UpdateFile(socketPath, []byte(strings.Join(lines, "\n")), fileMode)
+	changed, err := util.UpdateFile(socketPath, []byte(strings.Join(lines, "\n")), configFileMode)
 	return changed, maskAny(err)
 }

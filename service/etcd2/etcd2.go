@@ -35,7 +35,7 @@ const (
 	confPath     = "/etc/systemd/system/etcd2.service.d/" + confName
 	serviceName  = "etcd2.service"
 
-	fileMode = os.FileMode(0755)
+	configFileMode = os.FileMode(0644)
 )
 
 func NewService() service.Service {
@@ -116,6 +116,6 @@ func createEtcd2Conf(deps service.ServiceDependencies, flags *service.ServiceFla
 		lines = append(lines, "Environment=ETCD_PROXY=on")
 	}
 
-	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), fileMode)
+	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), configFileMode)
 	return changed, maskAny(err)
 }

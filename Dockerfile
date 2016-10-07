@@ -1,6 +1,5 @@
-FROM alpine:3.3
+FROM alpine:3.4
 
-ADD ./gluon /dist/
 ADD .build/etcd /dist/etcd2
 ADD .build/etcdctl /dist/
 ADD .build/fleetd /dist/
@@ -12,5 +11,7 @@ COPY .build/weave /dist/
 
 ADD ./copy.sh /
 RUN chmod +x /copy.sh
+
+ADD ./gluon /dist/
 
 ENTRYPOINT ["/copy.sh"]

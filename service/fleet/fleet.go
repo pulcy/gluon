@@ -38,7 +38,8 @@ const (
 	checkScriptSource = "templates/fleet-check.sh"
 	checkScriptPath   = "/home/core/bin/fleet-check.sh"
 
-	fileMode = os.FileMode(0755)
+	configFileMode = os.FileMode(0644)
+	scriptFileMode = os.FileMode(0755)
 )
 
 func NewService() service.Service {
@@ -95,7 +96,7 @@ func createFleetConf(deps service.ServiceDependencies, flags *service.ServiceFla
 		fmt.Sprintf("Environment=FLEET_TOKEN_LIMIT=%d", flags.Fleet.TokenLimit),
 	}
 
-	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), fileMode)
+	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), configFileMode)
 	return changed, maskAny(err)
 }
 
@@ -107,7 +108,7 @@ func createFleetCheck(deps service.ServiceDependencies, flags *service.ServiceFl
 		return false, maskAny(err)
 	}
 
-	changed, err := util.UpdateFile(checkScriptPath, asset, 0755)
+	changed, err := util.UpdateFile(checkScriptPath, asset, scriptFileMode)
 	return changed, maskAny(err)
 }
 

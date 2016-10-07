@@ -40,7 +40,7 @@ var (
 
 	privateRegistryAuthConfPath = "/etc/rkt/auth.d/gluon-private-registry.json"
 
-	serviceFileMode = os.FileMode(0755)
+	serviceFileMode = os.FileMode(0644)
 
 	maskAny = errgo.MaskFunc(errgo.Any)
 )

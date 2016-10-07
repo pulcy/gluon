@@ -40,7 +40,8 @@ const (
 	cleanupSource   = "templates/docker-cleanup.sh"
 	cleanupPath     = "/home/core/bin/docker-cleanup.sh"
 
-	fileMode = os.FileMode(0755)
+	scriptFileMode  = os.FileMode(0755)
+	serviceFileMode = os.FileMode(0644)
 )
 
 // ConfigFile ~/.docker/config.json file info
@@ -108,7 +109,7 @@ func createDockerService(deps service.ServiceDependencies, flags *service.Servic
 	}{
 		DockerIP: flags.Docker.DockerIP,
 	}
-	changed, err := templates.Render(serviceTemplate, servicePath, opts, fileMode)
+	changed, err := templates.Render(serviceTemplate, servicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 
@@ -162,6 +163,6 @@ func createDockerCleanup(deps service.ServiceDependencies, flags *service.Servic
 		return false, maskAny(err)
 	}
 
-	changed, err := util.UpdateFile(cleanupPath, asset, 0755)
+	changed, err := util.UpdateFile(cleanupPath, asset, scriptFileMode)
 	return changed, maskAny(err)
 }

@@ -8,8 +8,9 @@ After=docker.service
 EnvironmentFile=-/etc/environment
 Environment="SEED={{.Seed}}"
 Environment="PEERS={{.Peers}}"
+Environment="PEERNAME={{.Name}}"
 EnvironmentFile=-/etc/sysconfig/weave
-ExecStartPre=/usr/bin/weave launch --no-restart --name $COREOS_PRIVATE_IPV4 --ipalloc-init seed=$SEED $PEERS
+ExecStartPre=/usr/bin/weave launch --no-restart --name ${PEERNAME} --ipalloc-init seed=${SEED} $PEERS
 ExecStart=/usr/bin/docker attach weave
 ExecStop=/usr/bin/weave stop
 

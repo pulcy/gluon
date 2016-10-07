@@ -22,11 +22,12 @@ import (
 
 	"github.com/pulcy/gluon/service"
 	"github.com/pulcy/gluon/templates"
+	"github.com/pulcy/gluon/util"
 )
 
 var (
 	weaveServiceName = "weave.service"
-	weaveServiceTmpl = "templates/" + weaveServiceName
+	weaveServiceTmpl = "templates/" + weaveServiceName + ".tmpl"
 	weaveServicePath = "/etc/systemd/system/" + weaveServiceName
 
 	serviceFileMode = os.FileMode(0644)
@@ -75,13 +76,37 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 	for _, m := range members {
 		peers = append(peers, m.ClusterIP)
 	}
+	name, err := getPeerName(deps, flags)
+	if err != nil {
+		return false, maskAny(err)
+	}
 	opts := struct {
 		Seed  string
 		Peers string
+		Name  string
 	}{
 		Seed:  flags.Weave.Seed,
-		Peers: strings.Join(peers, ","),
+		Peers: strings.Join(peers, " "),
+		Name:  name,
 	}
 	changed, err := templates.Render(weaveServiceTmpl, weaveServicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
+}
+
+func getPeerName(deps service.ServiceDependencies, flags *service.ServiceFlags) (string, error) {
+	members, err := flags.GetClusterMembers(deps.Logger)
+	if err != nil {
+		return "", maskAny(err)
+	}
+	for _, member := range members {
+		if member.ClusterIP == flags.Network.ClusterIP {
+			name, err := util.WeaveNameFromMachineID(member.MachineID)
+			if err != nil {
+				return "", maskAny(err)
+			}
+			return name, nil
+		}
+	}
+
+	return "", nil
 }

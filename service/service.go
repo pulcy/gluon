@@ -162,7 +162,11 @@ func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
 			var seeds []string
 			for _, m := range members {
 				if !m.EtcdProxy {
-					seeds = append(seeds, m.ClusterIP)
+					name, err := util.WeaveNameFromMachineID(m.MachineID)
+					if err != nil {
+						return maskAny(err)
+					}
+					seeds = append(seeds, name)
 				}
 			}
 			flags.Weave.Seed = strings.Join(seeds, ",")
