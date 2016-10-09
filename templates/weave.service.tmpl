@@ -1,0 +1,20 @@
+[Unit]
+Description=Weave Network
+Documentation=http://docs.weave.works/weave/latest_release/
+Requires=docker.service
+After=docker.service
+
+[Service]
+EnvironmentFile=-/etc/environment
+Environment="SEED={{.Seed}}"
+Environment="PEERS={{.Peers}}"
+Environment="PEERNAME={{.Name}}"
+Environment="WEAVEHOSTNAME={{.Hostname}}"
+EnvironmentFile=-/etc/sysconfig/weave
+ExecStartPre=/usr/bin/weave launch --no-restart --name ${PEERNAME} --ipalloc-init seed=${SEED} $PEERS
+ExecStartPre=/usr/bin/weave expose -h ${WEAVEHOSTNAME}
+ExecStart=/usr/bin/docker attach weave
+ExecStop=/usr/bin/weave stop
+
+[Install]
+WantedBy=multi-user.target

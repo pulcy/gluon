@@ -22,3 +22,6 @@ cp -f /dist/rkt/stage1*.aci /destination/overlay/
 mkdir -p /destination/overlay/rkt-scripts
 cp -f /dist/rkt/setup-data-dir.sh /destination/overlay/rkt-scripts/
 chmod a+x /destination/overlay/rkt
+
+cp -f /dist/weave* /destination/overlay/
+chmod a+x /destination/overlay/weave*

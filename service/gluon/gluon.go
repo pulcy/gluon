@@ -47,10 +47,10 @@ func (t *gluonService) Name() string {
 }
 
 func (t *gluonService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
-	if err := flags.SetupDefaults(); err != nil {
+	if err := flags.SetupDefaults(deps.Logger); err != nil {
 		return maskAny(err)
 	}
-	if flags.DockerSubnet == "" {
+	if flags.Docker.DockerSubnet == "" {
 		return errgo.New("docker-subnet is missing")
 	}
 
@@ -88,10 +88,12 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 		GluonImage           string
 		PrivateClusterDevice string
 		DockerSubnet         string
+		WeaveHostname        string
 	}{
 		GluonImage:           flags.GluonImage,
-		PrivateClusterDevice: flags.PrivateClusterDevice,
-		DockerSubnet:         flags.DockerSubnet,
+		PrivateClusterDevice: flags.Network.PrivateClusterDevice,
+		DockerSubnet:         flags.Docker.DockerSubnet,
+		WeaveHostname:        flags.Weave.Hostname,
 	}
 	changed, err := templates.Render(serviceTemplate, servicePath, opts, fileMode)
 	return changed, maskAny(err)

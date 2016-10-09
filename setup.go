@@ -29,6 +29,7 @@ import (
 	"github.com/pulcy/gluon/service/proxy"
 	"github.com/pulcy/gluon/service/rkt"
 	"github.com/pulcy/gluon/service/sshd"
+	"github.com/pulcy/gluon/service/weave"
 	"github.com/pulcy/gluon/systemd"
 )
 
@@ -41,6 +42,7 @@ const (
 	defaultFleetDisableWatches          = true
 	defaultFleetEngineReconcileInterval = 10
 	defaultFleetTokenLimit              = 50
+	defaultWeaveHostname                = "hosts.weave.local"
 )
 
 var (
@@ -56,38 +58,42 @@ func init() {
 	// Gluon
 	cmdSetup.Flags().StringVar(&setupFlags.GluonImage, "gluon-image", "", "Gluon docker image name")
 	// Docker
-	cmdSetup.Flags().StringVar(&setupFlags.DockerIP, "docker-ip", "", "IP address docker binds ports to")
-	cmdSetup.Flags().StringVar(&setupFlags.DockerSubnet, "docker-subnet", defaultDockerSubnet, "Subnet used by docker")
-	cmdSetup.Flags().StringVar(&setupFlags.PrivateRegistryUrl, "private-registry-url", "", "URL of private docker registry")
-	cmdSetup.Flags().StringVar(&setupFlags.PrivateRegistryUserName, "private-registry-username", "", "Username for private registry")
-	cmdSetup.Flags().StringVar(&setupFlags.PrivateRegistryPassword, "private-registry-password", "", "Password for private registry")
+	cmdSetup.Flags().StringVar(&setupFlags.Docker.DockerIP, "docker-ip", "", "IP address docker binds ports to")
+	cmdSetup.Flags().StringVar(&setupFlags.Docker.DockerSubnet, "docker-subnet", defaultDockerSubnet, "Subnet used by docker")
+	cmdSetup.Flags().StringVar(&setupFlags.Docker.PrivateRegistryUrl, "private-registry-url", "", "URL of private docker registry")
+	cmdSetup.Flags().StringVar(&setupFlags.Docker.PrivateRegistryUserName, "private-registry-username", "", "Username for private registry")
+	cmdSetup.Flags().StringVar(&setupFlags.Docker.PrivateRegistryPassword, "private-registry-password", "", "Password for private registry")
 	// Network
-	cmdSetup.Flags().StringVar(&setupFlags.ClusterIP, "private-ip", "", "IP address of this host in the cluster network")
-	cmdSetup.Flags().StringVar(&setupFlags.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the cluster IP")
+	cmdSetup.Flags().StringVar(&setupFlags.Network.ClusterIP, "private-ip", "", "IP address of this host in the cluster network")
+	cmdSetup.Flags().StringVar(&setupFlags.Network.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the cluster IP")
 	// Fleet
-	cmdSetup.Flags().StringVar(&setupFlags.FleetMetadata, "fleet-metadata", "", "Metadata list for fleet")
-	cmdSetup.Flags().StringVar(&setupFlags.FleetAgentTTL, "fleet-agent-ttl", defaultFleetAgentTTL, "agent_ttl option for fleet")
-	cmdSetup.Flags().BoolVar(&setupFlags.FleetDisableEngine, "fleet-disable-engine", defaultFleetDisableEngine, "disable_engine option for fleet")
-	cmdSetup.Flags().BoolVar(&setupFlags.FleetDisableWatches, "fleet-disable-watches", defaultFleetDisableWatches, "disable_watches option for fleet")
-	cmdSetup.Flags().IntVar(&setupFlags.FleetEngineReconcileInterval, "fleet-engine-reconcile-interval", defaultFleetEngineReconcileInterval, "engine_reconcile_interval option for fleet")
-	cmdSetup.Flags().IntVar(&setupFlags.FleetTokenLimit, "fleet-token-limit", defaultFleetTokenLimit, "token_limit option for fleet")
+	cmdSetup.Flags().StringVar(&setupFlags.Fleet.Metadata, "fleet-metadata", "", "Metadata list for fleet")
+	cmdSetup.Flags().StringVar(&setupFlags.Fleet.AgentTTL, "fleet-agent-ttl", defaultFleetAgentTTL, "agent_ttl option for fleet")
+	cmdSetup.Flags().BoolVar(&setupFlags.Fleet.DisableEngine, "fleet-disable-engine", defaultFleetDisableEngine, "disable_engine option for fleet")
+	cmdSetup.Flags().BoolVar(&setupFlags.Fleet.DisableWatches, "fleet-disable-watches", defaultFleetDisableWatches, "disable_watches option for fleet")
+	cmdSetup.Flags().IntVar(&setupFlags.Fleet.EngineReconcileInterval, "fleet-engine-reconcile-interval", defaultFleetEngineReconcileInterval, "engine_reconcile_interval option for fleet")
+	cmdSetup.Flags().IntVar(&setupFlags.Fleet.TokenLimit, "fleet-token-limit", defaultFleetTokenLimit, "token_limit option for fleet")
 	// ETCD
-	cmdSetup.Flags().StringVar(&setupFlags.EtcdClusterState, "etcd-cluster-state", "", "State of the ETCD cluster new|existing")
+	cmdSetup.Flags().StringVar(&setupFlags.Etcd.ClusterState, "etcd-cluster-state", "", "State of the ETCD cluster new|existing")
+	// Weave
+	cmdSetup.Flags().StringVar(&setupFlags.Weave.Seed, "weave-seed", "", "SEED of the weave network")
+	cmdSetup.Flags().StringVar(&setupFlags.Weave.Hostname, "weave-hostname", defaultWeaveHostname, "DNS name for exposed host")
+
 	cmdMain.AddCommand(cmdSetup)
 }
 
 func runSetup(cmd *cobra.Command, args []string) {
 	showVersion(cmd, args)
 
-	if err := setupFlags.SetupDefaults(); err != nil {
+	if err := setupFlags.SetupDefaults(log); err != nil {
 		Exitf("SetupDefaults failed: %#v\n", err)
 	}
 
 	assertArgIsSet(setupFlags.GluonImage, "--gluon-image")
-	assertArgIsSet(setupFlags.DockerIP, "--docker-ip")
-	assertArgIsSet(setupFlags.DockerSubnet, "--docker-subnet")
-	assertArgIsSet(setupFlags.ClusterIP, "--private-ip")
-	assertArgIsSet(setupFlags.PrivateClusterDevice, "--private-cluster-device")
+	assertArgIsSet(setupFlags.Docker.DockerIP, "--docker-ip")
+	assertArgIsSet(setupFlags.Docker.DockerSubnet, "--docker-subnet")
+	assertArgIsSet(setupFlags.Network.ClusterIP, "--private-ip")
+	assertArgIsSet(setupFlags.Network.PrivateClusterDevice, "--private-cluster-device")
 
 	deps := service.ServiceDependencies{
 		Systemd: systemd.NewSystemdClient(log),
@@ -102,6 +108,7 @@ func runSetup(cmd *cobra.Command, args []string) {
 		journal.NewService(),
 		docker.NewService(),
 		rkt.NewService(),
+		weave.NewService(),
 		etcd2.NewService(),
 		fleet.NewService(),
 		sshd.NewService(),

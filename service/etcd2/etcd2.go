@@ -35,7 +35,7 @@ const (
 	confPath     = "/etc/systemd/system/etcd2.service.d/" + confName
 	serviceName  = "etcd2.service"
 
-	fileMode = os.FileMode(0755)
+	configFileMode = os.FileMode(0644)
 )
 
 func NewService() service.Service {
@@ -73,7 +73,7 @@ func (t *etcd2Service) Setup(deps service.ServiceDependencies, flags *service.Se
 }
 
 func createEtcd2Conf(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
-	if flags.ClusterIP == "" {
+	if flags.Network.ClusterIP == "" {
 		return false, maskAny(fmt.Errorf("ClusterIP empty"))
 	}
 	deps.Logger.Info("creating %s", confPath)
@@ -84,7 +84,7 @@ func createEtcd2Conf(deps service.ServiceDependencies, flags *service.ServiceFla
 	}
 	clusterItems := []string{}
 	name := ""
-	clusterState := flags.EtcdClusterState
+	clusterState := flags.Etcd.ClusterState
 	if clusterState == "" {
 		clusterState = "new"
 	}
@@ -94,7 +94,7 @@ func createEtcd2Conf(deps service.ServiceDependencies, flags *service.ServiceFla
 			clusterItems = append(clusterItems,
 				fmt.Sprintf("%s=http://%s:2380", cm.MachineID, cm.ClusterIP))
 		}
-		if cm.ClusterIP == flags.ClusterIP {
+		if cm.ClusterIP == flags.Network.ClusterIP {
 			name = cm.MachineID
 			etcdProxy = cm.EtcdProxy
 		}
@@ -102,12 +102,12 @@ func createEtcd2Conf(deps service.ServiceDependencies, flags *service.ServiceFla
 
 	lines := []string{
 		"[Service]",
-		"Environment=ETCD_LISTEN_PEER_URLS=" + fmt.Sprintf("http://%s:2380", flags.ClusterIP),
+		"Environment=ETCD_LISTEN_PEER_URLS=" + fmt.Sprintf("http://%s:2380", flags.Network.ClusterIP),
 		"Environment=ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379,http://0.0.0.0:4001",
 		"Environment=ETCD_INITIAL_CLUSTER=" + strings.Join(clusterItems, ","),
 		"Environment=ETCD_INITIAL_CLUSTER_STATE=" + clusterState,
-		"Environment=ETCD_INITIAL_ADVERTISE_PEER_URLS=" + fmt.Sprintf("http://%s:2380", flags.ClusterIP),
-		"Environment=ETCD_ADVERTISE_CLIENT_URLS=" + fmt.Sprintf("http://%s:2379,http://%s:4001", flags.ClusterIP, flags.ClusterIP),
+		"Environment=ETCD_INITIAL_ADVERTISE_PEER_URLS=" + fmt.Sprintf("http://%s:2380", flags.Network.ClusterIP),
+		"Environment=ETCD_ADVERTISE_CLIENT_URLS=" + fmt.Sprintf("http://%s:2379,http://%s:4001", flags.Network.ClusterIP, flags.Network.ClusterIP),
 	}
 	if name != "" {
 		lines = append(lines, "Environment=ETCD_NAME="+name)
@@ -116,6 +116,6 @@ func createEtcd2Conf(deps service.ServiceDependencies, flags *service.ServiceFla
 		lines = append(lines, "Environment=ETCD_PROXY=on")
 	}
 
-	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), fileMode)
+	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), configFileMode)
 	return changed, maskAny(err)
 }

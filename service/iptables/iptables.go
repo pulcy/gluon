@@ -49,8 +49,9 @@ const (
 	netfilterServiceName = "netfilter.service"
 	netfilterServicePath = "/etc/systemd/system/" + netfilterServiceName
 
-	fileMode     = os.FileMode(0600)
-	fileModeExec = os.FileMode(0700)
+	rulesFileMode   = os.FileMode(0600)
+	scriptFileMode  = os.FileMode(0700)
+	serviceFileMode = os.FileMode(0644)
 )
 
 var (
@@ -141,14 +142,14 @@ func createV4Members(deps service.ServiceDependencies, flags *service.ServiceFla
 	}{
 		ClusterMemberIPs:     []string{},
 		PrivateMemberIPs:     []string{},
-		DockerSubnet:         flags.DockerSubnet,
-		PrivateClusterDevice: flags.PrivateClusterDevice,
+		DockerSubnet:         flags.Docker.DockerSubnet,
+		PrivateClusterDevice: flags.Network.PrivateClusterDevice,
 	}
 	for _, cm := range members {
 		opts.ClusterMemberIPs = append(opts.ClusterMemberIPs, cm.ClusterIP)
 		opts.PrivateMemberIPs = append(opts.PrivateMemberIPs, cm.PrivateHostIP)
 	}
-	changed, err := templates.Render(v4membersTemplate, v4membersPath, opts, fileModeExec)
+	changed, err := templates.Render(v4membersTemplate, v4membersPath, opts, scriptFileMode)
 	return changed, maskAny(err)
 }
 
@@ -158,33 +159,33 @@ func createV4Rules(deps service.ServiceDependencies, flags *service.ServiceFlags
 		DockerSubnet         string
 		PrivateClusterDevice string
 	}{
-		DockerSubnet:         flags.DockerSubnet,
-		PrivateClusterDevice: flags.PrivateClusterDevice,
+		DockerSubnet:         flags.Docker.DockerSubnet,
+		PrivateClusterDevice: flags.Network.PrivateClusterDevice,
 	}
-	changed, err := templates.Render(v4rulesTemplate, v4rulesPath, opts, fileMode)
+	changed, err := templates.Render(v4rulesTemplate, v4rulesPath, opts, rulesFileMode)
 	return changed, maskAny(err)
 }
 
 func createV6Rules(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", v6rulesPath)
-	changed, err := templates.Render(v6rulesTemplate, v6rulesPath, nil, fileMode)
+	changed, err := templates.Render(v6rulesTemplate, v6rulesPath, nil, rulesFileMode)
 	return changed, maskAny(err)
 }
 
 func createNetfilterService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", netfilterServicePath)
-	changed, err := templates.Render(netfilterTemplate, netfilterServicePath, nil, fileMode)
+	changed, err := templates.Render(netfilterTemplate, netfilterServicePath, nil, serviceFileMode)
 	return changed, maskAny(err)
 }
 
 func createIp4tablesService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", v4servicePath)
-	changed, err := templates.Render(v4serviceTemplate, v4servicePath, nil, fileMode)
+	changed, err := templates.Render(v4serviceTemplate, v4servicePath, nil, serviceFileMode)
 	return changed, maskAny(err)
 }
 
 func createIp6tablesService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", v6servicePath)
-	changed, err := templates.Render(v6serviceTemplate, v6servicePath, nil, fileMode)
+	changed, err := templates.Render(v6serviceTemplate, v6servicePath, nil, serviceFileMode)
 	return changed, maskAny(err)
 }

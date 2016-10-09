@@ -40,7 +40,8 @@ const (
 	cleanupSource   = "templates/docker-cleanup.sh"
 	cleanupPath     = "/home/core/bin/docker-cleanup.sh"
 
-	fileMode = os.FileMode(0755)
+	scriptFileMode  = os.FileMode(0755)
+	serviceFileMode = os.FileMode(0644)
 )
 
 // ConfigFile ~/.docker/config.json file info
@@ -106,14 +107,14 @@ func createDockerService(deps service.ServiceDependencies, flags *service.Servic
 	opts := struct {
 		DockerIP string
 	}{
-		DockerIP: flags.DockerIP,
+		DockerIP: flags.Docker.DockerIP,
 	}
-	changed, err := templates.Render(serviceTemplate, servicePath, opts, fileMode)
+	changed, err := templates.Render(serviceTemplate, servicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 
 func createDockerConfig(rootConfigPath string, deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
-	if flags.PrivateRegistryPassword != "" && flags.PrivateRegistryUrl != "" && flags.PrivateRegistryUserName != "" {
+	if flags.Docker.PrivateRegistryPassword != "" && flags.Docker.PrivateRegistryUrl != "" && flags.Docker.PrivateRegistryUserName != "" {
 		deps.Logger.Info("creating %s", rootConfigPath)
 		// Load config file
 		cf := ConfigFile{
@@ -121,10 +122,10 @@ func createDockerConfig(rootConfigPath string, deps service.ServiceDependencies,
 		}
 
 		// Set authentication entries
-		cf.AuthConfigs[flags.PrivateRegistryUrl] = AuthConfig{
+		cf.AuthConfigs[flags.Docker.PrivateRegistryUrl] = AuthConfig{
 			Auth: encodeAuth(AuthConfig{
-				Username: flags.PrivateRegistryUserName,
-				Password: flags.PrivateRegistryPassword,
+				Username: flags.Docker.PrivateRegistryUserName,
+				Password: flags.Docker.PrivateRegistryPassword,
 				Email:    "",
 			}),
 		}
@@ -162,6 +163,6 @@ func createDockerCleanup(deps service.ServiceDependencies, flags *service.Servic
 		return false, maskAny(err)
 	}
 
-	changed, err := util.UpdateFile(cleanupPath, asset, 0755)
+	changed, err := util.UpdateFile(cleanupPath, asset, scriptFileMode)
 	return changed, maskAny(err)
 }

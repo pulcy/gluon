@@ -12,7 +12,8 @@ ExecStart=/home/core/bin/gluon setup \
 --docker-ip=${COREOS_PRIVATE_IPV4} \
 --docker-subnet={{.DockerSubnet}} \
 --private-ip=${COREOS_PRIVATE_IPV4} \
---private-cluster-device={{.PrivateClusterDevice}}
+--private-cluster-device={{.PrivateClusterDevice}} \
+--weave-hostname={{.WeaveHostname}}
 RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
