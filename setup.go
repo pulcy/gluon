@@ -42,6 +42,7 @@ const (
 	defaultFleetDisableWatches          = true
 	defaultFleetEngineReconcileInterval = 10
 	defaultFleetTokenLimit              = 50
+	defaultWeaveHostname                = "hosts.weave.local"
 )
 
 var (
@@ -76,6 +77,8 @@ func init() {
 	cmdSetup.Flags().StringVar(&setupFlags.Etcd.ClusterState, "etcd-cluster-state", "", "State of the ETCD cluster new|existing")
 	// Weave
 	cmdSetup.Flags().StringVar(&setupFlags.Weave.Seed, "weave-seed", "", "SEED of the weave network")
+	cmdSetup.Flags().StringVar(&setupFlags.Weave.Hostname, "weave-hostname", defaultWeaveHostname, "DNS name for exposed host")
+
 	cmdMain.AddCommand(cmdSetup)
 }
 

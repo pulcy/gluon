@@ -81,13 +81,15 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 		return false, maskAny(err)
 	}
 	opts := struct {
-		Seed  string
-		Peers string
-		Name  string
+		Seed     string
+		Peers    string
+		Name     string
+		Hostname string
 	}{
-		Seed:  flags.Weave.Seed,
-		Peers: strings.Join(peers, " "),
-		Name:  name,
+		Seed:     flags.Weave.Seed,
+		Peers:    strings.Join(peers, " "),
+		Name:     name,
+		Hostname: flags.Weave.Hostname,
 	}
 	changed, err := templates.Render(weaveServiceTmpl, weaveServicePath, opts, serviceFileMode)
 	return changed, maskAny(err)

@@ -84,7 +84,8 @@ type ServiceFlags struct {
 
 	// Weave
 	Weave struct {
-		Seed string
+		Seed     string
+		Hostname string // Weave DNS of exposed host
 	}
 
 	// private cache
