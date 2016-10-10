@@ -2,7 +2,11 @@
 Description=Weave Network
 Documentation=http://docs.weave.works/weave/latest_release/
 Requires=docker.service
+Requires=ip4tables.service
+Requires=ip6tables.service
 After=docker.service
+After=ip4tables.service
+After=ip6tables.service
 
 [Service]
 EnvironmentFile=-/etc/environment
@@ -10,6 +14,7 @@ Environment="SEED={{.Seed}}"
 Environment="PEERS={{.Peers}}"
 Environment="PEERNAME={{.Name}}"
 Environment="WEAVEHOSTNAME={{.Hostname}}"
+EnvironmentFile=-/etc/pulcy/weave.env
 EnvironmentFile=-/etc/sysconfig/weave
 ExecStartPre=/usr/bin/weave launch --no-restart --name ${PEERNAME} --ipalloc-init seed=${SEED} $PEERS
 ExecStartPre=/usr/bin/weave expose -h ${WEAVEHOSTNAME}

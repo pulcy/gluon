@@ -15,6 +15,7 @@ COMMIT
 :PRIVATEHOST - [0:0]
 -A INPUT -i lo -j ACCEPT
 -A INPUT -i docker0 -j ACCEPT
+-A INPUT -i weave -j ACCEPT
 -A INPUT -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
 -A INPUT -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT
 -A INPUT -p tcp --dport 443 -m state --state NEW,ESTABLISHED -j ACCEPT
@@ -25,6 +26,9 @@ COMMIT
 -I FORWARD -p tcp --dport 8288 -m state --state NEW,ESTABLISHED -j PRIVATEHOST
 -A INPUT -p tcp --dport 655 -j PRIVATEHOST
 -A INPUT -p udp --dport 655 -j PRIVATEHOST
+-A INPUT -p tcp --dport 6783 -j PRIVATEHOST
+-A INPUT -p udp --dport 6783 -j PRIVATEHOST
+-A INPUT -p udp --dport 6784 -j PRIVATEHOST
 
 -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A INPUT -i {{.PrivateClusterDevice}} -j PRIVATECLUSTER

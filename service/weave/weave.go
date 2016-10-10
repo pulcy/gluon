@@ -74,7 +74,7 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 	}
 	var peers []string
 	for _, m := range members {
-		peers = append(peers, m.ClusterIP)
+		peers = append(peers, m.PrivateHostIP)
 	}
 	name, err := getPeerName(deps, flags)
 	if err != nil {
