@@ -68,7 +68,7 @@ func createNoProxy(deps service.ServiceDependencies, flags *service.ServiceFlags
 	if err != nil {
 		return "", maskAny(err)
 	}
-	list := []string{".private"}
+	list := []string{".local", ".private"}
 	for _, cm := range members {
 		list = append(list, cm.ClusterIP)
 		if cm.ClusterIP != cm.PrivateHostIP {
