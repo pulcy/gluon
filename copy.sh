@@ -11,6 +11,9 @@ chmod a+x /destination/gluon
 mkdir -p /destination/overlay
 mkdir -p /destination/overlay-work
 
+cp -f /dist/consul /destination/overlay/
+chmod a+x /destination/overlay/consul
+
 cp -f /dist/etcd* /destination/overlay/
 chmod a+x /destination/overlay/etcd*
 

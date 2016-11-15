@@ -1,0 +1,12 @@
+[Unit]
+Description=consul agent
+After=network.target
+
+[Service]
+Restart=on-failure
+ExecStart=/usr/bin/consul agent {{.Flags}} 
+ExecReload=/bin/kill -HUP $MAINPID
+KillSignal=SIGINT
+
+[Install]
+WantedBy=multi-user.target

@@ -112,5 +112,10 @@ function update-gluon() {
 		docker run --rm -v /home/core/bin/:/destination/ ${image}
 		echo ${image} | sudo tee /etc/pulcy/gluon-image
 		sudo systemctl restart gluon
+		sudo systemctl stop etcd2 
+		sudo systemctl stop consul 
+		sudo mount -o remount /usr/bin 
+		sudo systemctl start etcd2 
+		sudo systemctl start consul 
 	fi
 }

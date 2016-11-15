@@ -27,6 +27,8 @@ FLEETBUILDDIR := $(ROOTDIR)/.build/fleet
 
 RKTVERSION := v1.14.0
 
+CONSULVERSION := 0.7.1
+
 ifndef GOOS
 	GOOS := linux
 endif
@@ -39,7 +41,7 @@ TEMPLATES := $(shell find $(SRCDIR)/templates -name '*')
 
 .PHONY: all clean deps
 
-all: .build/weave .build/rkt $(BIN) $(BINGPG) .build/etcd .build/fleetd
+all: .build/consul .build/weave .build/rkt $(BIN) $(BINGPG) .build/etcd .build/fleetd
 
 clean:
 	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR) .build $(FLEETBUILDDIR)
@@ -115,3 +117,11 @@ $(FLEETBUILDDIR):
 	mkdir -p .build
 	curl -L git.io/weave -o .build/weave
 
+.build/consul: .build/consul.zip
+	@rm -f .build/consul
+	@unzip .build/consul.zip -d .build 
+	@touch .build/consul
+
+.build/consul.zip:
+	@mkdir -p .build
+	@curl -L https://releases.hashicorp.com/consul/$(CONSULVERSION)/consul_$(CONSULVERSION)_linux_amd64.zip -o .build/consul.zip
