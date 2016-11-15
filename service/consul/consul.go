@@ -86,7 +86,7 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 	if err != nil {
 		return false, maskAny(err)
 	}
-	args := fmt.Sprintf("-advertise=%s %s -data-dir=/opt/consul/data", flags.Network.ClusterIP, strings.Join(join, " "))
+	args := fmt.Sprintf("-advertise=%s %s -client=0.0.0.0 -data-dir=/opt/consul/data", flags.Network.ClusterIP, strings.Join(join, " "))
 	if srv {
 		args = fmt.Sprintf("-server -bootstrap-expect=%d %s", bootstrapExpect, args)
 	}
