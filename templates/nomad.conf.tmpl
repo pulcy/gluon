@@ -1,0 +1,32 @@
+advertise {
+    http = "{{.AdvertiseIP}}:4646"
+    rpc = "{{.AdvertiseIP}}:4647"
+    serf = "{{.AdvertiseIP}}:4648"
+}
+
+consul {
+    address = "{{.ConsulAddress}}"
+}
+
+{{if .IsServer}}
+server {
+    enabled = true
+    bootstrap_expect = {{.BootstrapExpect}}
+}
+{{end}}
+
+client {
+    enabled = true
+    meta {
+        {{range .MetaLines }}{{.}}
+{{end}}
+    }
+}
+
+{{if .HasVault}}
+vault {
+    enabled = true 
+    address = "{{.VaultAddress}}"
+    ca_file = "{{.VaultCAFile}}"
+}
+{{end}}
