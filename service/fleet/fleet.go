@@ -85,9 +85,22 @@ func createFleetConf(deps service.ServiceDependencies, flags *service.ServiceFla
 	if err != nil {
 		return false, maskAny(err)
 	}
+
+	members, err := flags.GetClusterMembers(deps.Logger)
+	if err != nil {
+		deps.Logger.Warning("GetClusterMembers failed: %v", err)
+	}
+	etcdServers := []string{}
+	for _, cm := range members {
+		if !cm.EtcdProxy {
+			etcdServers = append(etcdServers, fmt.Sprintf("http://%s:2379", cm.ClusterIP))
+		}
+	}
+
 	lines := []string{
 		"[Service]",
 		fmt.Sprintf("Environment=FLEET_METADATA=%s", flags.Fleet.Metadata),
+		fmt.Sprintf("Environment=FLEET_ETCD_SERVERS=%s", strings.Join(etcdServers, ",")),
 		fmt.Sprintf("Environment=FLEET_PUBLIC_IP=%s", flags.Network.ClusterIP),
 		fmt.Sprintf("Environment=FLEET_AGENT_TTL=%v", flags.Fleet.AgentTTL),
 		fmt.Sprintf("Environment=FLEET_DISABLE_ENGINE=%v", proxy || flags.Fleet.DisableEngine),

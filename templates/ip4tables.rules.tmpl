@@ -26,6 +26,7 @@ COMMIT
 -I FORWARD -p tcp --dport 8288 -m state --state NEW,ESTABLISHED -j PRIVATEHOST
 -A INPUT -p tcp --dport 655 -j PRIVATEHOST
 -A INPUT -p udp --dport 655 -j PRIVATEHOST
+-A INPUT -p tcp --dport 2381 -j PRIVATEHOST
 -A INPUT -p tcp --dport 6783 -j PRIVATEHOST
 -A INPUT -p udp --dport 6783 -j PRIVATEHOST
 -A INPUT -p udp --dport 6784 -j PRIVATEHOST

@@ -30,10 +30,11 @@ var (
 )
 
 const (
-	confTemplate = "templates/99-etcd2.conf.tmpl"
-	confName     = "99-etcd2.conf"
-	confPath     = "/etc/systemd/system/etcd2.service.d/" + confName
-	serviceName  = "etcd2.service"
+	confTemplate    = "templates/99-etcd2.conf.tmpl"
+	confName        = "99-etcd2.conf"
+	confPath        = "/etc/systemd/system/etcd2.service.d/" + confName
+	serviceName     = "etcd2.service"
+	environmentPath = "/etc/environment"
 
 	configFileMode = os.FileMode(0644)
 )
@@ -49,7 +50,16 @@ func (t *etcd2Service) Name() string {
 }
 
 func (t *etcd2Service) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
-	changedConf, err := createEtcd2Conf(deps, flags)
+	cfg, err := createEtcdConfig(deps, flags)
+	if err != nil {
+		return maskAny(err)
+	}
+
+	changedConf, err := createEtcd2Conf(deps, cfg)
+	if err != nil {
+		return maskAny(err)
+	}
+	_, err = createEtcdEnvironment(deps, cfg)
 	if err != nil {
 		return maskAny(err)
 	}
@@ -72,50 +82,101 @@ func (t *etcd2Service) Setup(deps service.ServiceDependencies, flags *service.Se
 	return nil
 }
 
-func createEtcd2Conf(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+type etcdConfig struct {
+	ClusterState        string
+	ClusterIP           string
+	IsProxy             bool
+	Name                string
+	PrivateHostIP       string
+	ListenPeerURLs      string // URLs for ETCD-ETCD peer communication
+	AdvertisePeerURLs   string // URLs for ETCD-ETCD peer communication
+	ListenClientURLs    string // Listen URLs for client-ETCD communication
+	AdvertiseClientURLs string // Advertised URLs for client-ETCD communication
+	Endpoints           string // URLs for client-ETCD communication
+	InitialCluster      string
+}
+
+func createEtcdConfig(deps service.ServiceDependencies, flags *service.ServiceFlags) (etcdConfig, error) {
 	if flags.Network.ClusterIP == "" {
-		return false, maskAny(fmt.Errorf("ClusterIP empty"))
+		return etcdConfig{}, maskAny(fmt.Errorf("ClusterIP empty"))
 	}
-	deps.Logger.Info("creating %s", confPath)
 
 	members, err := flags.GetClusterMembers(deps.Logger)
 	if err != nil {
 		deps.Logger.Warning("GetClusterMembers failed: %v", err)
 	}
-	clusterItems := []string{}
-	name := ""
-	clusterState := flags.Etcd.ClusterState
-	if clusterState == "" {
-		clusterState = "new"
+
+	result := etcdConfig{
+		ClusterIP: flags.Network.ClusterIP,
 	}
-	etcdProxy := false
+	initialCluster := []string{}
+	endpoints := []string{}
+	result.ClusterState = flags.Etcd.ClusterState
+	if result.ClusterState == "" {
+		result.ClusterState = "new"
+	}
 	for _, cm := range members {
 		if !cm.EtcdProxy {
-			clusterItems = append(clusterItems,
-				fmt.Sprintf("%s=http://%s:2380", cm.MachineID, cm.ClusterIP))
+			initialCluster = append(initialCluster, fmt.Sprintf("%s=http://%s:2380", cm.MachineID, cm.ClusterIP))
+			endpoints = append(endpoints, fmt.Sprintf("http://%s:2379", cm.ClusterIP))
 		}
 		if cm.ClusterIP == flags.Network.ClusterIP {
-			name = cm.MachineID
-			etcdProxy = cm.EtcdProxy
+			result.Name = cm.MachineID
+			result.IsProxy = cm.EtcdProxy
+			result.PrivateHostIP = cm.PrivateHostIP
 		}
 	}
 
+	result.ListenPeerURLs = fmt.Sprintf("https://%s:2381,http://%s:2380", result.PrivateHostIP, flags.Network.ClusterIP)
+	result.AdvertisePeerURLs = fmt.Sprintf("https://%s:2381,http://%s:2380", result.PrivateHostIP, flags.Network.ClusterIP)
+	result.ListenClientURLs = "http://0.0.0.0:2379,http://0.0.0.0:4001"
+	result.AdvertiseClientURLs = fmt.Sprintf("http://%s:2379,http://%s:4001", flags.Network.ClusterIP, flags.Network.ClusterIP)
+
+	result.InitialCluster = strings.Join(initialCluster, ",")
+	result.Endpoints = strings.Join(endpoints, ",")
+
+	return result, nil
+
+}
+
+func createEtcd2Conf(deps service.ServiceDependencies, cfg etcdConfig) (bool, error) {
+	if cfg.ClusterIP == "" {
+		return false, maskAny(fmt.Errorf("ClusterIP empty"))
+	}
+	deps.Logger.Info("creating %s", confPath)
+
 	lines := []string{
 		"[Service]",
-		"Environment=ETCD_LISTEN_PEER_URLS=" + fmt.Sprintf("http://%s:2380", flags.Network.ClusterIP),
-		"Environment=ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379,http://0.0.0.0:4001",
-		"Environment=ETCD_INITIAL_CLUSTER=" + strings.Join(clusterItems, ","),
-		"Environment=ETCD_INITIAL_CLUSTER_STATE=" + clusterState,
-		"Environment=ETCD_INITIAL_ADVERTISE_PEER_URLS=" + fmt.Sprintf("http://%s:2380", flags.Network.ClusterIP),
-		"Environment=ETCD_ADVERTISE_CLIENT_URLS=" + fmt.Sprintf("http://%s:2379,http://%s:4001", flags.Network.ClusterIP, flags.Network.ClusterIP),
+		"Environment=ETCD_PEER_AUTO_TLS=true",
+		"Environment=ETCD_LISTEN_PEER_URLS=" + cfg.ListenPeerURLs,
+		"Environment=ETCD_LISTEN_CLIENT_URLS=" + cfg.ListenClientURLs,
+		"Environment=ETCD_INITIAL_CLUSTER=" + cfg.InitialCluster,
+		"Environment=ETCD_INITIAL_CLUSTER_STATE=" + cfg.ClusterState,
+		"Environment=ETCD_INITIAL_ADVERTISE_PEER_URLS=" + cfg.AdvertisePeerURLs,
+		"Environment=ETCD_ADVERTISE_CLIENT_URLS=" + cfg.AdvertiseClientURLs,
 	}
-	if name != "" {
-		lines = append(lines, "Environment=ETCD_NAME="+name)
+	if cfg.Name != "" {
+		lines = append(lines, "Environment=ETCD_NAME="+cfg.Name)
 	}
-	if etcdProxy {
+	if cfg.IsProxy {
 		lines = append(lines, "Environment=ETCD_PROXY=on")
 	}
 
 	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), configFileMode)
+	return changed, maskAny(err)
+}
+
+func createEtcdEnvironment(deps service.ServiceDependencies, cfg etcdConfig) (bool, error) {
+	if cfg.ClusterIP == "" {
+		return false, maskAny(fmt.Errorf("ClusterIP empty"))
+	}
+	deps.Logger.Info("creating %s", environmentPath)
+
+	kv := []util.KeyValuePair{
+		util.KeyValuePair{Key: "ETCD_ENDPOINTS", Value: cfg.Endpoints},
+		util.KeyValuePair{Key: "ETCDCTL_ENDPOINTS", Value: cfg.Endpoints},
+	}
+
+	changed, err := util.AppendEnvironmentFile(environmentPath, kv, configFileMode)
 	return changed, maskAny(err)
 }

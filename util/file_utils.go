@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // EnsureDirectoryOf checks if the directory of the given file path exists and if not creates it.
@@ -79,6 +80,79 @@ func UpdateFile(filePath string, content []byte, perm os.FileMode) (bool, error)
 	}
 	// Not found or content changed, update it
 	if err := ioutil.WriteFile(filePath, content, perm); err != nil {
+		return true, maskAny(err)
+	}
+	return true, nil
+}
+
+type KeyValuePair struct {
+	Key   string
+	Value string
+}
+
+// AppendEnvironmentFile ensures that all given key-value pairs are up to date in the given file.
+// If the file does not exist, it is created.
+// Returns: true if the file is created or updated, false otherwise.
+func AppendEnvironmentFile(filePath string, kv []KeyValuePair, perm os.FileMode) (bool, error) {
+	if err := EnsureDirectoryOf(filePath, perm); err != nil {
+		return false, maskAny(err)
+	}
+	updateNeeded := false
+	var oldContent []string
+	info, err := os.Stat(filePath)
+	if os.IsNotExist(err) {
+		updateNeeded = true
+	} else if err != nil {
+		return false, maskAny(err)
+	} else {
+		oldContentRaw, err := ioutil.ReadFile(filePath)
+		if os.IsNotExist(err) {
+			updateNeeded = true
+		} else if err != nil {
+			return false, maskAny(err)
+		} else {
+			oldContent = strings.Split(string(oldContentRaw), "\n")
+		}
+	}
+
+	for _, pair := range kv {
+		found := false
+		kvLine := fmt.Sprintf("%s=%s", pair.Key, pair.Value)
+		for idx, line := range oldContent {
+			parts := strings.SplitN(line, "=", 2)
+			if len(parts) != 2 {
+				continue
+			}
+			if strings.TrimSpace(parts[1]) != pair.Key {
+				continue
+			}
+			// Key found, Value equal?
+			if strings.TrimSpace(parts[2]) == pair.Value {
+				continue
+			}
+			// Update line
+			oldContent[idx] = kvLine
+			updateNeeded = true
+			found = true
+		}
+		if !found {
+			oldContent = append(oldContent, kvLine)
+			updateNeeded = true
+		}
+	}
+
+	if !updateNeeded {
+		// No need to make changes, but check filemode
+		if info.Mode() != perm {
+			if err := os.Chmod(filePath, perm); err != nil {
+				return false, maskAny(err)
+			}
+		}
+		return false, nil
+	}
+	// Not found or content changed, update it
+	newContent := strings.Join(oldContent, "\n")
+	if err := ioutil.WriteFile(filePath, []byte(newContent), perm); err != nil {
 		return true, maskAny(err)
 	}
 	return true, nil
