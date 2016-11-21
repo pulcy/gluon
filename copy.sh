@@ -14,6 +14,9 @@ mkdir -p /destination/overlay-work
 cp -f /dist/consul /destination/overlay/
 chmod a+x /destination/overlay/consul
 
+cp -f /dist/nomad /destination/overlay/
+chmod a+x /destination/overlay/nomad
+
 cp -f /dist/etcd* /destination/overlay/
 chmod a+x /destination/overlay/etcd*
 

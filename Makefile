@@ -28,6 +28,7 @@ FLEETBUILDDIR := $(ROOTDIR)/.build/fleet
 RKTVERSION := v1.14.0
 
 CONSULVERSION := 0.7.1
+NOMADVERSION := 0.5.0
 
 ifndef GOOS
 	GOOS := linux
@@ -41,7 +42,7 @@ TEMPLATES := $(shell find $(SRCDIR)/templates -name '*')
 
 .PHONY: all clean deps
 
-all: .build/consul .build/weave .build/rkt $(BIN) $(BINGPG) .build/etcd .build/fleetd
+all: .build/consul .build/nomad .build/weave .build/rkt $(BIN) $(BINGPG) .build/etcd .build/fleetd
 
 clean:
 	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR) .build $(FLEETBUILDDIR)
@@ -126,3 +127,12 @@ $(FLEETBUILDDIR):
 .build/consul.zip:
 	@mkdir -p .build
 	@curl -L https://releases.hashicorp.com/consul/$(CONSULVERSION)/consul_$(CONSULVERSION)_linux_amd64.zip -o .build/consul.zip
+
+.build/nomad: .build/nomad.zip
+	@rm -f .build/nomad
+	@unzip .build/nomad.zip -d .build 
+	@touch .build/nomad
+
+.build/nomad.zip:
+	@mkdir -p .build
+	@curl -L https://releases.hashicorp.com/nomad/$(NOMADVERSION)/nomad_$(NOMADVERSION)_linux_amd64.zip -o .build/nomad.zip
