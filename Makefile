@@ -65,7 +65,8 @@ update-vendor:
 		github.com/juju/errgo \
 		github.com/op/go-logging \
 		github.com/spf13/cobra \
-		github.com/spf13/pflag
+		github.com/spf13/pflag \
+		golang.org/x/sync/errgroup
 
 $(BIN): $(GOBUILDDIR) $(GOBINDATA) $(SOURCES) templates/templates_bindata.go
 	docker run \

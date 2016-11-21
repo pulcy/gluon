@@ -110,6 +110,17 @@ function update-gluon() {
 	else
 		docker pull ${image}
 		docker run --rm -v /home/core/bin/:/destination/ ${image}
+		/home/core/bin/gluon update "$@"
+	fi
+}
+
+function update-gluon-old() {
+	local image=${1}
+	if [ -z ${image} ]; then
+		echo Pass image argument
+	else
+		docker pull ${image}
+		docker run --rm -v /home/core/bin/:/destination/ ${image}
 		echo ${image} | sudo tee /etc/pulcy/gluon-image
 		sudo systemctl restart gluon
 		sudo systemctl stop nomad 
