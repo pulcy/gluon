@@ -15,9 +15,15 @@
 package main
 
 import (
+	"time"
+
 	"github.com/spf13/cobra"
 
 	"github.com/pulcy/gluon/update"
+)
+
+const (
+	defaultMachineDelay = time.Second * 30
 )
 
 var (
@@ -29,6 +35,10 @@ var (
 )
 
 func init() {
+	cmdUpdate.Flags().DurationVar(&updateFlags.MachineDelay, "machine-delay", defaultMachineDelay, "Time between updating 2 machines")
+	cmdUpdate.Flags().DurationVar(&updateFlags.RebootExpired, "reboot-expired", 0, "Duration until a reboot is considered failed")
+	cmdUpdate.Flags().BoolVar(&updateFlags.Reboot, "reboot", false, "If set, reboot machines after update")
+	cmdUpdate.Flags().BoolVar(&updateFlags.AskConfirmation, "confirm", false, "If set, confirmation is needed before continuing with next machine")
 
 	cmdMain.AddCommand(cmdUpdate)
 }

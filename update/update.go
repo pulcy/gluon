@@ -1,8 +1,10 @@
 package update
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -16,8 +18,11 @@ import (
 
 type UpdateFlags struct {
 	service.ServiceFlags
-	MachineDelay time.Duration
-	UserName     string
+	MachineDelay    time.Duration
+	RebootExpired   time.Duration
+	UserName        string
+	Reboot          bool
+	AskConfirmation bool
 }
 
 func (flags *UpdateFlags) SetupDefaults(log *logging.Logger) error {
@@ -26,6 +31,9 @@ func (flags *UpdateFlags) SetupDefaults(log *logging.Logger) error {
 	}
 	if flags.MachineDelay == 0 {
 		flags.MachineDelay = time.Second * 30
+	}
+	if flags.RebootExpired == 0 {
+		flags.RebootExpired = time.Minute * 2
 	}
 	if flags.UserName == "" {
 		flags.UserName = "core"
@@ -76,6 +84,7 @@ func pullImage(member service.ClusterMember, flags UpdateFlags, log *logging.Log
 }
 
 func updateMachine(member service.ClusterMember, flags UpdateFlags, log *logging.Logger) error {
+	askConfirmation := flags.AskConfirmation
 	log.Infof("Updating %s...", member.ClusterIP)
 
 	// Extract gluon binary
@@ -92,6 +101,26 @@ func updateMachine(member service.ClusterMember, flags UpdateFlags, log *logging
 	// Setup new gluon version
 	if _, err := runRemoteCommand(member, flags.UserName, log, "sudo systemctl restart gluon", "", false); err != nil {
 		return maskAny(err)
+	}
+
+	// Reboot if needed
+	if flags.Reboot {
+		log.Infof("Rebooting %s...", member.ClusterIP)
+		runRemoteCommand(member, flags.UserName, log, "sudo reboot -f", "", true)
+		time.Sleep(time.Second * 15)
+		if err := waitUntilMachineUp(member, flags, log); err != nil {
+			return maskAny(err)
+		}
+		if !member.EtcdProxy {
+			log.Warningf("Core machine %s is back up, check services", member.ClusterIP)
+			askConfirmation = true
+		} else {
+			log.Infof("Machine %s is back up", member.ClusterIP)
+		}
+	}
+
+	if askConfirmation {
+		confirm("Can we continue?")
 	}
 
 	return nil
@@ -118,4 +147,37 @@ func runRemoteCommand(member service.ClusterMember, userName string, log *loggin
 	out := stdOut.String()
 	out = strings.TrimSuffix(out, "\n")
 	return out, nil
+}
+
+func waitUntilMachineUp(member service.ClusterMember, flags UpdateFlags, log *logging.Logger) error {
+	start := time.Now()
+	for {
+		if _, err := runRemoteCommand(member, flags.UserName, log, "cat /etc/machine-id", "", true); err == nil {
+			return nil
+		}
+		if time.Since(start) > flags.RebootExpired {
+			return maskAny(fmt.Errorf("Machine %s took too long to reboot", member.ClusterIP))
+		}
+		time.Sleep(time.Second * 2)
+	}
+}
+
+func confirm(question string) error {
+	prefix := ""
+	for {
+		var line string
+		fmt.Printf("%s%s [yes|no]", prefix, question)
+		bufStdin := bufio.NewReader(os.Stdin)
+		lineRaw, _, err := bufStdin.ReadLine()
+		if err != nil {
+			return err
+		}
+		line = string(lineRaw)
+
+		switch line {
+		case "yes", "y":
+			return nil
+		}
+		prefix = "Please enter 'yes' to confirm."
+	}
 }
