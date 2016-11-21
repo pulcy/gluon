@@ -1,0 +1,8 @@
+Unit]
+Description=Fleet API Socket
+PartOf=fleet.service
+
+[Socket]
+ListenStream=/var/run/fleet.sock
+ListenStream=127.0.0.1:49153
+ListenStream={{.ClusterIP}}:49153
