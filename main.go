@@ -17,7 +17,7 @@ package main
 import (
 	"os"
 
-	"github.com/op/go-logging"
+	logging "github.com/op/go-logging"
 	"github.com/spf13/cobra"
 )
 
