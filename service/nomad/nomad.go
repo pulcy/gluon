@@ -124,7 +124,7 @@ func createConfig(deps service.ServiceDependencies, flags *service.ServiceFlags)
 		ConsulAddress:   fmt.Sprintf("%s:8500", flags.Network.ClusterIP),
 		IsServer:        srv,
 		BootstrapExpect: bootstrapExpect,
-		HasVault:        vaultAddress != "" && vaultCAFile != "",
+		HasVault:        false && vaultAddress != "" && vaultCAFile != "", // Vault token is also needed before we can enable
 		VaultAddress:    vaultAddress,
 		VaultCAFile:     vaultCAFile,
 	}
