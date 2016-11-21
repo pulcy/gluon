@@ -21,6 +21,8 @@ import (
 
 	"github.com/juju/errgo"
 
+	"strconv"
+
 	"github.com/pulcy/gluon/service"
 	"github.com/pulcy/gluon/util"
 )
@@ -94,6 +96,8 @@ type etcdConfig struct {
 	AdvertiseClientURLs string // Advertised URLs for client-ETCD communication
 	Endpoints           string // URLs for client-ETCD communication
 	InitialCluster      string
+	Host                string // IP of 1 ETCD host
+	Port                string // Port of 1 ETCD host
 }
 
 func createEtcdConfig(deps service.ServiceDependencies, flags *service.ServiceFlags) (etcdConfig, error) {
@@ -111,29 +115,40 @@ func createEtcdConfig(deps service.ServiceDependencies, flags *service.ServiceFl
 	}
 	initialCluster := []string{}
 	endpoints := []string{}
+	hosts := []string{}
+	clientPort := 2379
 	result.ClusterState = flags.Etcd.ClusterState
 	if result.ClusterState == "" {
 		result.ClusterState = "new"
 	}
-	for _, cm := range members {
+	memberIndex := 0
+	for index, cm := range members {
 		if !cm.EtcdProxy {
 			initialCluster = append(initialCluster, fmt.Sprintf("%s=http://%s:2380", cm.MachineID, cm.ClusterIP))
-			endpoints = append(endpoints, fmt.Sprintf("http://%s:2379", cm.ClusterIP))
+			endpoints = append(endpoints, fmt.Sprintf("http://%s:%d", cm.ClusterIP, clientPort))
+			hosts = append(hosts, cm.ClusterIP)
 		}
 		if cm.ClusterIP == flags.Network.ClusterIP {
 			result.Name = cm.MachineID
 			result.IsProxy = cm.EtcdProxy
 			result.PrivateHostIP = cm.PrivateHostIP
+			if cm.EtcdProxy {
+				memberIndex = index
+			} else {
+				memberIndex = len(hosts) - 1
+			}
 		}
 	}
 
 	result.ListenPeerURLs = fmt.Sprintf("https://%s:2381,http://%s:2380", result.PrivateHostIP, flags.Network.ClusterIP)
 	result.AdvertisePeerURLs = fmt.Sprintf("https://%s:2381,http://%s:2380", result.PrivateHostIP, flags.Network.ClusterIP)
-	result.ListenClientURLs = "http://0.0.0.0:2379,http://0.0.0.0:4001"
-	result.AdvertiseClientURLs = fmt.Sprintf("http://%s:2379,http://%s:4001", flags.Network.ClusterIP, flags.Network.ClusterIP)
+	result.ListenClientURLs = fmt.Sprintf("http://0.0.0.0:%d,http://0.0.0.0:4001", clientPort)
+	result.AdvertiseClientURLs = fmt.Sprintf("http://%s:%d,http://%s:4001", flags.Network.ClusterIP, clientPort, flags.Network.ClusterIP)
 
 	result.InitialCluster = strings.Join(initialCluster, ",")
 	result.Endpoints = strings.Join(endpoints, ",")
+	result.Host = hosts[memberIndex%len(hosts)]
+	result.Port = strconv.Itoa(clientPort)
 
 	return result, nil
 
@@ -175,6 +190,8 @@ func createEtcdEnvironment(deps service.ServiceDependencies, cfg etcdConfig) (bo
 	kv := []util.KeyValuePair{
 		util.KeyValuePair{Key: "ETCD_ENDPOINTS", Value: cfg.Endpoints},
 		util.KeyValuePair{Key: "ETCDCTL_ENDPOINTS", Value: cfg.Endpoints},
+		util.KeyValuePair{Key: "ETCD_HOST", Value: cfg.Host},
+		util.KeyValuePair{Key: "ETCD_PORT", Value: cfg.Port},
 	}
 
 	changed, err := util.AppendEnvironmentFile(environmentPath, kv, configFileMode)

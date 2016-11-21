@@ -26,7 +26,7 @@ alias eget="etcdctl get"
 # Fleet
 alias fc="fleetctl cat"
 alias fj="fleetctl journal"
-alias fssh="fleetctl ssh -A"
+alias fssh="fleetctl ssh --A"
 alias fstart="fleetctl start"
 alias fstop="fleetctl stop"
 alias fdestroy="fleetctl destroy"
@@ -53,13 +53,13 @@ function frestart() {
 	fleetctl start $@
 }
 function frestart-failed() {
-	local failedUnits=$(fleetctl list-units -no-legend | grep failed | awk '{print $1}' | uniq)
+	local failedUnits=$(fleetctl list-units --no-legend | grep failed | awk '{print $1}' | uniq)
 	for unit in ${failedUnits}; do
 		frestart ${unit}
 	done
 }
 function xcluster() {
-	local IPs=$(fleetctl list-machines -fields=ip -no-legend)
+	local IPs=$(fleetctl list-machines --fields=ip --no-legend)
 	for ip in ${IPs}; do
 		ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -A -q core@${ip} $@
 	done
