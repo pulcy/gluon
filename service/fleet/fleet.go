@@ -35,11 +35,15 @@ const (
 	confName          = "99-fleet.conf"
 	confPath          = "/etc/systemd/system/fleet.service.d/" + confName
 	serviceName       = "fleet.service"
+	socketName        = "fleet.socket"
+	socketPath        = "/etc/systemd/system/fleet.socket"
+	socketTemplate    = "templates/fleet.socket.tmpl"
 	checkScriptSource = "templates/fleet-check.sh"
 	checkScriptPath   = "/home/core/bin/fleet-check.sh"
 
-	configFileMode = os.FileMode(0644)
-	scriptFileMode = os.FileMode(0755)
+	serviceFileMode = os.FileMode(0644)
+	configFileMode  = os.FileMode(0644)
+	scriptFileMode  = os.FileMode(0755)
 )
 
 func NewService() service.Service {
@@ -57,6 +61,10 @@ func (t *fleetService) Setup(deps service.ServiceDependencies, flags *service.Se
 	if err != nil {
 		return maskAny(err)
 	}
+	changedSocket, err := createSocket(deps, flags)
+	if err != nil {
+		return maskAny(err)
+	}
 
 	if err := deps.Systemd.Reload(); err != nil {
 		return maskAny(err)
@@ -69,6 +77,11 @@ func (t *fleetService) Setup(deps service.ServiceDependencies, flags *service.Se
 
 	if !isActive || changedConf || flags.Force {
 		if err := deps.Systemd.Restart(serviceName); err != nil {
+			return maskAny(err)
+		}
+	}
+	if changedSocket || flags.Force {
+		if err := deps.Systemd.Restart(socketName); err != nil {
 			return maskAny(err)
 		}
 	}
@@ -122,6 +135,17 @@ func createFleetCheck(deps service.ServiceDependencies, flags *service.ServiceFl
 	}
 
 	changed, err := util.UpdateFile(checkScriptPath, asset, scriptFileMode)
+	return changed, maskAny(err)
+}
+
+func createSocket(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	deps.Logger.Info("creating %s", socketPath)
+	opts := struct {
+		ClusterIP string
+	}{
+		ClusterIP: flags.Network.ClusterIP,
+	}
+	changed, err := templates.Render(socketTemplate, socketPath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 
