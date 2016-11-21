@@ -124,7 +124,7 @@ func createConfig(deps service.ServiceDependencies, flags *service.ServiceFlags)
 		ConsulAddress:   fmt.Sprintf("%s:8500", flags.Network.ClusterIP),
 		IsServer:        srv,
 		BootstrapExpect: bootstrapExpect,
-		HasVault:        false && vaultAddress != "" && vaultCAFile != "", // Can be enabled with nomad 0.5
+		HasVault:        vaultAddress != "" && vaultCAFile != "",
 		VaultAddress:    vaultAddress,
 		VaultCAFile:     vaultCAFile,
 	}
