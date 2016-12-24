@@ -158,9 +158,11 @@ func createV4Rules(deps service.ServiceDependencies, flags *service.ServiceFlags
 	opts := struct {
 		DockerSubnet         string
 		PrivateClusterDevice string
+		ClusterSubnet        string
 	}{
 		DockerSubnet:         flags.Docker.DockerSubnet,
 		PrivateClusterDevice: flags.Network.PrivateClusterDevice,
+		ClusterSubnet:        flags.Network.ClusterSubnet,
 	}
 	changed, err := templates.Render(v4rulesTemplate, v4rulesPath, opts, rulesFileMode)
 	return changed, maskAny(err)

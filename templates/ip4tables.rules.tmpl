@@ -4,6 +4,7 @@
 :OUTPUT ACCEPT [0:0]
 :POSTROUTING ACCEPT [0:0]
 -A POSTROUTING -s {{.DockerSubnet}} ! -d {{.DockerSubnet}} -j MASQUERADE
+-A POSTROUTING -s {{.ClusterSubnet}} -o eth0 -j MASQUERADE
 COMMIT
 
 *filter
@@ -33,6 +34,8 @@ COMMIT
 
 -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A INPUT -i {{.PrivateClusterDevice}} -j PRIVATECLUSTER
+-A FORWARD -i {{.PrivateClusterDevice}} -o eth0 -s {{.ClusterSubnet}} -j ACCEPT
+-A FORWARD -o {{.PrivateClusterDevice}} -i eth0 -d {{.ClusterSubnet}} -j ACCEPT
 
 -A FORWARD -i {{.PrivateClusterDevice}} -o docker0 -j PRIVATECLUSTER
 -A FORWARD -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT

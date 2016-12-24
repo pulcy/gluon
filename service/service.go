@@ -16,6 +16,7 @@ package service
 
 import (
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,6 +65,7 @@ type ServiceFlags struct {
 	// Network
 	Network struct {
 		PrivateClusterDevice string
+		ClusterSubnet        string // 'a.b.c.d/x'
 		ClusterIP            string // IP address of member used for internal cluster traffic (e.g. etcd)
 	}
 
@@ -140,6 +142,12 @@ func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
 	}
 	if flags.Network.PrivateClusterDevice == "" {
 		flags.Network.PrivateClusterDevice = "eth1"
+	}
+	if flags.Network.ClusterSubnet == "" {
+		ip := net.ParseIP(flags.Network.ClusterIP)
+		mask := ip.DefaultMask()
+		network := net.IPNet{IP: ip, Mask: mask}
+		flags.Network.ClusterSubnet = network.String()
 	}
 	if flags.GluonImage == "" {
 		content, err := ioutil.ReadFile(gluonImagePath)
