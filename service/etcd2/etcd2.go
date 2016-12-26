@@ -124,7 +124,10 @@ func createEtcdConfig(deps service.ServiceDependencies, flags *service.ServiceFl
 	memberIndex := 0
 	for index, cm := range members {
 		if !cm.EtcdProxy {
-			initialCluster = append(initialCluster, fmt.Sprintf("%s=http://%s:2380", cm.MachineID, cm.ClusterIP))
+			initialCluster = append(initialCluster,
+				fmt.Sprintf("%s=http://%s:2380", cm.MachineID, cm.ClusterIP),
+				fmt.Sprintf("%s=https://%s:2381", cm.MachineID, cm.PrivateHostIP),
+			)
 			endpoints = append(endpoints, fmt.Sprintf("http://%s:%d", cm.ClusterIP, clientPort))
 			hosts = append(hosts, cm.ClusterIP)
 		}
