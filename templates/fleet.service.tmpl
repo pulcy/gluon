@@ -1,6 +1,7 @@
 [Unit]
 Description=fleet daemon
 
+Requires=etcd2.service
 After=etcd2.service
 
 Wants=fleet.socket
