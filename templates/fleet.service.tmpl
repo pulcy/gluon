@@ -1,0 +1,16 @@
+[Unit]
+Description=fleet daemon
+
+After=etcd2.service
+
+Wants=fleet.socket
+After=fleet.socket
+
+[Service]
+Environment=GOMAXPROCS=1
+ExecStart=/usr/bin/fleetd
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

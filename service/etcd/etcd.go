@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package etcd2
+package etcd
 
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/juju/errgo"
@@ -24,6 +25,7 @@ import (
 	"strconv"
 
 	"github.com/pulcy/gluon/service"
+	"github.com/pulcy/gluon/templates"
 	"github.com/pulcy/gluon/util"
 )
 
@@ -34,29 +36,46 @@ var (
 const (
 	confTemplate    = "templates/99-etcd2.conf.tmpl"
 	confName        = "99-etcd2.conf"
-	confPath        = "/etc/systemd/system/etcd2.service.d/" + confName
+	confPath        = "/etc/systemd/system/" + serviceName + ".d/" + confName
 	serviceName     = "etcd2.service"
+	serviceTemplate = "templates/etcd.service.tmpl"
+	servicePath     = "/etc/systemd/system/" + serviceName
 	environmentPath = "/etc/environment"
+	etcdUser        = "etcd"
+	dataPath        = "/var/lib/etcd2"
+	initTemplate    = "templates/etcd-init.sh.tmpl"
+	initPath        = "/root/etcd-init.sh"
 
-	configFileMode = os.FileMode(0644)
+	configFileMode  = os.FileMode(0644)
+	serviceFileMode = os.FileMode(0644)
+	dataPathMode    = os.FileMode(0755)
+	initFileMode    = os.FileMode(0755)
 )
 
 func NewService() service.Service {
-	return &etcd2Service{}
+	return &etcdService{}
 }
 
-type etcd2Service struct{}
+type etcdService struct{}
 
-func (t *etcd2Service) Name() string {
-	return "etcd2"
+func (t *etcdService) Name() string {
+	return "etcd"
 }
 
-func (t *etcd2Service) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
+func (t *etcdService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
+	if err := createEtcdUserAndPath(deps); err != nil {
+		return maskAny(err)
+	}
+
 	cfg, err := createEtcdConfig(deps, flags)
 	if err != nil {
 		return maskAny(err)
 	}
 
+	changedService, err := createService(deps, flags)
+	if err != nil {
+		return maskAny(err)
+	}
 	changedConf, err := createEtcd2Conf(deps, cfg)
 	if err != nil {
 		return maskAny(err)
@@ -69,18 +88,38 @@ func (t *etcd2Service) Setup(deps service.ServiceDependencies, flags *service.Se
 	if err := deps.Systemd.Reload(); err != nil {
 		return maskAny(err)
 	}
-
 	isActive, err := deps.Systemd.IsActive(serviceName)
 	if err != nil {
 		return maskAny(err)
 	}
 
-	if !isActive || changedConf || flags.Force {
+	if !isActive || changedService || changedConf || flags.Force {
+		if err := deps.Systemd.Enable(serviceName); err != nil {
+			return maskAny(err)
+		}
+		if err := deps.Systemd.Reload(); err != nil {
+			return maskAny(err)
+		}
 		if err := deps.Systemd.Restart(serviceName); err != nil {
 			return maskAny(err)
 		}
 	}
 
+	return nil
+}
+
+// createEtcdUserAndPath ensures the ETCD user exists.
+func createEtcdUserAndPath(deps service.ServiceDependencies) error {
+	deps.Logger.Info("creating %s", initPath)
+	if _, err := templates.Render(initTemplate, initPath, nil, initFileMode); err != nil {
+		return maskAny(err)
+	}
+	// Call init script
+	deps.Logger.Info("running %s", initPath)
+	cmd := exec.Command(initPath)
+	if err := cmd.Run(); err != nil {
+		return maskAny(err)
+	}
 	return nil
 }
 
@@ -125,7 +164,7 @@ func createEtcdConfig(deps service.ServiceDependencies, flags *service.ServiceFl
 	for index, cm := range members {
 		if !cm.EtcdProxy {
 			initialCluster = append(initialCluster,
-				fmt.Sprintf("%s=http://%s:2380", cm.MachineID, cm.ClusterIP),
+				fmt.Sprintf("%s=https://%s:2380", cm.MachineID, cm.ClusterIP),
 				fmt.Sprintf("%s=https://%s:2381", cm.MachineID, cm.PrivateHostIP),
 			)
 			endpoints = append(endpoints, fmt.Sprintf("http://%s:%d", cm.ClusterIP, clientPort))
@@ -143,9 +182,9 @@ func createEtcdConfig(deps service.ServiceDependencies, flags *service.ServiceFl
 		}
 	}
 
-	result.ListenPeerURLs = fmt.Sprintf("https://%s:2381,http://%s:2380", result.PrivateHostIP, flags.Network.ClusterIP)
-	result.AdvertisePeerURLs = fmt.Sprintf("https://%s:2381,http://%s:2380", result.PrivateHostIP, flags.Network.ClusterIP)
-	result.ListenClientURLs = fmt.Sprintf("http://0.0.0.0:%d,http://0.0.0.0:4001", clientPort)
+	result.ListenPeerURLs = fmt.Sprintf("https://%s:2381,https://%s:2380", result.PrivateHostIP, flags.Network.ClusterIP)
+	result.AdvertisePeerURLs = fmt.Sprintf("https://%s:2381,https://%s:2380", result.PrivateHostIP, flags.Network.ClusterIP)
+	result.ListenClientURLs = fmt.Sprintf("http://%s:%d,http://%s:4001,http://127.0.0.1:%d,http://127.0.0.1:4001", flags.Network.ClusterIP, clientPort, flags.Network.ClusterIP, clientPort)
 	result.AdvertiseClientURLs = fmt.Sprintf("http://%s:%d,http://%s:4001", flags.Network.ClusterIP, clientPort, flags.Network.ClusterIP)
 
 	result.InitialCluster = strings.Join(initialCluster, ",")
@@ -155,6 +194,12 @@ func createEtcdConfig(deps service.ServiceDependencies, flags *service.ServiceFl
 
 	return result, nil
 
+}
+
+func createService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	deps.Logger.Info("creating %s", servicePath)
+	changed, err := templates.Render(serviceTemplate, servicePath, nil, serviceFileMode)
+	return changed, maskAny(err)
 }
 
 func createEtcd2Conf(deps service.ServiceDependencies, cfg etcdConfig) (bool, error) {
