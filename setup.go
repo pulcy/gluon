@@ -29,6 +29,7 @@ import (
 	"github.com/pulcy/gluon/service/journal"
 	"github.com/pulcy/gluon/service/rkt"
 	"github.com/pulcy/gluon/service/sshd"
+	"github.com/pulcy/gluon/service/vault"
 	"github.com/pulcy/gluon/service/weave"
 	"github.com/pulcy/gluon/systemd"
 )
@@ -107,6 +108,7 @@ func runSetup(cmd *cobra.Command, args []string) {
 		journal.NewService(),
 		docker.NewService(),
 		rkt.NewService(),
+		vault.NewService(),
 		weave.NewService(),
 		consul.NewService(),
 		etcd.NewService(),

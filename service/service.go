@@ -38,6 +38,7 @@ const (
 	weaveIPInitPath        = "/etc/pulcy/weave-ipinit"
 	privateHostIPPrefix    = "private-host-ip="
 	defaultWeaveIPRange    = "10.32.0.0/12"
+	rolesPath              = "/etc/pulcy/roles"
 )
 
 type Service interface {
@@ -55,6 +56,7 @@ type ServiceFlags struct {
 
 	// gluon
 	GluonImage string
+	Roles      []string
 
 	// Docker
 	Docker struct {
@@ -204,6 +206,28 @@ func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
 			flags.Weave.IPInit = strings.TrimSpace(string(content))
 		}
 	}
+
+	// Setup roles last, since it depends on other flags being initialized
+	if len(flags.Roles) == 0 {
+		content, err := ioutil.ReadFile(rolesPath)
+		if err != nil && !os.IsNotExist(err) {
+			return maskAny(err)
+		} else if err == nil {
+			lines := trimLines(strings.Split(string(content), "\n"))
+			roles := strings.Join(lines, ",")
+			flags.Roles = strings.Split(roles, ",")
+		} else {
+			// roles files not found, default to fleet metadata.
+			// Everything with `key=true` results in a role named `key`
+			meta := strings.Split(flags.Fleet.Metadata, ",")
+			for _, x := range meta {
+				parts := strings.SplitN(x, "=", 2)
+				if len(parts) == 2 && parts[1] == "true" {
+					flags.Roles = append(flags.Roles, parts[0])
+				}
+			}
+		}
+	}
 	return nil
 }
 
@@ -255,7 +279,25 @@ func (flags *ServiceFlags) Save() (bool, error) {
 			changes++
 		}
 	}
+	if len(flags.Roles) > 0 {
+		content := strings.Join(flags.Roles, "\n")
+		if changed, err := updateContent(rolesPath, content, 0644); err != nil {
+			return false, maskAny(err)
+		} else if changed {
+			changes++
+		}
+	}
 	return (changes > 0), nil
+}
+
+// HasRole returns true if the given role is found in flags.Roles.
+func (flags *ServiceFlags) HasRole(role string) bool {
+	for _, x := range flags.Roles {
+		if x == role {
+			return true
+		}
+	}
+	return false
 }
 
 // GetClusterMembers returns a list of the private IP

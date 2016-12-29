@@ -1,0 +1,28 @@
+[Unit]
+Description=Secure vault
+
+[Service]
+Restart=always
+RestartSec=1
+StartLimitInterval=60s
+StartLimitBurst=3
+TimeoutStartSec=0
+EnvironmentFile=/etc/environment
+Environment="IMAGE=pulcy/vault:0.7.0"
+ExecStartPre=/bin/sh -c 'test -e /etc/pulcy/vault || mkdir -p /etc/pulcy/vault'
+ExecStart=/usr/bin/rkt \
+    run 
+    --insecure-options=image \
+    --port=80-tcp:8200 \
+    --port=81-tcp:8201 \
+    --volume config,kind=host,source=/etc/pulcy/config,readOnly=true
+    --set-env=ADVERTISE_ADDR=https://{{.PublicIP}}:8200 \
+    --set-env=CLUSTER_ADDR=https://{{.ClusterIP}}:8201 \
+    --set-env=PRIVATE_IPV4={{.PrivateIP}} \
+    --set-env=SERVER=1 \
+    --caps-retain=IPC_LOCK \
+    docker://${IMAGE} \
+    --mount volume=config,target=/config
+
+[Install]
+WantedBy=multi-user.target
