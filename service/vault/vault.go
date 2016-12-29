@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	vaultServiceName = "consul.service"
+	vaultServiceName = "vault.service"
 	vaultServiceTmpl = "templates/" + vaultServiceName + ".tmpl"
 	vaultServicePath = "/etc/systemd/system/" + vaultServiceName
 
