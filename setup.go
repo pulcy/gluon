@@ -110,7 +110,6 @@ func runSetup(cmd *cobra.Command, args []string) {
 		weave.NewService(),
 		consul.NewService(),
 		etcd.NewService(),
-		//nomad.NewService(),
 		fleet.NewService(),
 		sshd.NewService(),
 		gluon.NewService(),
