@@ -103,7 +103,6 @@ func runSetup(cmd *cobra.Command, args []string) {
 	services := []service.Service{
 		binaries.NewService(),
 		env.NewService(),
-		//proxy.NewService(),
 		iptables.NewService(),
 		journal.NewService(),
 		docker.NewService(),
