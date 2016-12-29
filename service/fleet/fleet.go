@@ -107,7 +107,16 @@ func (t *fleetService) Setup(deps service.ServiceDependencies, flags *service.Se
 
 func createService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", servicePath)
-	changed, err := templates.Render(serviceTemplate, servicePath, nil, serviceFileMode)
+	proxy, err := isEtcdProxy(deps, flags)
+	if err != nil {
+		return false, maskAny(err)
+	}
+	opts := struct {
+		HaveEtcd bool
+	}{
+		HaveEtcd: !proxy,
+	}
+	changed, err := templates.Render(serviceTemplate, servicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 

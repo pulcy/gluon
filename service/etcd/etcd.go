@@ -36,7 +36,8 @@ var (
 const (
 	confTemplate    = "templates/99-etcd2.conf.tmpl"
 	confName        = "99-etcd2.conf"
-	confPath        = "/etc/systemd/system/" + serviceName + ".d/" + confName
+	confDir         = "/etc/systemd/system/" + serviceName + ".d/"
+	confPath        = confDir + confName
 	serviceName     = "etcd2.service"
 	serviceTemplate = "templates/etcd.service.tmpl"
 	servicePath     = "/etc/systemd/system/" + serviceName
@@ -63,45 +64,60 @@ func (t *etcdService) Name() string {
 }
 
 func (t *etcdService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
-	if err := createEtcdUserAndPath(deps); err != nil {
-		return maskAny(err)
-	}
-
 	cfg, err := createEtcdConfig(deps, flags)
 	if err != nil {
 		return maskAny(err)
 	}
 
-	changedService, err := createService(deps, flags)
-	if err != nil {
-		return maskAny(err)
-	}
-	changedConf, err := createEtcd2Conf(deps, cfg)
-	if err != nil {
-		return maskAny(err)
-	}
 	_, err = createEtcdEnvironment(deps, cfg)
 	if err != nil {
 		return maskAny(err)
 	}
 
-	if err := deps.Systemd.Reload(); err != nil {
-		return maskAny(err)
-	}
-	isActive, err := deps.Systemd.IsActive(serviceName)
-	if err != nil {
-		return maskAny(err)
-	}
+	if cfg.IsProxy {
+		// We do not want an etcd service, remove it
+		if exists, err := deps.Systemd.Exists(serviceName); err != nil {
+			return maskAny(err)
+		} else if exists {
+			if err := deps.Systemd.Disable(serviceName); err != nil {
+				deps.Logger.Errorf("Disabling %s failed: %#v", serviceName, err)
+			} else {
+				os.Remove(servicePath)
+				os.RemoveAll(confDir)
+			}
+		}
+	} else {
 
-	if !isActive || changedService || changedConf || flags.Force {
-		if err := deps.Systemd.Enable(serviceName); err != nil {
+		if err := createEtcdUserAndPath(deps); err != nil {
+			return maskAny(err)
+		}
+
+		changedService, err := createService(deps, flags)
+		if err != nil {
+			return maskAny(err)
+		}
+		changedConf, err := createEtcd2Conf(deps, cfg)
+		if err != nil {
 			return maskAny(err)
 		}
 		if err := deps.Systemd.Reload(); err != nil {
 			return maskAny(err)
 		}
-		if err := deps.Systemd.Restart(serviceName); err != nil {
+		isActive, err := deps.Systemd.IsActive(serviceName)
+		if err != nil {
 			return maskAny(err)
+		}
+
+		if !isActive || changedService || changedConf || flags.Force {
+			if err := deps.Systemd.Enable(serviceName); err != nil {
+				return maskAny(err)
+			}
+			if err := deps.Systemd.Reload(); err != nil {
+				return maskAny(err)
+			}
+			if err := deps.Systemd.Restart(serviceName); err != nil {
+				return maskAny(err)
+			}
 		}
 	}
 

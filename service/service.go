@@ -34,7 +34,10 @@ const (
 	fleetMetadataPath      = "/etc/pulcy/fleet-metadata"
 	gluonImagePath         = "/etc/pulcy/gluon-image"
 	weaveSeedPath          = "/etc/pulcy/weave-seed"
+	weaveIPRangePath       = "/etc/pulcy/weave-iprange"
+	weaveIPInitPath        = "/etc/pulcy/weave-ipinit"
 	privateHostIPPrefix    = "private-host-ip="
+	defaultWeaveIPRange    = "10.32.0.0/12"
 )
 
 type Service interface {
@@ -88,6 +91,8 @@ type ServiceFlags struct {
 	Weave struct {
 		Seed     string
 		Hostname string // Weave DNS of exposed host
+		IPRange  string // Value to `--ipalloc-range` (e.g. 10.32.0.0/16)
+		IPInit   string // Value for `--ipalloc-init` (default empty)
 	}
 
 	// private cache
@@ -181,6 +186,24 @@ func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
 			flags.Weave.Seed = strings.Join(seeds, ",")
 		}
 	}
+	if flags.Weave.IPRange == "" {
+		content, err := ioutil.ReadFile(weaveIPRangePath)
+		if err != nil && !os.IsNotExist(err) {
+			return maskAny(err)
+		} else if err == nil {
+			flags.Weave.IPRange = strings.TrimSpace(string(content))
+		} else {
+			flags.Weave.IPRange = defaultWeaveIPRange
+		}
+	}
+	if flags.Weave.IPInit == "" {
+		content, err := ioutil.ReadFile(weaveIPInitPath)
+		if err != nil && !os.IsNotExist(err) {
+			return maskAny(err)
+		} else if err == nil {
+			flags.Weave.IPInit = strings.TrimSpace(string(content))
+		}
+	}
 	return nil
 }
 
@@ -220,6 +243,13 @@ func (flags *ServiceFlags) Save() (bool, error) {
 	}
 	if flags.Weave.Seed != "" {
 		if changed, err := updateContent(weaveSeedPath, flags.Weave.Seed, 0644); err != nil {
+			return false, maskAny(err)
+		} else if changed {
+			changes++
+		}
+	}
+	if flags.Weave.IPRange != "" {
+		if changed, err := updateContent(weaveIPRangePath, flags.Weave.IPRange, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++

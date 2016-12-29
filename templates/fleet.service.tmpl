@@ -1,8 +1,10 @@
 [Unit]
 Description=fleet daemon
 
+{{if .HaveEtcd}}
 Requires=etcd2.service
 After=etcd2.service
+{{end}}
 
 Wants=fleet.socket
 After=fleet.socket

@@ -123,17 +123,17 @@ func AppendEnvironmentFile(filePath string, kv []KeyValuePair, perm os.FileMode)
 			if len(parts) != 2 {
 				continue
 			}
-			if strings.TrimSpace(parts[1]) != pair.Key {
+			if strings.TrimSpace(parts[0]) != strings.TrimSpace(pair.Key) {
 				continue
 			}
 			// Key found, Value equal?
-			if strings.TrimSpace(parts[2]) == pair.Value {
+			found = true
+			if strings.TrimSpace(parts[1]) == strings.TrimSpace(pair.Value) {
 				continue
 			}
 			// Update line
 			oldContent[idx] = kvLine
 			updateNeeded = true
-			found = true
 		}
 		if !found {
 			oldContent = append(oldContent, kvLine)

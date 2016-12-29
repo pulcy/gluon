@@ -16,7 +16,7 @@ Environment="PEERNAME={{.Name}}"
 Environment="WEAVEHOSTNAME={{.Hostname}}"
 EnvironmentFile=-/etc/pulcy/weave.env
 EnvironmentFile=-/etc/sysconfig/weave
-ExecStartPre=/usr/bin/weave launch --no-restart --name ${PEERNAME} --ipalloc-init seed=${SEED} $PEERS
+ExecStartPre=/usr/bin/weave launch --no-restart --name ${PEERNAME} --ipalloc-range={{.IPRange}} --ipalloc-init {{.IPInit}} $PEERS
 ExecStartPre=/usr/bin/weave expose -h ${WEAVEHOSTNAME}
 ExecStart=/usr/bin/docker attach weave
 ExecStop=/usr/bin/weave stop
