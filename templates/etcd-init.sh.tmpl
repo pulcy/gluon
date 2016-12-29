@@ -1,0 +1,5 @@
+#!/bin/sh
+
+id -u etcd || useradd --system --no-create-home etcd
+mkdir -p /var/lib/etcd2
+chown etcd.etcd /var/lib/etcd2

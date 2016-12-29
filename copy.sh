@@ -5,6 +5,8 @@ if [ ! -e /destination ]; then
 	exit 1
 fi
 
+echo Copying binaries ...
+
 cp -f /dist/gluon /destination/
 chmod a+x /destination/gluon
 

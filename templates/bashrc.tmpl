@@ -16,6 +16,7 @@ alias jq="docker run --rm -i realguess/jq:latest jq"
 alias dockercleancontainers="docker ps -a --no-trunc| grep 'Exit' | awk '{print \$1}' | xargs -L 1 -r docker rm"
 alias dockerrmcontainers="docker ps -a --no-trunc |awk '{print \$1}' | xargs -L 1 -r docker rm -f"
 alias dockercleanimages="docker images -a --no-trunc | grep none | awk '{print \$3}' | xargs -L 1 -r docker rmi"
+alias dockercleanvolumes='__VOLUMES=$(docker volume ls -q) && if [ ! -z "${__VOLUMES}" ]; then docker volume rm ${__VOLUMES}; fi'
 alias dockerclean="dockercleancontainers && dockercleanimages"
 
 # Etcd
@@ -123,12 +124,12 @@ function update-gluon-old() {
 		docker run --rm -v /home/core/bin/:/destination/ ${image}
 		echo ${image} | sudo tee /etc/pulcy/gluon-image
 		sudo systemctl restart gluon
-		sudo systemctl stop nomad 
-		sudo systemctl stop etcd2 
+		sudo systemctl stop fleet
+		sudo systemctl stop etcd2 || true
 		sudo systemctl stop consul 
 		sudo mount -o remount /usr/bin 
-		sudo systemctl start etcd2 
+		sudo systemctl start etcd2 || true
 		sudo systemctl start consul 
-		sudo systemctl start nomad 
+		sudo systemctl start fleet
 	fi
 }

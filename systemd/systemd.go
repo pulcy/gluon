@@ -183,6 +183,23 @@ func (sdc *SystemdClient) Enable(unit string) error {
 	return nil
 }
 
+// Disable behaves as `systemctl disable <unit>`
+func (sdc *SystemdClient) Disable(unit string) error {
+	sdc.Logger.Debugf("disabling %s", unit)
+
+	conn, err := dbus.New()
+	if err != nil {
+		return maskAny(err)
+	}
+
+	if _, err := conn.DisableUnitFiles([]string{unit}, false); err != nil {
+		sdc.Logger.Errorf("disabling %s failed: %#v", unit, err)
+		return maskAny(err)
+	}
+
+	return nil
+}
+
 // Exists returns true if the given unit exists, false otherwise.
 func (sdc *SystemdClient) Exists(unit string) (bool, error) {
 	conn, err := dbus.New()

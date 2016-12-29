@@ -85,11 +85,15 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 		Peers    string
 		Name     string
 		Hostname string
+		IPRange  string
+		IPInit   string
 	}{
 		Seed:     flags.Weave.Seed,
 		Peers:    strings.Join(peers, " "),
 		Name:     name,
 		Hostname: flags.Weave.Hostname,
+		IPRange:  flags.Weave.IPRange,
+		IPInit:   "seed=${SEED}",
 	}
 	changed, err := templates.Render(weaveServiceTmpl, weaveServicePath, opts, serviceFileMode)
 	return changed, maskAny(err)

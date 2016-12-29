@@ -33,8 +33,10 @@ var (
 const (
 	confTemplate      = "templates/99-fleet.conf.tmpl"
 	confName          = "99-fleet.conf"
-	confPath          = "/etc/systemd/system/fleet.service.d/" + confName
+	confPath          = "/etc/systemd/system/" + serviceName + ".d/" + confName
 	serviceName       = "fleet.service"
+	serviceTemplate   = "templates/fleet.service.tmpl"
+	servicePath       = "/etc/systemd/system/" + serviceName
 	socketName        = "fleet.socket"
 	socketPath        = "/etc/systemd/system/fleet.socket"
 	socketTemplate    = "templates/fleet.socket.tmpl"
@@ -61,6 +63,10 @@ func (t *fleetService) Setup(deps service.ServiceDependencies, flags *service.Se
 	if err != nil {
 		return maskAny(err)
 	}
+	changedService, err := createService(deps, flags)
+	if err != nil {
+		return maskAny(err)
+	}
 	changedSocket, err := createSocket(deps, flags)
 	if err != nil {
 		return maskAny(err)
@@ -75,7 +81,13 @@ func (t *fleetService) Setup(deps service.ServiceDependencies, flags *service.Se
 		return maskAny(err)
 	}
 
-	if !isActive || changedConf || flags.Force {
+	if !isActive || changedService || changedConf || flags.Force {
+		if err := deps.Systemd.Enable(serviceName); err != nil {
+			return maskAny(err)
+		}
+		if err := deps.Systemd.Reload(); err != nil {
+			return maskAny(err)
+		}
 		if err := deps.Systemd.Restart(serviceName); err != nil {
 			return maskAny(err)
 		}
@@ -91,6 +103,21 @@ func (t *fleetService) Setup(deps service.ServiceDependencies, flags *service.Se
 	}
 
 	return nil
+}
+
+func createService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	deps.Logger.Info("creating %s", servicePath)
+	proxy, err := isEtcdProxy(deps, flags)
+	if err != nil {
+		return false, maskAny(err)
+	}
+	opts := struct {
+		HaveEtcd bool
+	}{
+		HaveEtcd: !proxy,
+	}
+	changed, err := templates.Render(serviceTemplate, servicePath, opts, serviceFileMode)
+	return changed, maskAny(err)
 }
 
 func createFleetConf(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
