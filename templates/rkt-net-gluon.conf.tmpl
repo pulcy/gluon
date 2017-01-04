@@ -1,0 +1,14 @@
+{
+	"name": "gluon",
+	"type": "bridge",
+	"bridge": "gluon0",
+	"ipMasq": true,
+	"isGateway": true,
+	"ipam": {
+		"type": "host-local",
+		"subnet": "{{.RktSubnet}}",
+		"routes": [
+			{ "dst": "0.0.0.0/0" }
+		]
+	}
+}

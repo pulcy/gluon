@@ -11,6 +11,7 @@ ExecStartPre=/bin/sh -c 'test -e /home/core/bin/gluon || /usr/bin/docker run --r
 ExecStart=/home/core/bin/gluon setup \
 --docker-ip=${COREOS_PRIVATE_IPV4} \
 --docker-subnet={{.DockerSubnet}} \
+--rkt-subnet={{.RktSubnet}} \
 --private-ip=${COREOS_PRIVATE_IPV4} \
 --private-cluster-device={{.PrivateClusterDevice}} \
 --weave-hostname={{.WeaveHostname}}

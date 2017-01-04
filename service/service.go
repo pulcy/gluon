@@ -67,6 +67,11 @@ type ServiceFlags struct {
 		PrivateRegistryPassword string
 	}
 
+	// Rkt
+	Rkt struct {
+		RktSubnet string
+	}
+
 	// Network
 	Network struct {
 		PrivateClusterDevice string

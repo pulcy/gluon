@@ -157,10 +157,12 @@ func createV4Rules(deps service.ServiceDependencies, flags *service.ServiceFlags
 	deps.Logger.Info("creating %s", v4rulesPath)
 	opts := struct {
 		DockerSubnet         string
+		RktSubnet            string
 		PrivateClusterDevice string
 		ClusterSubnet        string
 	}{
 		DockerSubnet:         flags.Docker.DockerSubnet,
+		RktSubnet:            flags.Rkt.RktSubnet,
 		PrivateClusterDevice: flags.Network.PrivateClusterDevice,
 		ClusterSubnet:        flags.Network.ClusterSubnet,
 	}

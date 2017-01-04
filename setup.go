@@ -36,6 +36,7 @@ import (
 
 const (
 	defaultDockerSubnet         = "172.17.0.0/16"
+	defaultRktSubnet            = "172.22.0.0/16"
 	defaultPrivateClusterDevice = "eth1"
 
 	defaultFleetAgentTTL                = "30s"
@@ -64,6 +65,8 @@ func init() {
 	cmdSetup.Flags().StringVar(&setupFlags.Docker.PrivateRegistryUrl, "private-registry-url", "", "URL of private docker registry")
 	cmdSetup.Flags().StringVar(&setupFlags.Docker.PrivateRegistryUserName, "private-registry-username", "", "Username for private registry")
 	cmdSetup.Flags().StringVar(&setupFlags.Docker.PrivateRegistryPassword, "private-registry-password", "", "Password for private registry")
+	// Rkt
+	cmdSetup.Flags().StringVar(&setupFlags.Rkt.RktSubnet, "rkt-subnet", defaultRktSubnet, "Subnet used by rkt")
 	// Network
 	cmdSetup.Flags().StringVar(&setupFlags.Network.ClusterIP, "private-ip", "", "IP address of this host in the cluster network")
 	cmdSetup.Flags().StringVar(&setupFlags.Network.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the cluster IP")
