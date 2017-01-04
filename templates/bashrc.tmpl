@@ -19,6 +19,12 @@ alias dockercleanimages="docker images -a --no-trunc | grep none | awk '{print \
 alias dockercleanvolumes='__VOLUMES=$(docker volume ls -q) && if [ ! -z "${__VOLUMES}" ]; then docker volume rm ${__VOLUMES}; fi'
 alias dockerclean="dockercleancontainers && dockercleanimages"
 
+# Rkt 
+alias rls='sudo rkt list'
+alias rstatus='sudo rkt status '
+alias rgc='sudo rkt gc'
+alias rgc-all='sudo rkt gc --grace-period=0s'
+
 # Etcd
 alias cluster-health="etcdctl cluster-health"
 alias els="etcdctl ls --recursive --sort"

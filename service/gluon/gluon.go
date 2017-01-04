@@ -88,11 +88,13 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 		GluonImage           string
 		PrivateClusterDevice string
 		DockerSubnet         string
+		RktSubnet            string
 		WeaveHostname        string
 	}{
 		GluonImage:           flags.GluonImage,
 		PrivateClusterDevice: flags.Network.PrivateClusterDevice,
 		DockerSubnet:         flags.Docker.DockerSubnet,
+		RktSubnet:            flags.Rkt.RktSubnet,
 		WeaveHostname:        flags.Weave.Hostname,
 	}
 	changed, err := templates.Render(serviceTemplate, servicePath, opts, fileMode)

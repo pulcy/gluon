@@ -4,6 +4,7 @@
 :OUTPUT ACCEPT [0:0]
 :POSTROUTING ACCEPT [0:0]
 -A POSTROUTING -s {{.DockerSubnet}} ! -d {{.DockerSubnet}} -j MASQUERADE
+#-A POSTROUTING -s {{.RktSubnet}} ! -d {{.RktSubnet}} -j MASQUERADE
 -A POSTROUTING -s {{.ClusterSubnet}} -o eth0 -j MASQUERADE
 COMMIT
 
@@ -12,10 +13,12 @@ COMMIT
 :FORWARD DROP [0:0]
 :OUTPUT DROP [0:0]
 :DOCKER - [0:0]
+:RKT - [0:0]
 :PRIVATECLUSTER - [0:0]
 :PRIVATEHOST - [0:0]
 -A INPUT -i lo -j ACCEPT
 -A INPUT -i docker0 -j ACCEPT
+-A INPUT -i gluon0 -j ACCEPT
 -A INPUT -i weave -j ACCEPT
 -A INPUT -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
 -A INPUT -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT
@@ -41,6 +44,12 @@ COMMIT
 -A FORWARD -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A FORWARD -s {{.DockerSubnet}} -j ACCEPT
 -A FORWARD -o docker0 -j DOCKER
+
+-A FORWARD -i {{.PrivateClusterDevice}} -o gluon0 -j PRIVATECLUSTER
+-A FORWARD -o gluon0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -s {{.RktSubnet}} -j ACCEPT
+-A FORWARD -o gluon0 -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A FORWARD -o gluon0 -j RKT
 
 -A OUTPUT -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
 -A OUTPUT -j ACCEPT

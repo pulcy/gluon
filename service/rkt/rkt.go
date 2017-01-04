@@ -38,8 +38,12 @@ var (
 	metadataServiceName = "rkt-metadata.service"
 	metadataSocketName  = "rkt-metadata.socket"
 
+	networkConfPath     = "/etc/rkt/net.d/10-gluon.conf"
+	networkConfTemplate = "templates/rkt-net-gluon.conf.tmpl"
+
 	privateRegistryAuthConfPath = "/etc/rkt/auth.d/gluon-private-registry.json"
 
+	configFileMode  = os.FileMode(0644)
 	serviceFileMode = os.FileMode(0644)
 
 	maskAny = errgo.MaskFunc(errgo.Any)
@@ -66,6 +70,11 @@ func (t *rktService) Setup(deps service.ServiceDependencies, flags *service.Serv
 		return maskAny(err)
 	}
 	if _, err := createPrivateRegistryAuthConf(deps, flags); err != nil {
+		return maskAny(err)
+	}
+
+	_, err := createNetwork(deps, flags)
+	if err != nil {
 		return maskAny(err)
 	}
 
@@ -120,11 +129,13 @@ func setupDataDir(deps service.ServiceDependencies, flags *service.ServiceFlags)
 }
 
 func addCoreToRktGroup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
-	cmd := exec.Command("gpasswd", "-a", "core", "rkt")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Println(string(out))
-		return maskAny(err)
+	for _, g := range []string{"rkt", "rkt-admin"} {
+		cmd := exec.Command("gpasswd", "-a", "core", g)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Println(string(out))
+			return maskAny(err)
+		}
 	}
 	return nil
 }
@@ -191,4 +202,15 @@ func createPrivateRegistryAuthConf(deps service.ServiceDependencies, flags *serv
 	}
 
 	return false, nil
+}
+
+func createNetwork(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	deps.Logger.Info("creating %s", networkConfPath)
+	opts := struct {
+		RktSubnet string
+	}{
+		RktSubnet: flags.Rkt.RktSubnet,
+	}
+	changed, err := templates.Render(networkConfTemplate, networkConfPath, opts, configFileMode)
+	return changed, maskAny(err)
 }
