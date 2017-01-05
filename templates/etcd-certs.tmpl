@@ -1,0 +1,6 @@
+{{ with secret "{{.ClusterID}}/pki/etcd/issue/member" "common_name={{.CommonName}}"}}
+{{ .Data.serial_number }}
+{{ .Data.certificate | plugin "certdump" "{{.CertPath}}" "etcd"}}
+{{ .Data.private_key | plugin "certdump" "{{.KeyPath}}" "etcd"}}
+{{ .Data.issuing_ca | plugin "certdump" "{{.CAPath}}" "etcd"}}
+{{ end }}

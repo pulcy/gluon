@@ -1,0 +1,15 @@
+[Unit]
+Description=ETCD certificates
+
+[Service]
+EnvironmentFile=/etc/pulcy/vault.env
+Environment=VAULT_RENEW_TOKEN=true 
+ExecStart=/usr/bin/consul-template \
+    -consul={{.ConsulAddress}} \
+    -template={{.TemplatePath}}:{{.TemplateOutputPath}}:/bin/systemctl restart {{.ServiceName}}
+Restart=always
+RestartSec=10s
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

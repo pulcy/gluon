@@ -28,6 +28,7 @@ FLEETBUILDDIR := $(ROOTDIR)/.build/fleet
 RKTVERSION := v1.21.0
 
 CONSULVERSION := 0.7.1
+CONSULTEMPLATEVERSION := 0.16.0
 
 ifndef GOOS
 	GOOS := linux
@@ -41,7 +42,7 @@ TEMPLATES := $(shell find $(SRCDIR)/templates -name '*')
 
 .PHONY: all clean deps
 
-all: .build/consul .build/weave .build/rkt $(BIN) $(BINGPG) .build/etcd .build/fleetd
+all: .build/certdump .build/consul .build/consul-template .build/weave .build/rkt $(BIN) $(BINGPG) .build/etcd .build/fleetd
 
 clean:
 	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR) .build $(FLEETBUILDDIR)
@@ -82,6 +83,18 @@ $(BIN): $(GOBUILDDIR) $(GOBINDATA) $(SOURCES) templates/templates_bindata.go
 # Special rule, because this file is generated
 templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)
 	$(GOBINDATA) -pkg templates -o templates/templates_bindata.go templates/
+
+.build/certdump: certdump/certdump.go 
+	docker run \
+		--rm \
+		-v $(ROOTDIR)/certdump/:/usr/code \
+		-e GOOS=$(GOOS) \
+		-e GOARCH=$(GOARCH) \
+		-e CGO_ENABLED=0 \
+		-w /usr/code/ \
+		golang:1.7.4 \
+		go build -o /usr/code/certdump 
+	mv $(ROOTDIR)/certdump/certdump .build/
 
 .build/etcd: .build/etcd.tar.gz
 	cd .build && tar zxf etcd.tar.gz && cp etcd-${ETCDVERSION}-linux-amd64/etcd* . && touch ./etcd
@@ -127,3 +140,11 @@ $(FLEETBUILDDIR):
 	@mkdir -p .build
 	@curl -L https://releases.hashicorp.com/consul/$(CONSULVERSION)/consul_$(CONSULVERSION)_linux_amd64.zip -o .build/consul.zip
 
+.build/consul-template: .build/consul-template.zip
+	@rm -f .build/consul-template
+	@unzip .build/consul-template.zip -d .build 
+	@touch .build/consul-template
+
+.build/consul-template.zip:
+	@mkdir -p .build
+	@curl -L https://releases.hashicorp.com/consul-template/$(CONSULTEMPLATEVERSION)/consul-template_$(CONSULTEMPLATEVERSION)_linux_amd64.zip -o .build/consul-template.zip 
