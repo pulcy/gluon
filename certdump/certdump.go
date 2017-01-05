@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"path/filepath"
 	"strconv"
 )
 
@@ -28,6 +29,12 @@ func realMain() error {
 	path := os.Args[1]
 	owner := os.Args[2]
 	data := os.Args[3]
+
+	// Ensure folder exists
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, os.FileMode(0755)); err != nil {
+		return err
+	}
 
 	err := ioutil.WriteFile(path, []byte(data), 0700)
 	if err != nil {
