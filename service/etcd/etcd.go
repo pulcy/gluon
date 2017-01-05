@@ -207,6 +207,7 @@ type etcdConfig struct {
 	Port                string // Port of 1 ETCD host
 	Scheme              string // URL scheme of 1 ETCD host
 	UseVaultCA          bool
+	SecureClients       bool
 }
 
 func createEtcdConfig(deps service.ServiceDependencies, flags *service.ServiceFlags) (etcdConfig, error) {
@@ -220,8 +221,9 @@ func createEtcdConfig(deps service.ServiceDependencies, flags *service.ServiceFl
 	}
 
 	result := etcdConfig{
-		ClusterIP:  flags.Network.ClusterIP,
-		UseVaultCA: flags.Etcd.UseVaultCA,
+		ClusterIP:     flags.Network.ClusterIP,
+		UseVaultCA:    flags.Etcd.UseVaultCA,
+		SecureClients: flags.Etcd.SecureClients,
 	}
 	initialCluster := []string{}
 	endpoints := []string{}
@@ -348,7 +350,18 @@ func createEtcd2Conf(deps service.ServiceDependencies, cfg etcdConfig) (bool, er
 		"Environment=ETCD_ADVERTISE_CLIENT_URLS=" + cfg.AdvertiseClientURLs,
 	}
 	if cfg.UseVaultCA {
-		// TODO set PEER TLS args
+		lines = append(lines,
+			"Environment=ETCD_PEER_CERT_FILE="+certsCertPath,
+			"Environment=ETCD_PEER_KEY_FILE="+certsKeyPath,
+			"Environment=ETCD_PEER_TRUSTED_CA_FILE="+certsCAPath,
+		)
+		if cfg.SecureClients {
+			lines = append(lines,
+				"Environment=ETCD_CERT_FILE="+certsCertPath,
+				"Environment=ETCD_KEY_FILE="+certsKeyPath,
+				"Environment=ETCD_TRUSTED_CA_FILE="+certsCAPath,
+			)
+		}
 	} else {
 		lines = append(lines, "Environment=ETCD_PEER_AUTO_TLS=true")
 	}
@@ -375,6 +388,14 @@ func createEtcdEnvironment(deps service.ServiceDependencies, cfg etcdConfig) (bo
 		util.KeyValuePair{Key: "ETCD_HOST", Value: cfg.Host},
 		util.KeyValuePair{Key: "ETCD_PORT", Value: cfg.Port},
 		util.KeyValuePair{Key: "ETCD_SCHEME", Value: cfg.Scheme},
+	}
+
+	if cfg.SecureClients {
+		kv = append(kv,
+			util.KeyValuePair{Key: "ETCD_CERT_FILE", Value: certsCertPath},
+			util.KeyValuePair{Key: "ETCD_KEY_FILE", Value: certsKeyPath},
+			util.KeyValuePair{Key: "ETCD_TRUSTED_CA_FILE", Value: certsCAPath},
+		)
 	}
 
 	changed, err := util.AppendEnvironmentFile(environmentPath, kv, configFileMode)
