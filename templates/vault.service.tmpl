@@ -21,12 +21,14 @@ ExecStart=/usr/bin/rkt \
     --port=80-tcp:0.0.0.0:8200 \
     --port=81-tcp:{{.ClusterIP}}:8201 \
     --volume config,kind=host,source=/etc/pulcy/vault,readOnly=true \
+    --volume cert,kind=host,source=/etc/pulcy/vault.crt,readOnly=true \
     --set-env=ADVERTISE_ADDR=https://{{.PublicIP}}:8200 \
     --set-env=CLUSTER_ADDR=https://{{.ClusterIP}}:8201 \
     --set-env=PRIVATE_IPV4={{.ClusterIP}} \
     --set-env=SERVER=1 \
     --caps-retain=CAP_IPC_LOCK,CAP_NET_BIND_SERVICE \
-    --mount volume=config,target=/config
+    --mount volume=config,target=/config \
+    --mount volume=cert,target=/app/cert.pem
 KillMode=mixed
 
 [Install]
