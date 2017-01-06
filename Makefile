@@ -85,6 +85,7 @@ templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)
 	$(GOBINDATA) -pkg templates -o templates/templates_bindata.go templates/
 
 .build/certdump: certdump/certdump.go 
+	mkdir -p .build
 	docker run \
 		--rm \
 		-v $(ROOTDIR)/certdump/:/usr/code \
