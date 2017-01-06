@@ -48,7 +48,10 @@ func realMain() error {
 	if err != nil {
 		return err
 	}
-	gid := os.Getgid()
+	gid, err := strconv.Atoi(u.Gid)
+	if err != nil {
+		return err
+	}
 	err = os.Chmod(path, 0660)
 	if err != nil {
 		return err
