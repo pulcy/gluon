@@ -19,7 +19,9 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
+	"text/template"
 
 	"github.com/juju/errgo"
 
@@ -48,10 +50,10 @@ const (
 	initTemplate             = "templates/etcd-init.sh.tmpl"
 	initPath                 = "/root/etcd-init.sh"
 	certsServiceName         = "etcd-certs.service"
-	certsServiceTemplate     = "templates/" + certsServiceName
+	certsServiceTemplate     = "templates/" + certsServiceName + ".tmpl"
 	certsServicePath         = "/etc/systemd/system/" + certsServiceName
 	certsTemplateName        = "etcd-certs.template"
-	certsTemplateTemplate    = "templates/" + certsTemplateName
+	certsTemplateTemplate    = "templates/" + certsTemplateName + ".tmpl"
 	certsTemplatesPath       = "/opt/certs/" + certsTemplateName
 	certsTemplatesOutputPath = "/opt/certs/etcd.serial"
 	certsCertPath            = "/opt/certs/etcd-cert.pem"
@@ -94,7 +96,7 @@ func (t *etcdService) Setup(deps service.ServiceDependencies, flags *service.Ser
 	var certsTemplateChanged, certsServiceChanged bool
 	if flags.Etcd.UseVaultCA {
 		// Create etcd-certs.service and template file
-		if certsTemplateChanged, err = createCertsTemplate(deps, flags); err != nil {
+		if certsTemplateChanged, err = createCertsTemplate(deps, flags, cfg); err != nil {
 			return maskAny(err)
 		}
 		if certsServiceChanged, err = createCertsService(deps, flags); err != nil {
@@ -283,7 +285,10 @@ func createEtcdConfig(deps service.ServiceDependencies, flags *service.ServiceFl
 }
 
 // createCertsTemplate creates the consul-template used by the etcd-certs service.
-func createCertsTemplate(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+func createCertsTemplate(deps service.ServiceDependencies, flags *service.ServiceFlags, config etcdConfig) (bool, error) {
+	if err := util.EnsureDirectoryOf(certsTemplatesPath, 0755); err != nil {
+		return false, maskAny(err)
+	}
 	deps.Logger.Info("creating %s", certsTemplatesPath)
 	clusterID, err := readClusterID()
 	if err != nil {
@@ -296,33 +301,50 @@ func createCertsTemplate(deps service.ServiceDependencies, flags *service.Servic
 	opts := struct {
 		ClusterID  string
 		CommonName string
+		IPSans     string
 		CertPath   string
 		KeyPath    string
 		CAPath     string
 	}{
 		ClusterID:  clusterID,
 		CommonName: hostname,
+		IPSans:     strings.Join([]string{config.ClusterIP, config.PrivateHostIP}, ","),
 		CertPath:   certsCertPath,
 		KeyPath:    certsKeyPath,
 		CAPath:     certsCAPath,
 	}
-	changed, err := templates.Render(certsTemplateTemplate, certsTemplatesPath, opts, templateFileMode)
+	setDelims := func(t *template.Template) {
+		t.Delims("[[", "]]")
+	}
+	changed, err := templates.Render(certsTemplateTemplate, certsTemplatesPath, opts, templateFileMode, setDelims)
 	return changed, maskAny(err)
 }
 
 // createCertsService creates the etcd-certs service.
 func createCertsService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", certsServicePath)
+	clusterID, err := readClusterID()
+	if err != nil {
+		return false, maskAny(err)
+	}
 	opts := struct {
 		ConsulAddress      string
+		JobID              string
 		TemplatePath       string
 		TemplateOutputPath string
 		ServiceName        string
+		TokenTemplate      string
+		TokenPolicy        string
+		TokenRole          string
 	}{
 		ConsulAddress:      flags.Network.ClusterIP + ":8500",
+		JobID:              fmt.Sprintf("ca-%s-pki-etcd", clusterID),
 		TemplatePath:       certsTemplatesPath,
 		TemplateOutputPath: certsTemplatesOutputPath,
 		ServiceName:        serviceName, // Note this is the name of the ETCD service itself.
+		TokenTemplate:      `{ "vault": { "token": "{{.Token}}" }}`,
+		TokenPolicy:        path.Join("ca", clusterID, "pki/etcd/member"),
+		TokenRole:          fmt.Sprintf("etcd-%s", clusterID),
 	}
 	changed, err := templates.Render(certsServiceTemplate, certsServicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
@@ -354,12 +376,14 @@ func createEtcd2Conf(deps service.ServiceDependencies, cfg etcdConfig) (bool, er
 			"Environment=ETCD_PEER_CERT_FILE="+certsCertPath,
 			"Environment=ETCD_PEER_KEY_FILE="+certsKeyPath,
 			"Environment=ETCD_PEER_TRUSTED_CA_FILE="+certsCAPath,
+			"Environment=ETCD_PEER_CLIENT_CERT_AUTH=true",
 		)
 		if cfg.SecureClients {
 			lines = append(lines,
 				"Environment=ETCD_CERT_FILE="+certsCertPath,
 				"Environment=ETCD_KEY_FILE="+certsKeyPath,
 				"Environment=ETCD_TRUSTED_CA_FILE="+certsCAPath,
+				"Environment=ETCD_CLIENT_CERT_AUTH=true",
 			)
 		}
 	} else {

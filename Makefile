@@ -90,7 +90,6 @@ templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)
 		-v $(ROOTDIR)/certdump/:/usr/code \
 		-e GOOS=$(GOOS) \
 		-e GOARCH=$(GOARCH) \
-		-e CGO_ENABLED=0 \
 		-w /usr/code/ \
 		golang:1.7.4 \
 		go build -o /usr/code/certdump 

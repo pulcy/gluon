@@ -29,9 +29,11 @@ var (
 	maskAny = errgo.MaskFunc(errgo.Any)
 )
 
+type TemplateConfigurator func(*template.Template)
+
 // Render updates the given destinationPath according to the given template and options.
 // Returns true if the file was created or changed, false if nothing has changed.
-func Render(templateName, destinationPath string, options interface{}, destinationFileMode os.FileMode) (bool, error) {
+func Render(templateName, destinationPath string, options interface{}, destinationFileMode os.FileMode, config ...TemplateConfigurator) (bool, error) {
 	asset, err := Asset(templateName)
 	if err != nil {
 		return false, maskAny(err)
@@ -45,6 +47,9 @@ func Render(templateName, destinationPath string, options interface{}, destinati
 		"quote":  strconv.Quote,
 	}
 	tmpl.Funcs(funcMap)
+	for _, c := range config {
+		c(tmpl)
+	}
 	_, err = tmpl.Parse(string(asset))
 	if err != nil {
 		return false, maskAny(err)
