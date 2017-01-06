@@ -92,6 +92,9 @@ func (t *etcdService) Setup(deps service.ServiceDependencies, flags *service.Ser
 	if err := createEtcdUserAndPath(deps); err != nil {
 		return maskAny(err)
 	}
+	if err := addCoreToEtcdGroup(deps, flags); err != nil {
+		return maskAny(err)
+	}
 
 	var certsTemplateChanged, certsServiceChanged bool
 	if flags.Etcd.UseVaultCA {
@@ -175,6 +178,18 @@ func (t *etcdService) Setup(deps service.ServiceDependencies, flags *service.Ser
 		}
 	}
 
+	return nil
+}
+
+func addCoreToEtcdGroup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
+	for _, g := range []string{"etcd"} {
+		cmd := exec.Command("gpasswd", "-a", "core", g)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Println(string(out))
+			return maskAny(err)
+		}
+	}
 	return nil
 }
 
@@ -408,6 +423,7 @@ func createEtcdEnvironment(deps service.ServiceDependencies, cfg etcdConfig) (bo
 
 	kv := []util.KeyValuePair{
 		util.KeyValuePair{Key: "ETCD_ENDPOINTS", Value: cfg.Endpoints},
+		util.KeyValuePair{Key: "ETCDCTL_ENDPOINT", Value: cfg.Endpoints},
 		util.KeyValuePair{Key: "ETCDCTL_ENDPOINTS", Value: cfg.Endpoints},
 		util.KeyValuePair{Key: "ETCD_HOST", Value: cfg.Host},
 		util.KeyValuePair{Key: "ETCD_PORT", Value: cfg.Port},
@@ -419,6 +435,14 @@ func createEtcdEnvironment(deps service.ServiceDependencies, cfg etcdConfig) (bo
 			util.KeyValuePair{Key: "ETCD_CERT_FILE", Value: certsCertPath},
 			util.KeyValuePair{Key: "ETCD_KEY_FILE", Value: certsKeyPath},
 			util.KeyValuePair{Key: "ETCD_TRUSTED_CA_FILE", Value: certsCAPath},
+			// etcdctl 2
+			util.KeyValuePair{Key: "ETCDCTL_CERT_FILE", Value: certsCertPath},
+			util.KeyValuePair{Key: "ETCDCTL_KEY_FILE", Value: certsKeyPath},
+			util.KeyValuePair{Key: "ETCDCTL_CA_FILE", Value: certsCAPath},
+			// etcdctl 3
+			util.KeyValuePair{Key: "ETCDCTL_CERT", Value: certsCertPath},
+			util.KeyValuePair{Key: "ETCDCTL_KEY", Value: certsKeyPath},
+			util.KeyValuePair{Key: "ETCDCTL_CACERT", Value: certsCAPath},
 		)
 	}
 
