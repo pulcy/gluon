@@ -56,6 +56,7 @@ var (
 )
 
 func init() {
+	LoadEnv()
 	cmdSetup.Flags().BoolVar(&setupFlags.Force, "force", false, "Restart services, even if nothing has changed")
 	// Gluon
 	cmdSetup.Flags().StringVar(&setupFlags.GluonImage, "gluon-image", "", "Gluon docker image name")
@@ -79,6 +80,8 @@ func init() {
 	cmdSetup.Flags().IntVar(&setupFlags.Fleet.TokenLimit, "fleet-token-limit", defaultFleetTokenLimit, "token_limit option for fleet")
 	// ETCD
 	cmdSetup.Flags().StringVar(&setupFlags.Etcd.ClusterState, "etcd-cluster-state", "", "State of the ETCD cluster new|existing")
+	cmdSetup.Flags().BoolVar(&setupFlags.Etcd.UseVaultCA, "etcd-use-vault-ca", defaultEtcdUseVaultCA(), "If set, use vault to create peer (and optional client) TLS certificates")
+	cmdSetup.Flags().BoolVar(&setupFlags.Etcd.SecureClients, "etcd-secure-clients", defaultEtcdSecureClients(), "If set, force clients to connect over TLS")
 	// Weave
 	cmdSetup.Flags().StringVar(&setupFlags.Weave.Seed, "weave-seed", "", "SEED of the weave network")
 	cmdSetup.Flags().StringVar(&setupFlags.Weave.Hostname, "weave-hostname", defaultWeaveHostname, "DNS name for exposed host")

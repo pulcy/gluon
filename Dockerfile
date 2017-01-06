@@ -9,6 +9,8 @@ COPY .build/rkt/stage1-coreos.aci /dist/rkt/
 COPY .build/rkt/scripts/setup-data-dir.sh /dist/rkt/
 COPY .build/weave /dist/
 COPY .build/consul /dist/
+COPY .build/consul-template /dist/
+COPY .build/certdump /dist/
 
 ADD ./copy.sh /
 RUN chmod +x /copy.sh

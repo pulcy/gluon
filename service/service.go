@@ -81,7 +81,9 @@ type ServiceFlags struct {
 
 	// ETCD
 	Etcd struct {
-		ClusterState string
+		ClusterState  string
+		UseVaultCA    bool // If set, use vault to create peer (and optional client) TLS certificates
+		SecureClients bool // If set, force clients to connect over TLS
 	}
 
 	// Fleet

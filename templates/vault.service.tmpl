@@ -17,6 +17,7 @@ ExecStart=/usr/bin/rkt \
     run \
     docker://${IMAGE} \
     --net=gluon \
+    --dns=8.8.8.8 \
     --insecure-options=image \
     --port=80-tcp:0.0.0.0:8200 \
     --port=81-tcp:{{.ClusterIP}}:8201 \
