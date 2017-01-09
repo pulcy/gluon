@@ -16,7 +16,6 @@ package etcd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -56,10 +55,9 @@ const (
 	certsTemplateTemplate    = "templates/" + certsTemplateName + ".tmpl"
 	certsTemplatesPath       = "/opt/certs/" + certsTemplateName
 	certsTemplatesOutputPath = "/opt/certs/etcd.serial"
-	certsCertPath            = "/opt/certs/etcd-cert.pem"
-	certsKeyPath             = "/opt/certs/etcd-key.pem"
-	certsCAPath              = "/opt/certs/etcd-ca.pem"
-	clusterIDPath            = "/etc/pulcy/cluster-id"
+	CertsCertPath            = "/opt/certs/etcd-cert.pem"
+	CertsKeyPath             = "/opt/certs/etcd-key.pem"
+	CertsCAPath              = "/opt/certs/etcd-ca.pem"
 
 	configFileMode   = os.FileMode(0644)
 	serviceFileMode  = os.FileMode(0644)
@@ -245,7 +243,7 @@ func createEtcdConfig(deps service.ServiceDependencies, flags *service.ServiceFl
 	initialCluster := []string{}
 	endpoints := []string{}
 	hosts := []string{}
-	clientPort := 2379
+	clientPort := flags.Etcd.ClientPort
 	result.ClusterState = flags.Etcd.ClusterState
 	if result.ClusterState == "" {
 		result.ClusterState = "new"
@@ -305,7 +303,7 @@ func createCertsTemplate(deps service.ServiceDependencies, flags *service.Servic
 		return false, maskAny(err)
 	}
 	deps.Logger.Info("creating %s", certsTemplatesPath)
-	clusterID, err := readClusterID()
+	clusterID, err := flags.ReadClusterID()
 	if err != nil {
 		return false, maskAny(err)
 	}
@@ -324,9 +322,9 @@ func createCertsTemplate(deps service.ServiceDependencies, flags *service.Servic
 		ClusterID:  clusterID,
 		CommonName: hostname,
 		IPSans:     strings.Join([]string{config.ClusterIP, config.PrivateHostIP}, ","),
-		CertPath:   certsCertPath,
-		KeyPath:    certsKeyPath,
-		CAPath:     certsCAPath,
+		CertPath:   CertsCertPath,
+		KeyPath:    CertsKeyPath,
+		CAPath:     CertsCAPath,
 	}
 	setDelims := func(t *template.Template) {
 		t.Delims("[[", "]]")
@@ -338,7 +336,7 @@ func createCertsTemplate(deps service.ServiceDependencies, flags *service.Servic
 // createCertsService creates the etcd-certs service.
 func createCertsService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", certsServicePath)
-	clusterID, err := readClusterID()
+	clusterID, err := flags.ReadClusterID()
 	if err != nil {
 		return false, maskAny(err)
 	}
@@ -388,16 +386,16 @@ func createEtcd2Conf(deps service.ServiceDependencies, cfg etcdConfig) (bool, er
 	}
 	if cfg.UseVaultCA {
 		lines = append(lines,
-			"Environment=ETCD_PEER_CERT_FILE="+certsCertPath,
-			"Environment=ETCD_PEER_KEY_FILE="+certsKeyPath,
-			"Environment=ETCD_PEER_TRUSTED_CA_FILE="+certsCAPath,
+			"Environment=ETCD_PEER_CERT_FILE="+CertsCertPath,
+			"Environment=ETCD_PEER_KEY_FILE="+CertsKeyPath,
+			"Environment=ETCD_PEER_TRUSTED_CA_FILE="+CertsCAPath,
 			"Environment=ETCD_PEER_CLIENT_CERT_AUTH=true",
 		)
 		if cfg.SecureClients {
 			lines = append(lines,
-				"Environment=ETCD_CERT_FILE="+certsCertPath,
-				"Environment=ETCD_KEY_FILE="+certsKeyPath,
-				"Environment=ETCD_TRUSTED_CA_FILE="+certsCAPath,
+				"Environment=ETCD_CERT_FILE="+CertsCertPath,
+				"Environment=ETCD_KEY_FILE="+CertsKeyPath,
+				"Environment=ETCD_TRUSTED_CA_FILE="+CertsCAPath,
 				"Environment=ETCD_CLIENT_CERT_AUTH=true",
 			)
 		}
@@ -432,28 +430,20 @@ func createEtcdEnvironment(deps service.ServiceDependencies, cfg etcdConfig) (bo
 
 	if cfg.SecureClients {
 		kv = append(kv,
-			util.KeyValuePair{Key: "ETCD_CERT_FILE", Value: certsCertPath},
-			util.KeyValuePair{Key: "ETCD_KEY_FILE", Value: certsKeyPath},
-			util.KeyValuePair{Key: "ETCD_TRUSTED_CA_FILE", Value: certsCAPath},
+			util.KeyValuePair{Key: "ETCD_CERT_FILE", Value: CertsCertPath},
+			util.KeyValuePair{Key: "ETCD_KEY_FILE", Value: CertsKeyPath},
+			util.KeyValuePair{Key: "ETCD_TRUSTED_CA_FILE", Value: CertsCAPath},
 			// etcdctl 2
-			util.KeyValuePair{Key: "ETCDCTL_CERT_FILE", Value: certsCertPath},
-			util.KeyValuePair{Key: "ETCDCTL_KEY_FILE", Value: certsKeyPath},
-			util.KeyValuePair{Key: "ETCDCTL_CA_FILE", Value: certsCAPath},
+			util.KeyValuePair{Key: "ETCDCTL_CERT_FILE", Value: CertsCertPath},
+			util.KeyValuePair{Key: "ETCDCTL_KEY_FILE", Value: CertsKeyPath},
+			util.KeyValuePair{Key: "ETCDCTL_CA_FILE", Value: CertsCAPath},
 			// etcdctl 3
-			util.KeyValuePair{Key: "ETCDCTL_CERT", Value: certsCertPath},
-			util.KeyValuePair{Key: "ETCDCTL_KEY", Value: certsKeyPath},
-			util.KeyValuePair{Key: "ETCDCTL_CACERT", Value: certsCAPath},
+			util.KeyValuePair{Key: "ETCDCTL_CERT", Value: CertsCertPath},
+			util.KeyValuePair{Key: "ETCDCTL_KEY", Value: CertsKeyPath},
+			util.KeyValuePair{Key: "ETCDCTL_CACERT", Value: CertsCAPath},
 		)
 	}
 
 	changed, err := util.AppendEnvironmentFile(environmentPath, kv, configFileMode)
 	return changed, maskAny(err)
-}
-
-func readClusterID() (string, error) {
-	content, err := ioutil.ReadFile(clusterIDPath)
-	if err != nil {
-		return "", maskAny(err)
-	}
-	return strings.TrimSpace(string(content)), nil
 }

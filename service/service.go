@@ -82,11 +82,10 @@ type ServiceFlags struct {
 	}
 
 	// ETCD
-	Etcd struct {
-		ClusterState  string
-		UseVaultCA    bool // If set, use vault to create peer (and optional client) TLS certificates
-		SecureClients bool // If set, force clients to connect over TLS
-	}
+	Etcd Etcd
+
+	// Kubernetes config
+	Kubernetes Kubernetes
 
 	// Fleet
 	Fleet struct {
@@ -147,14 +146,11 @@ func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
 			flags.Fleet.Metadata = strings.Join(lines, ",")
 		}
 	}
-	if flags.Etcd.ClusterState == "" {
-		raw, err := ioutil.ReadFile(etcdClusterStatePath)
-		if err != nil && !os.IsNotExist(err) {
-			return maskAny(err)
-		} else if err == nil {
-			lines := trimLines(strings.Split(string(raw), "\n"))
-			flags.Etcd.ClusterState = strings.TrimSpace(strings.Join(lines, " "))
-		}
+	if err := flags.Etcd.SetupDefaults(log); err != nil {
+		return maskAny(err)
+	}
+	if err := flags.Kubernetes.SetupDefaults(log); err != nil {
+		return maskAny(err)
 	}
 	if flags.Network.PrivateClusterDevice == "" {
 		flags.Network.PrivateClusterDevice = "eth1"
@@ -260,12 +256,15 @@ func (flags *ServiceFlags) Save() (bool, error) {
 			changes++
 		}
 	}
-	if flags.Etcd.ClusterState != "" {
-		if changed, err := updateContent(etcdClusterStatePath, flags.Etcd.ClusterState, 0644); err != nil {
-			return false, maskAny(err)
-		} else if changed {
-			changes++
-		}
+	if changed, err := flags.Etcd.Save(); err != nil {
+		return false, maskAny(err)
+	} else if changed {
+		changes++
+	}
+	if changed, err := flags.Kubernetes.Save(); err != nil {
+		return false, maskAny(err)
+	} else if changed {
+		changes++
 	}
 	if flags.GluonImage != "" {
 		if changed, err := updateContent(gluonImagePath, flags.GluonImage, 0644); err != nil {

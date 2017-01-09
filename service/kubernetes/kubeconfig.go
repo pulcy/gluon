@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	kubeConfigTemplate = "templates/k8s-kubeconfig.tmpl"
+	kubeConfigTemplate = "templates/kubernetes/kubeconfig.tmpl"
 )
 
 // createKubeConfig creates a component specific kubeconfig configuration file.
@@ -51,8 +51,8 @@ func createKubeConfig(deps service.ServiceDependencies, flags *service.ServiceFl
 		ClientKeyPath  string
 	}{
 		Server:         apiServers[0],
-		ContextName:    string(c),
-		UserName:       string(c),
+		ContextName:    c.Name(),
+		UserName:       c.Name(),
 		CAPath:         c.CAPath(),
 		ClientCertPath: c.CertificatePath(),
 		ClientKeyPath:  c.KeyPath(),

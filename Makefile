@@ -25,7 +25,7 @@ ETCDVERSION := v3.0.15
 FLEETVERSION := e6c838b9bdc0184d727eb8c43bd856ecfa4a1519
 FLEETBUILDDIR := $(ROOTDIR)/.build/fleet
 
-RKTVERSION := v1.21.0
+RKTVERSION := v1.22.0
 
 CONSULVERSION := 0.7.2
 CONSULTEMPLATEVERSION := 0.16.0
@@ -84,7 +84,7 @@ $(BIN): $(GOBUILDDIR) $(GOBINDATA) $(SOURCES) templates/templates_bindata.go
 
 # Special rule, because this file is generated
 templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)
-	$(GOBINDATA) -pkg templates -o templates/templates_bindata.go templates/
+	$(GOBINDATA) -pkg templates -o templates/templates_bindata.go templates/...
 
 .build/certdump: certdump/certdump.go 
 	mkdir -p .build

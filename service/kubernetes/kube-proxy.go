@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	kubeProxyServiceTemplate = "templates/k8s-kube-proxy.service.tmpl"
+	kubeProxyServiceTemplate = "templates/kubernetes/kube-proxy.service.tmpl"
 )
 
 // createKubeProxyService creates the file containing the kubernetes Kube-proxy service.

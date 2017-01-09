@@ -2,6 +2,9 @@
 Description=Kubernetes Kubelet
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 
+Requires=rkt-api.service 
+After=rkt-api.service
+
 [Service]
 ExecStart=/usr/bin/kubelet \
   --allow-privileged=true \
@@ -10,11 +13,13 @@ ExecStart=/usr/bin/kubelet \
   --cluster-dns={{.ClusterDNS}} \
   --cluster-domain=cluster.local \
   --container-runtime=rkt \
+  --node-ip={{.NodeIP}} \
   --rkt-path=/usr/bin/rkt \
   --rkt-api-endpoint=localhost:15441 \
   --network-plugin=kubenet \
   --kubeconfig={{.KubeConfigPath}} \
-  --reconcile-cidr=true \
+  --pod-manifest-path=/etc/kubernetes/manifests \
+  --register-schedulable={{.RegisterSchedulable}} \
   --serialize-image-pulls=false \
   --tls-cert-file={{.CertPath}} \
   --tls-private-key-file={{.KeyPath}} \

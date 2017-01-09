@@ -26,8 +26,11 @@ var (
 	maskAny = errgo.MaskFunc(errgo.Any)
 
 	components = map[Component]componentSetup{
-		Component("kubelet"):    createKubeletService,
-		Component("kube-proxy"): createKubeProxyService,
+		// Components that should be installed on all nodes
+		NewServiceComponent("kubelet", false):    createKubeletService,
+		NewServiceComponent("kube-proxy", false): createKubeProxyService,
+		// Components that should be installed on master nodes only
+		NewManifestComponent("kube-apiserver", true): createKubeApiServerManifest,
 	}
 )
 
@@ -36,6 +39,7 @@ const (
 	clusterDNS    = "10.32.0.10"
 
 	configFileMode   = os.FileMode(0644)
+	manifestFileMode = os.FileMode(0644)
 	serviceFileMode  = os.FileMode(0644)
 	templateFileMode = os.FileMode(0400)
 )
@@ -55,8 +59,12 @@ func (t *k8sService) Name() string {
 func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
 	runKubernetes := true
 	for c, setup := range components {
+		installComponent := runKubernetes
+		if c.MasterOnly() && !flags.HasRole("core") {
+			installComponent = false
+		}
 		var certsTemplateChanged, certsServiceChanged bool
-		if runKubernetes {
+		if installComponent {
 			// Create k8s-*-certs.service and template file
 			var err error
 			if certsTemplateChanged, err = createCertsTemplate(deps, flags, c); err != nil {
@@ -82,38 +90,43 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 				}
 			}
 
-			// Create component service
+			// Create component service / manifest
 			serviceChanged, err := setup(deps, flags, c)
 			if err != nil {
 				return maskAny(err)
 			}
 
-			isActive, err = deps.Systemd.IsActive(c.ServiceName())
-			if err != nil {
-				return maskAny(err)
-			}
+			if !c.IsManifest() {
+				isActive, err = deps.Systemd.IsActive(c.ServiceName())
+				if err != nil {
+					return maskAny(err)
+				}
 
-			if !isActive || serviceChanged || certsTemplateChanged || certsServiceChanged || flags.Force {
-				if err := deps.Systemd.Enable(c.ServiceName()); err != nil {
-					return maskAny(err)
-				}
-				if err := deps.Systemd.Reload(); err != nil {
-					return maskAny(err)
-				}
-				if err := deps.Systemd.Restart(c.ServiceName()); err != nil {
-					return maskAny(err)
+				if !isActive || serviceChanged || certsTemplateChanged || certsServiceChanged || flags.Force {
+					if err := deps.Systemd.Enable(c.ServiceName()); err != nil {
+						return maskAny(err)
+					}
+					if err := deps.Systemd.Reload(); err != nil {
+						return maskAny(err)
+					}
+					if err := deps.Systemd.Restart(c.ServiceName()); err != nil {
+						return maskAny(err)
+					}
 				}
 			}
-
 		} else {
 			// Component service no longer needed, remove it
-			if exists, err := deps.Systemd.Exists(c.ServiceName()); err != nil {
-				return maskAny(err)
-			} else if exists {
-				if err := deps.Systemd.Disable(c.ServiceName()); err != nil {
-					deps.Logger.Errorf("Disabling %s failed: %#v", c.ServiceName(), err)
-				} else {
-					os.Remove(c.ServicePath())
+			if c.IsManifest() {
+				os.Remove(c.ManifestPath())
+			} else {
+				if exists, err := deps.Systemd.Exists(c.ServiceName()); err != nil {
+					return maskAny(err)
+				} else if exists {
+					if err := deps.Systemd.Disable(c.ServiceName()); err != nil {
+						deps.Logger.Errorf("Disabling %s failed: %#v", c.ServiceName(), err)
+					} else {
+						os.Remove(c.ServicePath())
+					}
 				}
 			}
 
@@ -134,14 +147,14 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 	return nil
 }
 
-// templateName returns the name of the template from which the given file is created.
-func _templateName(fileName string) string {
-	return "templates/" + fileName + ".tmpl"
-}
-
 // servicePath returns the full path of the file containing the service with given name.
 func servicePath(serviceName string) string {
 	return "/etc/systemd/system/" + serviceName
+}
+
+// manifestPath returns the full path of the file containing the manifest with given name.
+func manifestPath(manifestName string) string {
+	return "/etc/kubernetes/manifests/" + manifestName
 }
 
 // certificatePath returns the full path of the file with given name.

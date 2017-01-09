@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	certsServiceTemplate  = "templates/k8s-certs.service.tmpl"
-	certsTemplateTemplate = "templates/k8s-certs.template.tmpl"
+	certsServiceTemplate  = "templates/kubernetes/certs.service.tmpl"
+	certsTemplateTemplate = "templates/kubernetes/certs.template.tmpl"
 )
 
 // createCertsTemplate creates the consul-template used by the k8s-certs service.
@@ -55,8 +55,8 @@ func createCertsTemplate(deps service.ServiceDependencies, flags *service.Servic
 		CAPath     string
 	}{
 		ClusterID:  clusterID,
-		CommonName: string(c),
-		Component:  string(c),
+		CommonName: c.Name(),
+		Component:  c.Name(),
 		IPSans:     strings.Join([]string{flags.Network.ClusterIP, privateHostIP}, ","),
 		CertPath:   c.CertificatePath(),
 		KeyPath:    c.KeyPath(),
@@ -83,7 +83,7 @@ func createCertsService(deps service.ServiceDependencies, flags *service.Service
 		TemplateOutputPath string
 		ConfigFileName     string
 		Component          string
-		ServiceName        string
+		RestartCommand     string
 		TokenTemplate      string
 		TokenPolicy        string
 		TokenRole          string
@@ -93,10 +93,10 @@ func createCertsService(deps service.ServiceDependencies, flags *service.Service
 		TemplatePath:       c.CertificatesTemplatePath(),
 		TemplateOutputPath: c.CertificatesTemplateOutputPath(),
 		ConfigFileName:     c.CertificatesConfigName(),
-		Component:          string(c),
-		ServiceName:        c.ServiceName(),
+		Component:          c.Name(),
+		RestartCommand:     c.RestartCommand(),
 		TokenTemplate:      `{ "vault": { "token": "{{.Token}}" }}`,
-		TokenPolicy:        path.Join("ca", clusterID, "pki/k8s", string(c)),
+		TokenPolicy:        path.Join("ca", clusterID, "pki/k8s", c.Name()),
 		TokenRole:          fmt.Sprintf("k8s-%s-%s", clusterID, c),
 	}
 	changed, err := templates.Render(certsServiceTemplate, c.CertificatesServicePath(), opts, serviceFileMode)

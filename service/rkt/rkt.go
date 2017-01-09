@@ -30,7 +30,7 @@ import (
 
 var (
 	tmpFilesConfPath   = "/usr/lib/tmpfiles.d/rkt.conf"
-	tmpFilesConfSource = "templates/rkt.conf"
+	tmpFilesConfSource = "templates/rkt/rkt.conf"
 
 	apiServiceName      = "rkt-api.service"
 	apiSocketName       = "rkt-api.socket"
@@ -40,7 +40,7 @@ var (
 	metadataSocketName  = "rkt-metadata.socket"
 
 	networkConfPath     = "/etc/rkt/net.d/10-gluon.conf"
-	networkConfTemplate = "templates/rkt-net-gluon.conf.tmpl"
+	networkConfTemplate = "templates/rkt/rkt-net-gluon.conf.tmpl"
 
 	privateRegistryAuthConfPath = "/etc/rkt/auth.d/gluon-private-registry.json"
 
@@ -161,7 +161,7 @@ func createService(serviceName string, deps service.ServiceDependencies, flags *
 }
 
 func serviceTemplate(serviceName string) string {
-	return fmt.Sprintf("templates/%s.tmpl", serviceName)
+	return fmt.Sprintf("templates/rkt/%s.tmpl", serviceName)
 }
 
 func servicePath(serviceName string) string {

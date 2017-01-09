@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	kubeletServiceTemplate = "templates/k8s-kubelet.service.tmpl"
+	kubeletServiceTemplate = "templates/kubernetes/kubelet.service.tmpl"
 )
 
 // createKubeletService creates the file containing the kubernetes Kubelet service.
@@ -44,17 +44,21 @@ func createKubeletService(deps service.ServiceDependencies, flags *service.Servi
 		}
 	}
 	opts := struct {
-		APIServers     string
-		ClusterDNS     string
-		KubeConfigPath string
-		CertPath       string
-		KeyPath        string
+		APIServers          string
+		ClusterDNS          string
+		KubeConfigPath      string
+		RegisterSchedulable bool
+		NodeIP              string
+		CertPath            string
+		KeyPath             string
 	}{
-		APIServers:     strings.Join(apiServers, ","),
-		ClusterDNS:     clusterDNS,
-		KubeConfigPath: c.KubeConfigPath(),
-		CertPath:       c.CertificatePath(),
-		KeyPath:        c.KeyPath(),
+		APIServers:          strings.Join(apiServers, ","),
+		ClusterDNS:          clusterDNS,
+		KubeConfigPath:      c.KubeConfigPath(),
+		RegisterSchedulable: !flags.HasRole("core"),
+		NodeIP:              flags.Network.ClusterIP,
+		CertPath:            c.CertificatePath(),
+		KeyPath:             c.KeyPath(),
 	}
 	changed, err := templates.Render(kubeletServiceTemplate, c.ServicePath(), opts, serviceFileMode)
 	return changed || configChanged, maskAny(err)
