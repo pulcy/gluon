@@ -31,21 +31,21 @@ var (
 )
 
 const (
-	v4membersTemplate = "templates/ip4tables.members.sh.tmpl"
+	v4membersTemplate = "templates/iptables/ip4tables.members.sh.tmpl"
 	v4membersPath     = "/home/core/ip4tables.members.sh"
-	v4rulesTemplate   = "templates/ip4tables.rules.tmpl"
+	v4rulesTemplate   = "templates/iptables/ip4tables.rules.tmpl"
 	v4rulesPath       = "/home/core/ip4tables.rules"
-	v4serviceTemplate = "templates/ip4tables.service.tmpl"
+	v4serviceTemplate = "templates/iptables/ip4tables.service.tmpl"
 	v4serviceName     = "ip4tables.service"
 	v4servicePath     = "/etc/systemd/system/" + v4serviceName
 
-	v6rulesTemplate   = "templates/ip6tables.rules.tmpl"
+	v6rulesTemplate   = "templates/iptables/ip6tables.rules.tmpl"
 	v6rulesPath       = "/home/core/ip6tables.rules"
-	v6serviceTemplate = "templates/ip6tables.service.tmpl"
+	v6serviceTemplate = "templates/iptables/ip6tables.service.tmpl"
 	v6serviceName     = "ip6tables.service"
 	v6servicePath     = "/etc/systemd/system/" + v6serviceName
 
-	netfilterTemplate    = "templates/netfilter.service.tmpl"
+	netfilterTemplate    = "templates/iptables/netfilter.service.tmpl"
 	netfilterServiceName = "netfilter.service"
 	netfilterServicePath = "/etc/systemd/system/" + netfilterServiceName
 

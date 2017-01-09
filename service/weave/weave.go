@@ -27,7 +27,7 @@ import (
 
 var (
 	weaveServiceName = "weave.service"
-	weaveServiceTmpl = "templates/" + weaveServiceName + ".tmpl"
+	weaveServiceTmpl = "templates/weave/" + weaveServiceName + ".tmpl"
 	weaveServicePath = "/etc/systemd/system/" + weaveServiceName
 
 	serviceFileMode = os.FileMode(0644)

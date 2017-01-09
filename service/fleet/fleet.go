@@ -22,6 +22,7 @@ import (
 	"github.com/juju/errgo"
 
 	"github.com/pulcy/gluon/service"
+	"github.com/pulcy/gluon/service/etcd"
 	"github.com/pulcy/gluon/templates"
 	"github.com/pulcy/gluon/util"
 )
@@ -31,16 +32,15 @@ var (
 )
 
 const (
-	confTemplate      = "templates/99-fleet.conf.tmpl"
 	confName          = "99-fleet.conf"
 	confPath          = "/etc/systemd/system/" + serviceName + ".d/" + confName
 	serviceName       = "fleet.service"
-	serviceTemplate   = "templates/fleet.service.tmpl"
+	serviceTemplate   = "templates/fleet/fleet.service.tmpl"
 	servicePath       = "/etc/systemd/system/" + serviceName
 	socketName        = "fleet.socket"
 	socketPath        = "/etc/systemd/system/fleet.socket"
-	socketTemplate    = "templates/fleet.socket.tmpl"
-	checkScriptSource = "templates/fleet-check.sh"
+	socketTemplate    = "templates/fleet/fleet.socket.tmpl"
+	checkScriptSource = "templates/fleet/fleet-check.sh"
 	checkScriptPath   = "/home/core/bin/fleet-check.sh"
 
 	serviceFileMode = os.FileMode(0644)
@@ -133,7 +133,7 @@ func createFleetConf(deps service.ServiceDependencies, flags *service.ServiceFla
 	etcdServers := []string{}
 	for _, cm := range members {
 		if !cm.EtcdProxy {
-			etcdServers = append(etcdServers, fmt.Sprintf("http://%s:2379", cm.ClusterIP))
+			etcdServers = append(etcdServers, flags.Etcd.CreateEndpoint(cm.ClusterIP))
 		}
 	}
 
@@ -147,6 +147,13 @@ func createFleetConf(deps service.ServiceDependencies, flags *service.ServiceFla
 		fmt.Sprintf("Environment=FLEET_DISABLE_WATCHES=%v", flags.Fleet.DisableWatches),
 		fmt.Sprintf("Environment=FLEET_ENGINE_RECONCILE_INTERVAL=%d", flags.Fleet.EngineReconcileInterval),
 		fmt.Sprintf("Environment=FLEET_TOKEN_LIMIT=%d", flags.Fleet.TokenLimit),
+	}
+	if flags.Etcd.SecureClients {
+		lines = append(lines,
+			fmt.Sprintf("Environment=FLEET_ETCD_CERTFILE=%s", etcd.CertsCertPath),
+			fmt.Sprintf("Environment=FLEET_ETCD_KEYFILE=%s", etcd.CertsKeyPath),
+			fmt.Sprintf("Environment=FLEET_ETCD_CAFILE=%s", etcd.CertsCAPath),
+		)
 	}
 
 	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), configFileMode)

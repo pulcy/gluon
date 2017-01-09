@@ -29,7 +29,7 @@ var (
 )
 
 const (
-	mountTemplate = "templates/usr-bin.mount.tmpl"
+	mountTemplate = "templates/binaries/usr-bin.mount.tmpl"
 	mountName     = "usr-bin.mount"
 	mountPath     = "/etc/systemd/system/" + mountName
 	mountPoint    = "/usr/bin"

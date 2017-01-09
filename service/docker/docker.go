@@ -32,12 +32,12 @@ var (
 )
 
 const (
-	serviceTemplate = "templates/docker.service.tmpl"
+	serviceTemplate = "templates/docker/docker.service.tmpl"
 	ServiceName     = "docker.service"
 	servicePath     = "/etc/systemd/system/" + ServiceName
 	rootConfigPath1 = "/root/.docker/config"
 	rootConfigPath2 = "/root/.docker/config.json"
-	cleanupSource   = "templates/docker-cleanup.sh"
+	cleanupSource   = "templates/docker/docker-cleanup.sh"
 	cleanupPath     = "/home/core/bin/docker-cleanup.sh"
 
 	scriptFileMode  = os.FileMode(0755)

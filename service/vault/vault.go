@@ -25,7 +25,7 @@ import (
 
 var (
 	vaultServiceName = "vault.service"
-	vaultServiceTmpl = "templates/" + vaultServiceName + ".tmpl"
+	vaultServiceTmpl = "templates/vault/" + vaultServiceName + ".tmpl"
 	vaultServicePath = "/etc/systemd/system/" + vaultServiceName
 
 	serviceFileMode = os.FileMode(0644)

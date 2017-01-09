@@ -27,7 +27,7 @@ import (
 
 var (
 	consulServiceName = "consul.service"
-	consulServiceTmpl = "templates/" + consulServiceName + ".tmpl"
+	consulServiceTmpl = "templates/consul/" + consulServiceName + ".tmpl"
 	consulServicePath = "/etc/systemd/system/" + consulServiceName
 
 	serviceFileMode = os.FileMode(0644)

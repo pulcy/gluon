@@ -28,7 +28,7 @@ var (
 )
 
 const (
-	serviceTemplate = "templates/gluon.service.tmpl"
+	serviceTemplate = "templates/gluon/gluon.service.tmpl"
 	serviceName     = "gluon.service"
 	servicePath     = "/etc/systemd/system/" + serviceName
 	gluonPath       = "/home/core/bin/gluon"

@@ -135,7 +135,7 @@ rkt: .build/rkt
 
 .build/rkt: .build/rkt.tar.gz
 	cd .build && tar zxf rkt.tar.gz && mv rkt-${RKTVERSION} rkt && touch ./rkt/rkt
-	cp .build/rkt/init/systemd/tmpfiles.d/rkt.conf templates/
+	cp .build/rkt/init/systemd/tmpfiles.d/rkt.conf templates/rkt/
 
 .build/rkt.tar.gz:
 	mkdir -p .build

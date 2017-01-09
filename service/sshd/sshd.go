@@ -28,7 +28,7 @@ var (
 )
 
 const (
-	confTemplate = "templates/sshd_config.tmpl"
+	confTemplate = "templates/sshd/sshd_config.tmpl"
 	confName     = "sshd_config"
 	confPath     = "/etc/ssh/" + confName
 	ServiceName  = "ssh.service"

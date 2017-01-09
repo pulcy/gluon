@@ -37,6 +37,8 @@ ExecStart=/usr/bin/consul-template \
 Restart=always
 RestartSec=10s
 TimeoutStartSec=0
+TimeoutStopSec=30s
+KillSignal=SIGINT
 
 [Install]
 WantedBy=multi-user.target

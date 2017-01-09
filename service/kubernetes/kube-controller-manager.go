@@ -15,62 +15,49 @@
 package kubernetes
 
 import (
+	"fmt"
 	"path"
-	"strings"
 
 	"github.com/pulcy/gluon/service"
-	"github.com/pulcy/gluon/service/etcd"
 	"github.com/pulcy/gluon/templates"
 	"github.com/pulcy/gluon/util"
 )
 
 const (
-	kubeApiServiceTemplate = "templates/kubernetes/kube-apiserver.yaml.tmpl"
+	kubeControllerManagerTemplate = "templates/kubernetes/kube-controller-manager.yaml.tmpl"
 )
 
-// createKubeApiServerManifest creates the manifest containing the kubernetes Kube-apiserver pod.
-func createKubeApiServerManifest(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) (bool, error) {
+// createKubeControllerManagerManifest creates the manifest containing the kubernetes Kube-controller-manager pod.
+func createKubeControllerManagerManifest(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) (bool, error) {
 	if err := util.EnsureDirectoryOf(c.ManifestPath(), 0755); err != nil {
 		return false, maskAny(err)
 	}
 	deps.Logger.Info("creating %s", c.ManifestPath())
+	var apiServers []string
 	members, err := flags.GetClusterMembers(deps.Logger)
 	if err != nil {
 		return false, maskAny(err)
 	}
-	var etcdEndpoints []string
 	for _, m := range members {
 		if !m.EtcdProxy {
-			etcdEndpoints = append(etcdEndpoints, flags.Etcd.CreateEndpoint(m.ClusterIP))
+			apiServers = append(apiServers, fmt.Sprintf("https://%s:%d", m.ClusterIP, flags.Kubernetes.APIServerPort))
 		}
 	}
 	opts := struct {
 		Image                 string
-		EtcdEndpoints         string
-		EtcdCAPath            string
-		EtcdCertPath          string
-		EtcdKeyPath           string
+		Master                string
 		ServiceClusterIPRange string
-		SecurePort            int
-		AdvertiseAddress      string
-		CertPath              string
 		KeyPath               string
 		CAPath                string
 		CertificatesFolder    string
 	}{
 		Image:                 flags.Kubernetes.APIServerImage,
-		EtcdEndpoints:         strings.Join(etcdEndpoints, ","),
-		EtcdCAPath:            etcd.CertsCAPath,
-		EtcdCertPath:          etcd.CertsCertPath,
-		EtcdKeyPath:           etcd.CertsKeyPath,
+		Master:                apiServers[0],
 		ServiceClusterIPRange: flags.Kubernetes.ServiceClusterIPRange,
-		SecurePort:            flags.Kubernetes.APIServerPort,
-		AdvertiseAddress:      flags.Network.ClusterIP,
-		CertPath:              c.CertificatePath(),
 		KeyPath:               c.KeyPath(),
 		CAPath:                c.CAPath(),
 		CertificatesFolder:    path.Dir(c.CertificatePath()),
 	}
-	changed, err := templates.Render(kubeApiServiceTemplate, c.ManifestPath(), opts, manifestFileMode)
+	changed, err := templates.Render(kubeControllerManagerTemplate, c.ManifestPath(), opts, manifestFileMode)
 	return changed, maskAny(err)
 }

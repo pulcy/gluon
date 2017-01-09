@@ -28,7 +28,7 @@ var (
 )
 
 const (
-	bashrcTemplate = "templates/bashrc.tmpl"
+	bashrcTemplate = "templates/env/bashrc.tmpl"
 	bashrcPath     = "/home/core/.bashrc"
 
 	fileMode = os.FileMode(0644)

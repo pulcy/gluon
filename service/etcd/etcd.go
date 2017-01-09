@@ -36,23 +36,22 @@ var (
 )
 
 const (
-	confTemplate             = "templates/99-etcd2.conf.tmpl"
 	confName                 = "99-etcd2.conf"
 	confDir                  = "/etc/systemd/system/" + serviceName + ".d/"
 	confPath                 = confDir + confName
 	serviceName              = "etcd2.service"
-	serviceTemplate          = "templates/etcd.service.tmpl"
+	serviceTemplate          = "templates/etcd/etcd.service.tmpl"
 	servicePath              = "/etc/systemd/system/" + serviceName
 	environmentPath          = "/etc/environment"
 	etcdUser                 = "etcd"
 	dataPath                 = "/var/lib/etcd2"
-	initTemplate             = "templates/etcd-init.sh.tmpl"
+	initTemplate             = "templates/etcd/etcd-init.sh.tmpl"
 	initPath                 = "/root/etcd-init.sh"
 	certsServiceName         = "etcd-certs.service"
-	certsServiceTemplate     = "templates/" + certsServiceName + ".tmpl"
+	certsServiceTemplate     = "templates/etcd/" + certsServiceName + ".tmpl"
 	certsServicePath         = "/etc/systemd/system/" + certsServiceName
 	certsTemplateName        = "etcd-certs.template"
-	certsTemplateTemplate    = "templates/" + certsTemplateName + ".tmpl"
+	certsTemplateTemplate    = "templates/etcd/" + certsTemplateName + ".tmpl"
 	certsTemplatesPath       = "/opt/certs/" + certsTemplateName
 	certsTemplatesOutputPath = "/opt/certs/etcd.serial"
 	CertsCertPath            = "/opt/certs/etcd-cert.pem"

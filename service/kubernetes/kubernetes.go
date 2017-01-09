@@ -30,7 +30,8 @@ var (
 		NewServiceComponent("kubelet", false):    createKubeletService,
 		NewServiceComponent("kube-proxy", false): createKubeProxyService,
 		// Components that should be installed on master nodes only
-		NewManifestComponent("kube-apiserver", true): createKubeApiServerManifest,
+		NewManifestComponent("kube-apiserver", true):          createKubeApiServerManifest,
+		NewManifestComponent("kube-controller-manager", true): createKubeControllerManagerManifest,
 	}
 )
 
