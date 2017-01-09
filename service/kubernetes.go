@@ -19,12 +19,16 @@ import "github.com/op/go-logging"
 // K8s config
 type Kubernetes struct {
 	APIServerImage        string
+	APIServerPort         int
 	ServiceClusterIPRange string
+	ClusterDNS            string
 }
 
 const (
 	defaultAPIServerImage        = "pulcy/k8s-master:0.1.2"
 	defaultServiceClusterIPRange = "10.71.0.0/16"
+	defaultAPIServerPort         = 6443
+	defaultClusterDNS            = "10.32.0.10"
 )
 
 // SetupDefaults fills given flags with default value
@@ -32,8 +36,14 @@ func (flags *Kubernetes) SetupDefaults(log *logging.Logger) error {
 	if flags.APIServerImage == "" {
 		flags.APIServerImage = defaultAPIServerImage
 	}
+	if flags.APIServerPort == 0 {
+		flags.APIServerPort = defaultAPIServerPort
+	}
 	if flags.ServiceClusterIPRange == "" {
 		flags.ServiceClusterIPRange = defaultServiceClusterIPRange
+	}
+	if flags.ClusterDNS == "" {
+		flags.ClusterDNS = defaultClusterDNS
 	}
 	return nil
 }

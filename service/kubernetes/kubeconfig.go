@@ -39,7 +39,7 @@ func createKubeConfig(deps service.ServiceDependencies, flags *service.ServiceFl
 	var apiServers []string
 	for _, m := range members {
 		if !m.EtcdProxy {
-			apiServers = append(apiServers, fmt.Sprintf("https://%s:%d", m.ClusterIP, apiServerPort))
+			apiServers = append(apiServers, fmt.Sprintf("https://%s:%d", m.ClusterIP, flags.Kubernetes.APIServerPort))
 		}
 	}
 	opts := struct {

@@ -40,7 +40,7 @@ func createKubeletService(deps service.ServiceDependencies, flags *service.Servi
 	var apiServers []string
 	for _, m := range members {
 		if !m.EtcdProxy {
-			apiServers = append(apiServers, fmt.Sprintf("https://%s:%d", m.ClusterIP, apiServerPort))
+			apiServers = append(apiServers, fmt.Sprintf("https://%s:%d", m.ClusterIP, flags.Kubernetes.APIServerPort))
 		}
 	}
 	opts := struct {
@@ -53,7 +53,7 @@ func createKubeletService(deps service.ServiceDependencies, flags *service.Servi
 		KeyPath             string
 	}{
 		APIServers:          strings.Join(apiServers, ","),
-		ClusterDNS:          clusterDNS,
+		ClusterDNS:          flags.Kubernetes.ClusterDNS,
 		KubeConfigPath:      c.KubeConfigPath(),
 		RegisterSchedulable: !flags.HasRole("core"),
 		NodeIP:              flags.Network.ClusterIP,

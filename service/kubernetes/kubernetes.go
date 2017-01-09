@@ -35,9 +35,6 @@ var (
 )
 
 const (
-	apiServerPort = 6443
-	clusterDNS    = "10.32.0.10"
-
 	configFileMode   = os.FileMode(0644)
 	manifestFileMode = os.FileMode(0644)
 	serviceFileMode  = os.FileMode(0644)

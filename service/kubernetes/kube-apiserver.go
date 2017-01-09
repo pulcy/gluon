@@ -68,7 +68,7 @@ func createKubeApiServerManifest(deps service.ServiceDependencies, flags *servic
 		EtcdCertPath:          etcd.CertsCertPath,
 		EtcdKeyPath:           etcd.CertsKeyPath,
 		ServiceClusterIPRange: flags.Kubernetes.ServiceClusterIPRange,
-		SecurePort:            apiServerPort,
+		SecurePort:            flags.Kubernetes.APIServerPort,
 		AdvertiseAddress:      flags.Network.ClusterIP,
 		CertPath:              c.CertificatePath(),
 		KeyPath:               c.KeyPath(),
