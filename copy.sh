@@ -33,3 +33,6 @@ chmod a+x /destination/overlay/rkt
 
 cp -f /dist/weave* /destination/overlay/
 chmod a+x /destination/overlay/weave*
+
+cp -f /dist/kube* /destination/overlay/
+chmod a+x /destination/overlay/kube*

@@ -1,0 +1,27 @@
+[Unit]
+Description=Kubernetes Kubelet
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+
+[Service]
+ExecStart=/usr/bin/kubelet \
+  --allow-privileged=true \
+  --api-servers={{.APIServers}} \
+  --cloud-provider= \
+  --cluster-dns={{.ClusterDNS}} \
+  --cluster-domain=cluster.local \
+  --container-runtime=rkt \
+  --rkt-path=/usr/bin/rkt \
+  --rkt-api-endpoint=localhost:15441 \
+  --network-plugin=kubenet \
+  --kubeconfig={{.KubeConfigPath}} \
+  --reconcile-cidr=true \
+  --serialize-image-pulls=false \
+  --tls-cert-file={{.CertPath}} \
+  --tls-private-key-file={{.KeyPath}} \
+  --v=2
+
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

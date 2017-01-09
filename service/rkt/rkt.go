@@ -33,6 +33,7 @@ var (
 	tmpFilesConfSource = "templates/rkt.conf"
 
 	apiServiceName      = "rkt-api.service"
+	apiSocketName       = "rkt-api.socket"
 	gcServiceName       = "rkt-gc.service"
 	gcTimerName         = "rkt-gc.timer"
 	metadataServiceName = "rkt-metadata.service"
@@ -78,23 +79,33 @@ func (t *rktService) Setup(deps service.ServiceDependencies, flags *service.Serv
 		return maskAny(err)
 	}
 
-	for _, serviceName := range []string{
+	serviceNames := []string{
 		apiServiceName,
+		apiSocketName,
 		gcServiceName,
 		gcTimerName,
 		metadataSocketName, // Keep this before metadataServiceName
 		metadataServiceName,
-	} {
+	}
+	var serviceChanged []bool
+	anyChanged := false
+	for _, serviceName := range serviceNames {
 		changed, err := createService(serviceName, deps, flags)
 		if err != nil {
 			return maskAny(err)
 		}
-
+		serviceChanged = append(serviceChanged, changed)
+		anyChanged = anyChanged || changed
+	}
+	if anyChanged || flags.Force {
+		if err := deps.Systemd.Reload(); err != nil {
+			return maskAny(err)
+		}
+	}
+	for i, serviceName := range serviceNames {
+		changed := serviceChanged[i]
 		if flags.Force || changed {
 			if err := deps.Systemd.Enable(serviceName); err != nil {
-				return maskAny(err)
-			}
-			if err := deps.Systemd.Reload(); err != nil {
 				return maskAny(err)
 			}
 			if err := deps.Systemd.Restart(serviceName); err != nil {

@@ -15,6 +15,7 @@
 package service
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
@@ -39,6 +40,7 @@ const (
 	privateHostIPPrefix    = "private-host-ip="
 	defaultWeaveIPRange    = "10.32.0.0/12"
 	rolesPath              = "/etc/pulcy/roles"
+	clusterIDPath          = "/etc/pulcy/cluster-id"
 )
 
 type Service interface {
@@ -321,6 +323,29 @@ func (flags *ServiceFlags) GetClusterMembers(log *logging.Logger) ([]ClusterMemb
 
 	flags.clusterMembers = members
 	return members, nil
+}
+
+// ReadClusterID reads the cluster ID from /etc/pulcy/cluster-id
+func (flags *ServiceFlags) ReadClusterID() (string, error) {
+	content, err := ioutil.ReadFile(clusterIDPath)
+	if err != nil {
+		return "", maskAny(err)
+	}
+	return strings.TrimSpace(string(content)), nil
+}
+
+// PrivateHostIP returns the private IPv4 address of the host.
+func (flags *ServiceFlags) PrivateHostIP(log *logging.Logger) (string, error) {
+	members, err := flags.GetClusterMembers(log)
+	if err != nil {
+		return "", maskAny(err)
+	}
+	for _, m := range members {
+		if m.ClusterIP == flags.Network.ClusterIP {
+			return m.PrivateHostIP, nil
+		}
+	}
+	return "", maskAny(fmt.Errorf("No cluster member found for %s", flags.Network.ClusterIP))
 }
 
 // getClusterMembersFromFS returns a list of the private IP
