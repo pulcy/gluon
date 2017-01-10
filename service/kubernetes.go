@@ -14,7 +14,12 @@
 
 package service
 
-import "github.com/op/go-logging"
+import (
+	"os"
+	"strings"
+
+	"github.com/op/go-logging"
+)
 
 // K8s config
 type Kubernetes struct {
@@ -22,6 +27,7 @@ type Kubernetes struct {
 	APIServerPort         int
 	ServiceClusterIPRange string
 	ClusterDNS            string
+	APIDNSName            string
 }
 
 const (
@@ -44,6 +50,21 @@ func (flags *Kubernetes) SetupDefaults(log *logging.Logger) error {
 	}
 	if flags.ClusterDNS == "" {
 		flags.ClusterDNS = defaultClusterDNS
+	}
+	if flags.APIDNSName == "" {
+		hostname, err := os.Hostname()
+		if err != nil {
+			return maskAny(err)
+		}
+		parts := strings.Split(hostname, "-")
+		if len(parts) == 1 {
+			parts = strings.Split(hostname, ".")
+		}
+		if len(parts) > 1 {
+			flags.APIDNSName = strings.Join(parts[1:], ".")
+		} else {
+			flags.APIDNSName = hostname
+		}
 	}
 	return nil
 }

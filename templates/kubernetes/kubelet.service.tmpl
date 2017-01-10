@@ -8,6 +8,7 @@ Requires={{.}}{{end}}
 After={{.}}{{end}}
 
 [Service]
+ExecStartPre=-/usr/bin/pkill -9 kubelet
 ExecStart=/usr/bin/kubelet \
   --allow-privileged=true \
   --api-servers={{.APIServers}} \

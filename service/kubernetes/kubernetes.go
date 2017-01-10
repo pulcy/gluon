@@ -28,12 +28,12 @@ var (
 
 	components = map[Component]componentSetup{
 		// Components that should be installed on all nodes
-		NewServiceComponent("kubelet", false):    createKubeletService,
-		NewServiceComponent("kube-proxy", false): createKubeProxyService,
+		NewServiceComponent("kubelet", false):    componentSetup{createKubeletService, nil},
+		NewServiceComponent("kube-proxy", false): componentSetup{createKubeProxyService, nil},
 		// Components that should be installed on master nodes only
-		NewManifestComponent("kube-apiserver", true):          createKubeApiServerManifest,
-		NewManifestComponent("kube-controller-manager", true): createKubeControllerManagerManifest,
-		NewManifestComponent("kube-scheduler", true):          createKubeSchedulerManifest,
+		NewManifestComponent("kube-apiserver", true):          componentSetup{createKubeApiServerManifest, createKubeApiServerAltNames},
+		NewManifestComponent("kube-controller-manager", true): componentSetup{createKubeControllerManagerManifest, nil},
+		NewManifestComponent("kube-scheduler", true):          componentSetup{createKubeSchedulerManifest, nil},
 	}
 )
 
@@ -44,7 +44,10 @@ const (
 	templateFileMode = os.FileMode(0400)
 )
 
-type componentSetup func(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) (bool, error)
+type componentSetup struct {
+	Setup       func(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) (bool, error)
+	GetAltNames func(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) []string
+}
 
 func NewService() service.Service {
 	return &k8sService{}
@@ -57,8 +60,8 @@ func (t *k8sService) Name() string {
 }
 
 func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
-	runKubernetes := true
-	for c, setup := range components {
+	runKubernetes := flags.Kubernetes.IsEnabled()
+	for c, compSetup := range components {
 		installComponent := runKubernetes
 		if c.MasterOnly() && !flags.HasRole("core") {
 			installComponent = false
@@ -67,7 +70,11 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 		if installComponent {
 			// Create k8s-*-certs.service and template file
 			var err error
-			if certsTemplateChanged, err = createCertsTemplate(deps, flags, c); err != nil {
+			var altNames []string
+			if compSetup.GetAltNames != nil {
+				altNames = compSetup.GetAltNames(deps, flags, c)
+			}
+			if certsTemplateChanged, err = createCertsTemplate(deps, flags, c, altNames); err != nil {
 				return maskAny(err)
 			}
 			if certsServiceChanged, err = createCertsService(deps, flags, c); err != nil {
@@ -91,7 +98,7 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 			}
 
 			// Create component service / manifest
-			serviceChanged, err := setup(deps, flags, c)
+			serviceChanged, err := compSetup.Setup(deps, flags, c)
 			if err != nil {
 				return maskAny(err)
 			}

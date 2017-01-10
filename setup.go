@@ -83,6 +83,8 @@ func init() {
 	cmdSetup.Flags().StringVar(&setupFlags.Etcd.ClusterState, "etcd-cluster-state", "", "State of the ETCD cluster new|existing")
 	cmdSetup.Flags().BoolVar(&setupFlags.Etcd.UseVaultCA, "etcd-use-vault-ca", defaultEtcdUseVaultCA(), "If set, use vault to create peer (and optional client) TLS certificates")
 	cmdSetup.Flags().BoolVar(&setupFlags.Etcd.SecureClients, "etcd-secure-clients", defaultEtcdSecureClients(), "If set, force clients to connect over TLS")
+	// Kubernetes
+	cmdSetup.Flags().StringVar(&setupFlags.Kubernetes.APIDNSName, "k8s-api-dns-name", defaultKubernetesAPIDNSName(), "Alternate name of the Kubernetes API server")
 	// Weave
 	cmdSetup.Flags().StringVar(&setupFlags.Weave.Seed, "weave-seed", "", "SEED of the weave network")
 	cmdSetup.Flags().StringVar(&setupFlags.Weave.Hostname, "weave-hostname", defaultWeaveHostname, "DNS name for exposed host")

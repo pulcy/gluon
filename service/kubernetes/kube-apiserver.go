@@ -80,3 +80,11 @@ func createKubeApiServerManifest(deps service.ServiceDependencies, flags *servic
 	changed, err := templates.Render(kubeApiServiceTemplate, c.ManifestPath(), opts, manifestFileMode)
 	return changed, maskAny(err)
 }
+
+// createKubeApiServerAltNames creates the alternate names to be put in the kube-apiserver TLS certificate.
+func createKubeApiServerAltNames(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) []string {
+	if flags.Kubernetes.APIDNSName == "" {
+		return nil
+	}
+	return []string{flags.Kubernetes.APIDNSName}
+}

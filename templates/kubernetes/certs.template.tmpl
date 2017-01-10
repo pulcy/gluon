@@ -1,4 +1,4 @@
-{{ with secret "ca/[[.ClusterID]]/pki/k8s/issue/[[.Component]]" "common_name=[[.CommonName]]" "ip_sans=[[.IPSans]]" }}
+{{ with secret "ca/[[.ClusterID]]/pki/k8s/issue/[[.Component]]" "common_name=[[.CommonName]]" "ip_sans=[[.IPSans]]" [[.SecretArgs]] }}
 {{ .Data.serial_number }}
 {{ .Data.certificate | plugin "certdump" "[[.CertPath]]" "root"}}
 {{ .Data.private_key | plugin "certdump" "[[.KeyPath]]" "root"}}

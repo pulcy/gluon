@@ -52,7 +52,7 @@ func createKubeletService(deps service.ServiceDependencies, flags *service.Servi
 		APIServers:          strings.Join(apiServers, ","),
 		ClusterDNS:          flags.Kubernetes.ClusterDNS,
 		KubeConfigPath:      c.KubeConfigPath(),
-		RegisterSchedulable: !flags.HasRole("core"),
+		RegisterSchedulable: true, //!flags.HasRole("core"),
 		NodeIP:              flags.Network.ClusterIP,
 		CertPath:            c.CertificatePath(),
 		KeyPath:             c.KeyPath(),

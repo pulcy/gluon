@@ -31,7 +31,7 @@ const (
 )
 
 // createCertsTemplate creates the consul-template used by the k8s-certs service.
-func createCertsTemplate(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) (bool, error) {
+func createCertsTemplate(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component, altNames []string) (bool, error) {
 	certsTemplatesPath := c.CertificatesTemplatePath()
 	if err := util.EnsureDirectoryOf(certsTemplatesPath, 0755); err != nil {
 		return false, maskAny(err)
@@ -50,6 +50,7 @@ func createCertsTemplate(deps service.ServiceDependencies, flags *service.Servic
 		CommonName string
 		Component  string
 		IPSans     string
+		SecretArgs string
 		CertPath   string
 		KeyPath    string
 		CAPath     string
@@ -58,9 +59,13 @@ func createCertsTemplate(deps service.ServiceDependencies, flags *service.Servic
 		CommonName: c.Name(),
 		Component:  c.Name(),
 		IPSans:     strings.Join([]string{flags.Network.ClusterIP, privateHostIP}, ","),
+		SecretArgs: "",
 		CertPath:   c.CertificatePath(),
 		KeyPath:    c.KeyPath(),
 		CAPath:     c.CAPath(),
+	}
+	if len(altNames) > 0 {
+		opts.SecretArgs = fmt.Sprintf(`"alt_names=%s" `, strings.Join(altNames, ","))
 	}
 	setDelims := func(t *template.Template) {
 		t.Delims("[[", "]]")

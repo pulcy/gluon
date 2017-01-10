@@ -106,7 +106,7 @@ func (c Component) CertificatesTemplatePath() string {
 
 // CertificatesTemplateOutputPath returns the full path of the file created by the consul-template template that generates the TLS certificates for the component.
 func (c Component) CertificatesTemplateOutputPath() string {
-	return certificatePath(fmt.Sprintf("/opt/certs/k8s-%s.serial", c))
+	return certificatePath(fmt.Sprintf("/opt/certs/%s.serial", c))
 }
 
 // CertificatesConfigName returns the name config file used by consul-template for the component.
@@ -116,17 +116,17 @@ func (c Component) CertificatesConfigName() string {
 
 // CertificatePath returns the full path of the public key part of the certificate for this component.
 func (c Component) CertificatePath() string {
-	return fmt.Sprintf("/opt/certs/k8s-%s-cert.pem", c)
+	return fmt.Sprintf("/opt/certs/%s-cert.pem", c)
 }
 
 // KeyPath returns the full path of the private key part of the certificate for this component.
 func (c Component) KeyPath() string {
-	return fmt.Sprintf("/opt/certs/k8s-%s-key.pem", c)
+	return fmt.Sprintf("/opt/certs/%s-key.pem", c)
 }
 
 // CAPath returns the full path of the CA certificate for this component.
 func (c Component) CAPath() string {
-	return fmt.Sprintf("/opt/certs/k8s-%s-ca.pem", c)
+	return fmt.Sprintf("/opt/certs/%s-ca.pem", c)
 }
 
 // KubeConfigPath returns the full path of the kubeconfig configuration file for this component.
