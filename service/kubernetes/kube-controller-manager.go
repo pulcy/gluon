@@ -49,7 +49,7 @@ func createKubeControllerManagerManifest(deps service.ServiceDependencies, flags
 		CAPath                string
 		CertificatesFolder    string
 	}{
-		Image:                 flags.Kubernetes.APIServerImage,
+		Image:                 flags.Kubernetes.KubernetesMasterImage,
 		Master:                apiServers[0],
 		KubeConfigPath:        c.KubeConfigPath(),
 		ServiceClusterIPRange: flags.Kubernetes.ServiceClusterIPRange,

@@ -44,8 +44,13 @@ func createKubeApiServerManifest(deps service.ServiceDependencies, flags *servic
 			etcdEndpoints = append(etcdEndpoints, flags.Etcd.CreateEndpoint(m.ClusterIP))
 		}
 	}
+	apiServers, err := getAPIServers(deps, flags)
+	if err != nil {
+		return false, maskAny(err)
+	}
 	opts := struct {
 		Image                 string
+		APIServerCount        int
 		EtcdEndpoints         string
 		EtcdCAPath            string
 		EtcdCertPath          string
@@ -58,7 +63,8 @@ func createKubeApiServerManifest(deps service.ServiceDependencies, flags *servic
 		CAPath                string
 		CertificatesFolder    string
 	}{
-		Image:                 flags.Kubernetes.APIServerImage,
+		Image:                 flags.Kubernetes.KubernetesMasterImage,
+		APIServerCount:        len(apiServers),
 		EtcdEndpoints:         strings.Join(etcdEndpoints, ","),
 		EtcdCAPath:            etcd.CertsCAPath,
 		EtcdCertPath:          etcd.CertsCertPath,

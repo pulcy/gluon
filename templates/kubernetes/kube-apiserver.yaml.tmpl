@@ -10,6 +10,8 @@ spec:
     image: {{.Image}}
     command:
     - /usr/bin/kube-apiserver
+    - --apiserver-count={{.APIServerCount}}
+    - --allow-privileged=true
     - --bind-address=0.0.0.0
     - --etcd-servers={{.EtcdEndpoints}}
     - --etcd-cafile={{.EtcdCAPath}}
