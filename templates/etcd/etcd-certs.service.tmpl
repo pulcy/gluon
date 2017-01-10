@@ -5,12 +5,11 @@ Description=ETCD certificates
 EnvironmentFile=/etc/pulcy/vault.env
 Environment=VAULT_RENEW_TOKEN=true 
 Environment=VAULT_UNWRAP_TOKEN=true
-Environment=VAULT_MONKEY=pulcy/vault-monkey:20170106183728 
 Environment=VAULT_MONKEY_JOB_ID={{.JobID}}
 ExecStartPre=/usr/bin/mkdir -p /opt/certs/
 ExecStartPre=/usr/bin/rkt \
     run \
-    docker://${VAULT_MONKEY} \
+    docker://{{.VaultMonkeyImage}} \
     --net=host \
     --dns=8.8.8.8 \
     --insecure-options=image \

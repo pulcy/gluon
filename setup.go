@@ -61,6 +61,7 @@ func init() {
 	cmdSetup.Flags().BoolVar(&setupFlags.Force, "force", false, "Restart services, even if nothing has changed")
 	// Gluon
 	cmdSetup.Flags().StringVar(&setupFlags.GluonImage, "gluon-image", "", "Gluon docker image name")
+	cmdSetup.Flags().StringVar(&setupFlags.VaultMonkeyImage, "vault-monkey-image", "", "VaultMonkey docker image name")
 	// Docker
 	cmdSetup.Flags().StringVar(&setupFlags.Docker.DockerIP, "docker-ip", "", "IP address docker binds ports to")
 	cmdSetup.Flags().StringVar(&setupFlags.Docker.DockerSubnet, "docker-subnet", defaultDockerSubnet, "Subnet used by docker")

@@ -29,18 +29,19 @@ import (
 )
 
 const (
-	clusterMembersPath     = "/etc/pulcy/cluster-members"
-	privateRegistryUrlPath = "/etc/pulcy/private-registry-url"
-	etcdClusterStatePath   = "/etc/pulcy/etcd-cluster-state"
-	fleetMetadataPath      = "/etc/pulcy/fleet-metadata"
-	gluonImagePath         = "/etc/pulcy/gluon-image"
-	weaveSeedPath          = "/etc/pulcy/weave-seed"
-	weaveIPRangePath       = "/etc/pulcy/weave-iprange"
-	weaveIPInitPath        = "/etc/pulcy/weave-ipinit"
-	privateHostIPPrefix    = "private-host-ip="
-	defaultWeaveIPRange    = "10.32.0.0/12"
-	rolesPath              = "/etc/pulcy/roles"
-	clusterIDPath          = "/etc/pulcy/cluster-id"
+	defaultVaultMonkeyImage = "pulcy/vault-monkey:0.5.0"
+	clusterMembersPath      = "/etc/pulcy/cluster-members"
+	privateRegistryUrlPath  = "/etc/pulcy/private-registry-url"
+	etcdClusterStatePath    = "/etc/pulcy/etcd-cluster-state"
+	fleetMetadataPath       = "/etc/pulcy/fleet-metadata"
+	gluonImagePath          = "/etc/pulcy/gluon-image"
+	weaveSeedPath           = "/etc/pulcy/weave-seed"
+	weaveIPRangePath        = "/etc/pulcy/weave-iprange"
+	weaveIPInitPath         = "/etc/pulcy/weave-ipinit"
+	privateHostIPPrefix     = "private-host-ip="
+	defaultWeaveIPRange     = "10.32.0.0/12"
+	rolesPath               = "/etc/pulcy/roles"
+	clusterIDPath           = "/etc/pulcy/cluster-id"
 )
 
 type Service interface {
@@ -57,8 +58,9 @@ type ServiceFlags struct {
 	Force bool // Start/reload even if nothing has changed
 
 	// gluon
-	GluonImage string
-	Roles      []string
+	GluonImage       string
+	VaultMonkeyImage string
+	Roles            []string
 
 	// Docker
 	Docker struct {
@@ -129,6 +131,9 @@ type ClusterMember struct {
 
 // SetupDefaults fills given flags with default value
 func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
+	if flags.VaultMonkeyImage == "" {
+		flags.VaultMonkeyImage = defaultVaultMonkeyImage
+	}
 	if flags.Docker.PrivateRegistryUrl == "" {
 		url, err := ioutil.ReadFile(privateRegistryUrlPath)
 		if err != nil && !os.IsNotExist(err) {

@@ -82,6 +82,7 @@ func createCertsService(deps service.ServiceDependencies, flags *service.Service
 		return false, maskAny(err)
 	}
 	opts := struct {
+		VaultMonkeyImage   string
 		ConsulAddress      string
 		JobID              string
 		TemplatePath       string
@@ -93,6 +94,7 @@ func createCertsService(deps service.ServiceDependencies, flags *service.Service
 		TokenPolicy        string
 		TokenRole          string
 	}{
+		VaultMonkeyImage:   flags.VaultMonkeyImage,
 		ConsulAddress:      flags.Network.ClusterIP + ":8500",
 		JobID:              c.JobID(clusterID),
 		TemplatePath:       c.CertificatesTemplatePath(),
