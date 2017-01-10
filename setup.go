@@ -74,6 +74,7 @@ func init() {
 	cmdSetup.Flags().StringVar(&setupFlags.Network.ClusterIP, "private-ip", "", "IP address of this host in the cluster network")
 	cmdSetup.Flags().StringVar(&setupFlags.Network.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the cluster IP")
 	// Fleet
+	cmdSetup.Flags().BoolVar(&setupFlags.Fleet.Enabled, "fleet-enabled", defaultFleetEnabled(), "If set, fleet will be installed")
 	cmdSetup.Flags().StringVar(&setupFlags.Fleet.Metadata, "fleet-metadata", "", "Metadata list for fleet")
 	cmdSetup.Flags().StringVar(&setupFlags.Fleet.AgentTTL, "fleet-agent-ttl", defaultFleetAgentTTL, "agent_ttl option for fleet")
 	cmdSetup.Flags().BoolVar(&setupFlags.Fleet.DisableEngine, "fleet-disable-engine", defaultFleetDisableEngine, "disable_engine option for fleet")
@@ -85,6 +86,7 @@ func init() {
 	cmdSetup.Flags().BoolVar(&setupFlags.Etcd.UseVaultCA, "etcd-use-vault-ca", defaultEtcdUseVaultCA(), "If set, use vault to create peer (and optional client) TLS certificates")
 	cmdSetup.Flags().BoolVar(&setupFlags.Etcd.SecureClients, "etcd-secure-clients", defaultEtcdSecureClients(), "If set, force clients to connect over TLS")
 	// Kubernetes
+	cmdSetup.Flags().BoolVar(&setupFlags.Kubernetes.Enabled, "k8s-enabled", defaultKubernetesEnabled(), "If set, fleet will be installed")
 	cmdSetup.Flags().StringVar(&setupFlags.Kubernetes.APIDNSName, "k8s-api-dns-name", defaultKubernetesAPIDNSName(), "Alternate name of the Kubernetes API server")
 	// Weave
 	cmdSetup.Flags().StringVar(&setupFlags.Weave.Seed, "weave-seed", "", "SEED of the weave network")

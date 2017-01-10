@@ -33,7 +33,6 @@ const (
 	clusterMembersPath      = "/etc/pulcy/cluster-members"
 	privateRegistryUrlPath  = "/etc/pulcy/private-registry-url"
 	etcdClusterStatePath    = "/etc/pulcy/etcd-cluster-state"
-	fleetMetadataPath       = "/etc/pulcy/fleet-metadata"
 	gluonImagePath          = "/etc/pulcy/gluon-image"
 	weaveSeedPath           = "/etc/pulcy/weave-seed"
 	weaveIPRangePath        = "/etc/pulcy/weave-iprange"
@@ -90,14 +89,7 @@ type ServiceFlags struct {
 	Kubernetes Kubernetes
 
 	// Fleet
-	Fleet struct {
-		Metadata                string
-		AgentTTL                string
-		DisableEngine           bool
-		DisableWatches          bool
-		EngineReconcileInterval int
-		TokenLimit              int
-	}
+	Fleet Fleet
 
 	// Weave
 	Weave struct {
@@ -142,14 +134,8 @@ func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
 			flags.Docker.PrivateRegistryUrl = string(url)
 		}
 	}
-	if flags.Fleet.Metadata == "" {
-		raw, err := ioutil.ReadFile(fleetMetadataPath)
-		if err != nil && !os.IsNotExist(err) {
-			return maskAny(err)
-		} else if err == nil {
-			lines := trimLines(strings.Split(string(raw), "\n"))
-			flags.Fleet.Metadata = strings.Join(lines, ",")
-		}
+	if err := flags.Fleet.SetupDefaults(log); err != nil {
+		return maskAny(err)
 	}
 	if err := flags.Etcd.SetupDefaults(log); err != nil {
 		return maskAny(err)
@@ -252,14 +238,10 @@ func (flags *ServiceFlags) Save() (bool, error) {
 			changes++
 		}
 	}
-	if flags.Fleet.Metadata != "" {
-		parts := strings.Split(flags.Fleet.Metadata, ",")
-		content := strings.Join(parts, "\n")
-		if changed, err := updateContent(fleetMetadataPath, content, 0644); err != nil {
-			return false, maskAny(err)
-		} else if changed {
-			changes++
-		}
+	if changed, err := flags.Fleet.Save(); err != nil {
+		return false, maskAny(err)
+	} else if changed {
+		changes++
 	}
 	if changed, err := flags.Etcd.Save(); err != nil {
 		return false, maskAny(err)

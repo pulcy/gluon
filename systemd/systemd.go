@@ -15,6 +15,7 @@
 package systemd
 
 import (
+	"os"
 	"time"
 
 	"github.com/coreos/go-systemd/dbus"
@@ -219,6 +220,28 @@ func (sdc *SystemdClient) Exists(unit string) (bool, error) {
 	}
 
 	return false, nil
+}
+
+// StopAndRemove stops the given unit, disables it, and removes all given files.
+func (sdc *SystemdClient) StopAndRemove(unit string, filesToRemove ...string) error {
+	exists, err := sdc.Exists(unit)
+	if err != nil {
+		return maskAny(err)
+	}
+	if exists {
+		if err := sdc.Stop(unit); err != nil {
+			sdc.Logger.Errorf("Failed to stop %s: %#v", unit, err)
+		}
+	}
+	if err := sdc.Disable(unit); err != nil {
+		sdc.Logger.Errorf("Disabling %s failed: %#v", unit, err)
+	} else {
+		for _, filePath := range filesToRemove {
+			sdc.Logger.Debugf("removing %s", filePath)
+			os.Remove(filePath)
+		}
+	}
+	return nil
 }
 
 // IsActive returns true if the given unit exists and its ActiveState is 'active',

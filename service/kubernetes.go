@@ -23,6 +23,7 @@ import (
 
 // K8s config
 type Kubernetes struct {
+	Enabled               bool
 	KubernetesMasterImage string
 	APIServerPort         int
 	ServiceClusterIPRange string
@@ -78,5 +79,5 @@ func (flags *Kubernetes) Save() (bool, error) {
 
 // IsEnabled returns true if kubernetes should be installed on the cluster.
 func (flags *Kubernetes) IsEnabled() bool {
-	return true
+	return flags.Enabled
 }

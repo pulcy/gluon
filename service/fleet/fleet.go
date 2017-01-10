@@ -59,49 +59,58 @@ func (t *fleetService) Name() string {
 }
 
 func (t *fleetService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
-	changedConf, err := createFleetConf(deps, flags)
-	if err != nil {
-		return maskAny(err)
-	}
-	changedService, err := createService(deps, flags)
-	if err != nil {
-		return maskAny(err)
-	}
-	changedSocket, err := createSocket(deps, flags)
-	if err != nil {
-		return maskAny(err)
-	}
-
-	if err := deps.Systemd.Reload(); err != nil {
-		return maskAny(err)
-	}
-
-	isActive, err := deps.Systemd.IsActive(serviceName)
-	if err != nil {
-		return maskAny(err)
-	}
-
-	if !isActive || changedService || changedConf || flags.Force {
-		if err := deps.Systemd.Enable(serviceName); err != nil {
+	if flags.Fleet.IsEnabled() {
+		changedConf, err := createFleetConf(deps, flags)
+		if err != nil {
 			return maskAny(err)
 		}
+		changedService, err := createService(deps, flags)
+		if err != nil {
+			return maskAny(err)
+		}
+		changedSocket, err := createSocket(deps, flags)
+		if err != nil {
+			return maskAny(err)
+		}
+
 		if err := deps.Systemd.Reload(); err != nil {
 			return maskAny(err)
 		}
-		if err := deps.Systemd.Restart(serviceName); err != nil {
+
+		isActive, err := deps.Systemd.IsActive(serviceName)
+		if err != nil {
+			return maskAny(err)
+		}
+
+		if !isActive || changedService || changedConf || flags.Force {
+			if err := deps.Systemd.Enable(serviceName); err != nil {
+				return maskAny(err)
+			}
+			if err := deps.Systemd.Reload(); err != nil {
+				return maskAny(err)
+			}
+			if err := deps.Systemd.Restart(serviceName); err != nil {
+				return maskAny(err)
+			}
+		}
+		if changedSocket || flags.Force {
+			if err := deps.Systemd.Restart(socketName); err != nil {
+				return maskAny(err)
+			}
+		}
+
+		if _, err := createFleetCheck(deps, flags); err != nil {
+			return maskAny(err)
+		}
+	} else {
+		// Remove fleet
+		if err := deps.Systemd.StopAndRemove(socketName, socketPath); err != nil {
+			return maskAny(err)
+		}
+		if err := deps.Systemd.StopAndRemove(serviceName, servicePath, confPath, checkScriptPath); err != nil {
 			return maskAny(err)
 		}
 	}
-	if changedSocket || flags.Force {
-		if err := deps.Systemd.Restart(socketName); err != nil {
-			return maskAny(err)
-		}
-	}
-
-	if _, err := createFleetCheck(deps, flags); err != nil {
-		return maskAny(err)
-	}
-
 	return nil
 }
 

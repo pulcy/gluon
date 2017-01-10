@@ -27,6 +27,14 @@ func defaultEtcdSecureClients() bool {
 	return boolFromEnv("GLUON_ETCD_SECURE_CLIENTS", false)
 }
 
+func defaultFleetEnabled() bool {
+	return boolFromEnv("GLUON_FLEET_ENABLED", true)
+}
+
+func defaultKubernetesEnabled() bool {
+	return boolFromEnv("GLUON_K8S_ENABLED", true)
+}
+
 func defaultKubernetesAPIDNSName() string {
 	return os.Getenv("GLUON_K8S_API_DNS_NAME")
 }
