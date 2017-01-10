@@ -11,6 +11,7 @@ spec:
     command:
     - /usr/bin/kube-controller-manager
     - --master={{.Master}}
+    - --kubeconfig={{.KubeConfigPath}}
     - --leader-elect=true
     - --service-account-private-key-file={{.KeyPath}}
     - --service-cluster-ip-range={{.ServiceClusterIPRange}}
@@ -32,6 +33,9 @@ spec:
     - mountPath: /etc/ssl/certs
       name: ssl-certs-host
       readOnly: true
+    - mountPath: {{.KubeConfigPath}}
+      name: kubeconfig
+      readOnly: true
   hostNetwork: true
   volumes:
   - hostPath:
@@ -40,3 +44,6 @@ spec:
   - hostPath:
       path: /usr/share/ca-certificates
     name: ssl-certs-host
+  - hostPath:
+      path: {{.KubeConfigPath}}
+    name: kubeconfig

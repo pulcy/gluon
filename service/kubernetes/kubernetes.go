@@ -15,6 +15,7 @@
 package kubernetes
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/juju/errgo"
@@ -143,6 +144,21 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 	}
 
 	return nil
+}
+
+// getAPIServers creates a list of URL to the API servers of the cluster.
+func getAPIServers(deps service.ServiceDependencies, flags *service.ServiceFlags) ([]string, error) {
+	members, err := flags.GetClusterMembers(deps.Logger)
+	if err != nil {
+		return nil, maskAny(err)
+	}
+	var apiServers []string
+	for _, m := range members {
+		if !m.EtcdProxy {
+			apiServers = append(apiServers, fmt.Sprintf("https://%s:%d", m.ClusterIP, flags.Kubernetes.APIServerPort))
+		}
+	}
+	return apiServers, nil
 }
 
 // servicePath returns the full path of the file containing the service with given name.

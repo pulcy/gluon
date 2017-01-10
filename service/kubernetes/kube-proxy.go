@@ -15,8 +15,6 @@
 package kubernetes
 
 import (
-	"fmt"
-
 	"github.com/pulcy/gluon/service"
 	"github.com/pulcy/gluon/templates"
 )
@@ -32,15 +30,9 @@ func createKubeProxyService(deps service.ServiceDependencies, flags *service.Ser
 		return false, maskAny(err)
 	}
 	deps.Logger.Info("creating %s", c.ServicePath())
-	members, err := flags.GetClusterMembers(deps.Logger)
+	apiServers, err := getAPIServers(deps, flags)
 	if err != nil {
 		return false, maskAny(err)
-	}
-	var apiServers []string
-	for _, m := range members {
-		if !m.EtcdProxy {
-			apiServers = append(apiServers, fmt.Sprintf("https://%s:%d", m.ClusterIP, flags.Kubernetes.APIServerPort))
-		}
 	}
 	opts := struct {
 		Master         string

@@ -15,7 +15,6 @@
 package kubernetes
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/pulcy/gluon/service"
@@ -33,15 +32,9 @@ func createKubeletService(deps service.ServiceDependencies, flags *service.Servi
 		return false, maskAny(err)
 	}
 	deps.Logger.Info("creating %s", c.ServicePath())
-	members, err := flags.GetClusterMembers(deps.Logger)
+	apiServers, err := getAPIServers(deps, flags)
 	if err != nil {
 		return false, maskAny(err)
-	}
-	var apiServers []string
-	for _, m := range members {
-		if !m.EtcdProxy {
-			apiServers = append(apiServers, fmt.Sprintf("https://%s:%d", m.ClusterIP, flags.Kubernetes.APIServerPort))
-		}
 	}
 	opts := struct {
 		APIServers          string

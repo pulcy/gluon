@@ -15,7 +15,6 @@
 package kubernetes
 
 import (
-	"fmt"
 	"path"
 
 	"github.com/pulcy/gluon/service"
@@ -32,20 +31,19 @@ func createKubeControllerManagerManifest(deps service.ServiceDependencies, flags
 	if err := util.EnsureDirectoryOf(c.ManifestPath(), 0755); err != nil {
 		return false, maskAny(err)
 	}
-	deps.Logger.Info("creating %s", c.ManifestPath())
-	var apiServers []string
-	members, err := flags.GetClusterMembers(deps.Logger)
+	configChanged, err := createKubeConfig(deps, flags, c)
 	if err != nil {
 		return false, maskAny(err)
 	}
-	for _, m := range members {
-		if !m.EtcdProxy {
-			apiServers = append(apiServers, fmt.Sprintf("https://%s:%d", m.ClusterIP, flags.Kubernetes.APIServerPort))
-		}
+	deps.Logger.Info("creating %s", c.ManifestPath())
+	apiServers, err := getAPIServers(deps, flags)
+	if err != nil {
+		return false, maskAny(err)
 	}
 	opts := struct {
 		Image                 string
 		Master                string
+		KubeConfigPath        string
 		ServiceClusterIPRange string
 		KeyPath               string
 		CAPath                string
@@ -53,11 +51,12 @@ func createKubeControllerManagerManifest(deps service.ServiceDependencies, flags
 	}{
 		Image:                 flags.Kubernetes.APIServerImage,
 		Master:                apiServers[0],
+		KubeConfigPath:        c.KubeConfigPath(),
 		ServiceClusterIPRange: flags.Kubernetes.ServiceClusterIPRange,
 		KeyPath:               c.KeyPath(),
 		CAPath:                c.CAPath(),
 		CertificatesFolder:    path.Dir(c.CertificatePath()),
 	}
 	changed, err := templates.Render(kubeControllerManagerTemplate, c.ManifestPath(), opts, manifestFileMode)
-	return changed, maskAny(err)
+	return changed || configChanged, maskAny(err)
 }

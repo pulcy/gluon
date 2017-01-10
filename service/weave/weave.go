@@ -16,6 +16,7 @@ package weave
 
 import (
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/juju/errgo"
@@ -29,8 +30,12 @@ var (
 	weaveServiceName = "weave.service"
 	weaveServiceTmpl = "templates/weave/" + weaveServiceName + ".tmpl"
 	weaveServicePath = "/etc/systemd/system/" + weaveServiceName
+	cniConfTmpl      = "templates/weave/cni.conf"
+	cniConfPath      = "/etc/cni/net.d/10-weave.conf"
+	cniPluginDir     = "/opt/cni/bin"
 
 	serviceFileMode = os.FileMode(0644)
+	configFileMode  = os.FileMode(0644)
 
 	maskAny = errgo.MaskFunc(errgo.Any)
 )
@@ -46,8 +51,15 @@ func (t *weaveService) Name() string {
 }
 
 func (t *weaveService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
+	os.MkdirAll(cniPluginDir, 0755)
 	changed, err := createService(deps, flags)
 	if err != nil {
+		return maskAny(err)
+	}
+	if _, err := createCniConf(deps, flags); err != nil {
+		return maskAny(err)
+	}
+	if err := setupCni(deps, flags); err != nil {
 		return maskAny(err)
 	}
 
@@ -97,6 +109,22 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 	}
 	changed, err := templates.Render(weaveServiceTmpl, weaveServicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
+}
+
+func createCniConf(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	deps.Logger.Info("creating %s", cniConfPath)
+	changed, err := templates.Render(cniConfTmpl, cniConfPath, nil, configFileMode)
+	return changed, maskAny(err)
+}
+
+func setupCni(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
+	deps.Logger.Info("running weave setup-cni")
+	cmd := exec.Command("weave", "setup-cni")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		deps.Logger.Error(string(out))
+		return maskAny(err)
+	}
+	return nil
 }
 
 func getPeerName(deps service.ServiceDependencies, flags *service.ServiceFlags) (string, error) {
