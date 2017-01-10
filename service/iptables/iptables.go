@@ -156,15 +156,19 @@ func createV4Members(deps service.ServiceDependencies, flags *service.ServiceFla
 func createV4Rules(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", v4rulesPath)
 	opts := struct {
-		DockerSubnet         string
-		RktSubnet            string
-		PrivateClusterDevice string
-		ClusterSubnet        string
+		DockerSubnet            string
+		RktSubnet               string
+		PrivateClusterDevice    string
+		ClusterSubnet           string
+		KubernetesAPIServer     bool
+		KubernetesAPIServerPort int
 	}{
-		DockerSubnet:         flags.Docker.DockerSubnet,
-		RktSubnet:            flags.Rkt.RktSubnet,
-		PrivateClusterDevice: flags.Network.PrivateClusterDevice,
-		ClusterSubnet:        flags.Network.ClusterSubnet,
+		DockerSubnet:            flags.Docker.DockerSubnet,
+		RktSubnet:               flags.Rkt.RktSubnet,
+		PrivateClusterDevice:    flags.Network.PrivateClusterDevice,
+		ClusterSubnet:           flags.Network.ClusterSubnet,
+		KubernetesAPIServer:     flags.Kubernetes.IsEnabled(),
+		KubernetesAPIServerPort: flags.Kubernetes.APIServerPort,
 	}
 	changed, err := templates.Render(v4rulesTemplate, v4rulesPath, opts, rulesFileMode)
 	return changed, maskAny(err)
@@ -172,7 +176,14 @@ func createV4Rules(deps service.ServiceDependencies, flags *service.ServiceFlags
 
 func createV6Rules(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", v6rulesPath)
-	changed, err := templates.Render(v6rulesTemplate, v6rulesPath, nil, rulesFileMode)
+	opts := struct {
+		KubernetesAPIServer     bool
+		KubernetesAPIServerPort int
+	}{
+		KubernetesAPIServer:     flags.Kubernetes.IsEnabled(),
+		KubernetesAPIServerPort: flags.Kubernetes.APIServerPort,
+	}
+	changed, err := templates.Render(v6rulesTemplate, v6rulesPath, opts, rulesFileMode)
 	return changed, maskAny(err)
 }
 

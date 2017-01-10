@@ -25,6 +25,9 @@ COMMIT
 -A INPUT -p tcp --dport 443 -m state --state NEW,ESTABLISHED -j ACCEPT
 -A INPUT -p tcp --dport 7088 -m state --state NEW,ESTABLISHED -j ACCEPT
 -A INPUT -p tcp --dport 8200 -m state --state NEW,ESTABLISHED -j ACCEPT
+{{ if .KubernetesAPIServer}}
+-A INPUT -p tcp --dport {{.KubernetesAPIServerPort}} -m state --state NEW,ESTABLISHED -j ACCEPT
+{{end}}
 
 -A INPUT -p tcp --dport 8288 -m state --state NEW,ESTABLISHED -j PRIVATEHOST
 -I FORWARD -p tcp --dport 8288 -m state --state NEW,ESTABLISHED -j PRIVATEHOST

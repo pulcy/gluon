@@ -54,3 +54,8 @@ func (flags *Kubernetes) Save() (bool, error) {
 	changes := 0
 	return (changes > 0), nil
 }
+
+// IsEnabled returns true if kubernetes should be installed on the cluster.
+func (flags *Kubernetes) IsEnabled() bool {
+	return true
+}
