@@ -44,6 +44,7 @@ func createKubeletService(deps service.ServiceDependencies, flags *service.Servi
 		KubeConfigPath      string
 		RegisterSchedulable bool
 		NodeIP              string
+		NodeLabels          string
 		CertPath            string
 		KeyPath             string
 	}{
@@ -54,6 +55,7 @@ func createKubeletService(deps service.ServiceDependencies, flags *service.Servi
 		KubeConfigPath:      c.KubeConfigPath(),
 		RegisterSchedulable: true, //!flags.HasRole("core"),
 		NodeIP:              flags.Network.ClusterIP,
+		NodeLabels:          flags.Fleet.Metadata, // Todo make this kubernetes specific
 		CertPath:            c.CertificatePath(),
 		KeyPath:             c.KeyPath(),
 	}

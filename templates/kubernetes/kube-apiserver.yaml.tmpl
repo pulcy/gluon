@@ -10,24 +10,24 @@ spec:
     image: {{.Image}}
     command:
     - /usr/bin/kube-apiserver
-    - --apiserver-count={{.APIServerCount}}
+    - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota
+    - --advertise-address={{.AdvertiseAddress}}
     - --allow-privileged=true
+    - --anonymous-auth=false
+    - --apiserver-count={{.APIServerCount}}
     - --bind-address=0.0.0.0
-    - --etcd-servers={{.EtcdEndpoints}}
+    - --client-ca-file={{.CAPath}}
     - --etcd-cafile={{.EtcdCAPath}}
     - --etcd-certfile={{.EtcdCertPath}}
     - --etcd-keyfile={{.EtcdKeyPath}}
-    - --allow-privileged=true
-    - --service-cluster-ip-range={{.ServiceClusterIPRange}}
+    - --etcd-servers={{.EtcdEndpoints}}
+    - --runtime-config=extensions/v1beta1/networkpolicies=true
     - --secure-port={{.SecurePort}}
-    - --advertise-address={{.AdvertiseAddress}}
-    - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota
+    - --service-cluster-ip-range={{.ServiceClusterIPRange}}
+    - --service-account-key-file={{.KeyPath}}
+    - --storage-backend=etcd3
     - --tls-cert-file={{.CertPath}}
     - --tls-private-key-file={{.KeyPath}}
-    - --client-ca-file={{.CAPath}}
-    - --service-account-key-file={{.KeyPath}}
-    - --runtime-config=extensions/v1beta1/networkpolicies=true
-    - --anonymous-auth=false
     livenessProbe:
       httpGet:
         host: 127.0.0.1
