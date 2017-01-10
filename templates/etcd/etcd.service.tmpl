@@ -2,6 +2,11 @@
 Description=etcd2
 Conflicts=etcd.service
 
+{{range .Requires }}
+Requires={{.}}{{end}}
+{{range .After }}
+After={{.}}{{end}}
+
 [Service]
 User=etcd
 Type=notify

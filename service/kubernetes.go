@@ -25,7 +25,7 @@ type Kubernetes struct {
 }
 
 const (
-	defaultKubernetesMasterImage = "pulcy/k8s-master:0.1.4"
+	defaultKubernetesMasterImage = "pulcy/k8s-master:0.1.5"
 	defaultServiceClusterIPRange = "10.71.0.0/16"
 	defaultAPIServerPort         = 6443
 	defaultClusterDNS            = "10.32.0.10"

@@ -2,6 +2,11 @@
 Description=Kubernetes Kube Proxy
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 
+{{range .Requires }}
+Requires={{.}}{{end}}
+{{range .After }}
+After={{.}}{{end}}
+
 [Service]
 ExecStart=/usr/bin/kube-proxy \
   --master={{.Master}} \

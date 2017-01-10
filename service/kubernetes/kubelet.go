@@ -37,6 +37,8 @@ func createKubeletService(deps service.ServiceDependencies, flags *service.Servi
 		return false, maskAny(err)
 	}
 	opts := struct {
+		Requires            []string
+		After               []string
 		APIServers          string
 		ClusterDNS          string
 		KubeConfigPath      string
@@ -45,6 +47,8 @@ func createKubeletService(deps service.ServiceDependencies, flags *service.Servi
 		CertPath            string
 		KeyPath             string
 	}{
+		Requires:            []string{"rkt-api.service"},
+		After:               []string{"rkt-api.service", c.CertificatesServiceName()},
 		APIServers:          strings.Join(apiServers, ","),
 		ClusterDNS:          flags.Kubernetes.ClusterDNS,
 		KubeConfigPath:      c.KubeConfigPath(),

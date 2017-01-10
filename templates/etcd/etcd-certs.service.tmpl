@@ -14,6 +14,7 @@ ExecStartPre=/usr/bin/rkt \
     --net=host \
     --dns=8.8.8.8 \
     --insecure-options=image \
+    --mds-register=false \
     --volume clusterid,kind=host,source=/etc/pulcy/cluster-id,readOnly=true \
     --volume machineid,kind=host,source=/etc/machine-id,readOnly=true \
     --volume cert,kind=host,source=${VAULT_CACERT},readOnly=true \

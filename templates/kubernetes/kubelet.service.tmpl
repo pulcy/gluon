@@ -2,8 +2,10 @@
 Description=Kubernetes Kubelet
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 
-Requires=rkt-api.service 
-After=rkt-api.service
+{{range .Requires }}
+Requires={{.}}{{end}}
+{{range .After }}
+After={{.}}{{end}}
 
 [Service]
 ExecStart=/usr/bin/kubelet \

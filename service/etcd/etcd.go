@@ -364,7 +364,17 @@ func createCertsService(deps service.ServiceDependencies, flags *service.Service
 
 func createService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", servicePath)
-	changed, err := templates.Render(serviceTemplate, servicePath, nil, serviceFileMode)
+	opts := struct {
+		Requires []string
+		After    []string
+	}{
+		Requires: []string{},
+		After:    []string{},
+	}
+	if flags.Etcd.UseVaultCA {
+		opts.After = append(opts.After, certsServiceName)
+	}
+	changed, err := templates.Render(serviceTemplate, servicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 

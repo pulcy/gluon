@@ -35,9 +35,13 @@ func createKubeProxyService(deps service.ServiceDependencies, flags *service.Ser
 		return false, maskAny(err)
 	}
 	opts := struct {
+		Requires       []string
+		After          []string
 		Master         string
 		KubeConfigPath string
 	}{
+		Requires:       []string{},
+		After:          []string{c.CertificatesServiceName()},
 		Master:         apiServers[0],
 		KubeConfigPath: c.KubeConfigPath(),
 	}
