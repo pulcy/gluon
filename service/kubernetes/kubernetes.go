@@ -33,6 +33,7 @@ var (
 		// Components that should be installed on master nodes only
 		NewManifestComponent("kube-apiserver", true):          createKubeApiServerManifest,
 		NewManifestComponent("kube-controller-manager", true): createKubeControllerManagerManifest,
+		NewManifestComponent("kube-scheduler", true):          createKubeSchedulerManifest,
 	}
 )
 
