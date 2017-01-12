@@ -124,7 +124,7 @@ func createTmpFilesConf(deps service.ServiceDependencies, flags *service.Service
 		return false, maskAny(err)
 	}
 
-	changed, err := util.UpdateFile(tmpFilesConfPath, asset, 0644)
+	changed, err := util.UpdateFile(deps.Logger, tmpFilesConfPath, asset, 0644)
 	return changed, maskAny(err)
 
 }
@@ -156,7 +156,7 @@ func createService(serviceName string, deps service.ServiceDependencies, flags *
 	servicePath := servicePath(serviceName)
 	deps.Logger.Info("creating %s", servicePath)
 	opts := struct{}{}
-	changed, err := templates.Render(serviceTemplate, servicePath, opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, serviceTemplate, servicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 
@@ -206,7 +206,7 @@ func createPrivateRegistryAuthConf(deps service.ServiceDependencies, flags *serv
 		if err != nil {
 			return false, maskAny(err)
 		}
-		changed, err := util.UpdateFile(privateRegistryAuthConfPath, raw, 0600)
+		changed, err := util.UpdateFile(deps.Logger, privateRegistryAuthConfPath, raw, 0600)
 		return changed, maskAny(err)
 	} else {
 		deps.Logger.Warningf("Skip creating %s", privateRegistryAuthConfPath)
@@ -222,6 +222,6 @@ func createNetwork(deps service.ServiceDependencies, flags *service.ServiceFlags
 	}{
 		RktSubnet: flags.Rkt.RktSubnet,
 	}
-	changed, err := templates.Render(networkConfTemplate, networkConfPath, opts, configFileMode)
+	changed, err := templates.Render(deps.Logger, networkConfTemplate, networkConfPath, opts, configFileMode)
 	return changed, maskAny(err)
 }

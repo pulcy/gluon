@@ -98,17 +98,17 @@ func (flags *Weave) setupDefaults(log *logging.Logger, serviceFlags *ServiceFlag
 
 // Save applicable flags to their respective files
 // Returns true if anything has changed, false otherwise
-func (flags *Weave) save() (bool, error) {
+func (flags *Weave) save(log *logging.Logger) (bool, error) {
 	changes := 0
 	if flags.Seed != "" {
-		if changed, err := updateContent(weaveSeedPath, flags.Seed, 0644); err != nil {
+		if changed, err := updateContent(log, weaveSeedPath, flags.Seed, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++
 		}
 	}
 	if flags.IPRange != "" {
-		if changed, err := updateContent(weaveIPRangePath, flags.IPRange, 0644); err != nil {
+		if changed, err := updateContent(log, weaveIPRangePath, flags.IPRange, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++

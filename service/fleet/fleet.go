@@ -126,7 +126,7 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 	}{
 		HaveEtcd: !proxy,
 	}
-	changed, err := templates.Render(serviceTemplate, servicePath, opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, serviceTemplate, servicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 
@@ -166,7 +166,7 @@ func createFleetConf(deps service.ServiceDependencies, flags *service.ServiceFla
 		)
 	}
 
-	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), configFileMode)
+	changed, err := util.UpdateFile(deps.Logger, confPath, []byte(strings.Join(lines, "\n")), configFileMode)
 	return changed, maskAny(err)
 }
 
@@ -178,7 +178,7 @@ func createFleetCheck(deps service.ServiceDependencies, flags *service.ServiceFl
 		return false, maskAny(err)
 	}
 
-	changed, err := util.UpdateFile(checkScriptPath, asset, scriptFileMode)
+	changed, err := util.UpdateFile(deps.Logger, checkScriptPath, asset, scriptFileMode)
 	return changed, maskAny(err)
 }
 
@@ -189,7 +189,7 @@ func createSocket(deps service.ServiceDependencies, flags *service.ServiceFlags)
 	}{
 		ClusterIP: flags.Network.ClusterIP,
 	}
-	changed, err := templates.Render(socketTemplate, socketPath, opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, socketTemplate, socketPath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 

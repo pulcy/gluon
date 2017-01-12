@@ -27,7 +27,8 @@ type Kubernetes struct {
 	KubernetesMasterImage string
 	APIServerPort         int
 	ServiceClusterIPRange string
-	ClusterDNS            string
+	ClusterDNS            string // IP address of DNS server
+	ClusterDomain         string // Name of culster domain
 	APIDNSName            string
 }
 
@@ -36,6 +37,7 @@ const (
 	defaultServiceClusterIPRange = "10.71.0.0/16"
 	defaultAPIServerPort         = 6443
 	defaultClusterDNS            = "10.32.0.10"
+	defaultClusterDomain         = "cluster.local"
 )
 
 // setupDefaults fills given flags with default value
@@ -51,6 +53,9 @@ func (flags *Kubernetes) setupDefaults(log *logging.Logger) error {
 	}
 	if flags.ClusterDNS == "" {
 		flags.ClusterDNS = defaultClusterDNS
+	}
+	if flags.ClusterDomain == "" {
+		flags.ClusterDomain = defaultClusterDomain
 	}
 	if flags.APIDNSName == "" {
 		hostname, err := os.Hostname()
@@ -72,7 +77,7 @@ func (flags *Kubernetes) setupDefaults(log *logging.Logger) error {
 
 // save applicable flags to their respective files
 // Returns true if anything has changed, false otherwise
-func (flags *Kubernetes) save() (bool, error) {
+func (flags *Kubernetes) save(log *logging.Logger) (bool, error) {
 	changes := 0
 	return (changes > 0), nil
 }

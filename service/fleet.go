@@ -53,12 +53,12 @@ func (flags *Fleet) setupDefaults(log *logging.Logger) error {
 
 // save applicable flags to their respective files
 // Returns true if anything has changed, false otherwise
-func (flags *Fleet) save() (bool, error) {
+func (flags *Fleet) save(log *logging.Logger) (bool, error) {
 	changes := 0
 	if flags.Metadata != "" {
 		parts := strings.Split(flags.Metadata, ",")
 		content := strings.Join(parts, "\n")
-		if changed, err := updateContent(fleetMetadataPath, content, 0644); err != nil {
+		if changed, err := updateContent(log, fleetMetadataPath, content, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++

@@ -57,6 +57,6 @@ func createKubeControllerManagerManifest(deps service.ServiceDependencies, flags
 		CAPath:                c.CAPath(),
 		CertificatesFolder:    path.Dir(c.CertificatePath()),
 	}
-	changed, err := templates.Render(kubeControllerManagerTemplate, c.ManifestPath(), opts, manifestFileMode)
+	changed, err := templates.Render(deps.Logger, kubeControllerManagerTemplate, c.ManifestPath(), opts, manifestFileMode)
 	return changed || configChanged, maskAny(err)
 }

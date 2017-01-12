@@ -45,6 +45,6 @@ func createKubeProxyService(deps service.ServiceDependencies, flags *service.Ser
 		Master:         apiServers[0],
 		KubeConfigPath: c.KubeConfigPath(),
 	}
-	changed, err := templates.Render(kubeProxyServiceTemplate, c.ServicePath(), opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, kubeProxyServiceTemplate, c.ServicePath(), opts, serviceFileMode)
 	return changed || configChanged, maskAny(err)
 }

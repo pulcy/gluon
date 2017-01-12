@@ -34,6 +34,7 @@ var (
 		NewManifestComponent("kube-apiserver", true):          componentSetup{createKubeApiServerManifest, createKubeApiServerAltNames},
 		NewManifestComponent("kube-controller-manager", true): componentSetup{createKubeControllerManagerManifest, nil},
 		NewManifestComponent("kube-scheduler", true):          componentSetup{createKubeSchedulerManifest, nil},
+		NewManifestComponent("kube-dns", true):                componentSetup{createKubeDNSAddon, nil},
 	}
 )
 
@@ -182,6 +183,11 @@ func servicePath(serviceName string) string {
 // manifestPath returns the full path of the file containing the manifest with given name.
 func manifestPath(manifestName string) string {
 	return "/etc/kubernetes/manifests/" + manifestName
+}
+
+// addonPath returns the full path of the file containing the addon with given name.
+func addonPath(addonName string) string {
+	return "/etc/kubernetes/addons/" + addonName
 }
 
 // certificatePath returns the full path of the file with given name.

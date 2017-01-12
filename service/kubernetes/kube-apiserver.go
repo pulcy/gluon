@@ -77,7 +77,7 @@ func createKubeApiServerManifest(deps service.ServiceDependencies, flags *servic
 		CAPath:                c.CAPath(),
 		CertificatesFolder:    path.Dir(c.CertificatePath()),
 	}
-	changed, err := templates.Render(kubeApiServiceTemplate, c.ManifestPath(), opts, manifestFileMode)
+	changed, err := templates.Render(deps.Logger, kubeApiServiceTemplate, c.ManifestPath(), opts, manifestFileMode)
 	return changed, maskAny(err)
 }
 

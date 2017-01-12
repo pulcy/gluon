@@ -82,6 +82,6 @@ func createJournalConf(deps service.ServiceDependencies, flags *service.ServiceF
 		"WantedBy=sockets.target",
 	}
 
-	changed, err := util.UpdateFile(socketPath, []byte(strings.Join(lines, "\n")), configFileMode)
+	changed, err := util.UpdateFile(deps.Logger, socketPath, []byte(strings.Join(lines, "\n")), configFileMode)
 	return changed, maskAny(err)
 }

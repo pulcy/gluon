@@ -99,6 +99,6 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 		ClusterIP: flags.Network.ClusterIP,
 		PrivateIP: privateIP,
 	}
-	changed, err := templates.Render(vaultServiceTmpl, vaultServicePath, opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, vaultServiceTmpl, vaultServicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }

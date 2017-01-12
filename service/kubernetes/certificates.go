@@ -70,7 +70,7 @@ func createCertsTemplate(deps service.ServiceDependencies, flags *service.Servic
 	setDelims := func(t *template.Template) {
 		t.Delims("[[", "]]")
 	}
-	changed, err := templates.Render(certsTemplateTemplate, certsTemplatesPath, opts, templateFileMode, setDelims)
+	changed, err := templates.Render(deps.Logger, certsTemplateTemplate, certsTemplatesPath, opts, templateFileMode, setDelims)
 	return changed, maskAny(err)
 }
 
@@ -106,6 +106,6 @@ func createCertsService(deps service.ServiceDependencies, flags *service.Service
 		TokenPolicy:        path.Join("ca", clusterID, "pki/k8s", c.Name()),
 		TokenRole:          fmt.Sprintf("k8s-%s-%s", clusterID, c),
 	}
-	changed, err := templates.Render(certsServiceTemplate, c.CertificatesServicePath(), opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, certsServiceTemplate, c.CertificatesServicePath(), opts, serviceFileMode)
 	return changed, maskAny(err)
 }

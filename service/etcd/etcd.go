@@ -193,7 +193,7 @@ func addCoreToEtcdGroup(deps service.ServiceDependencies, flags *service.Service
 // createEtcdUserAndPath ensures the ETCD user exists.
 func createEtcdUserAndPath(deps service.ServiceDependencies) error {
 	deps.Logger.Info("creating %s", initPath)
-	if _, err := templates.Render(initTemplate, initPath, nil, initFileMode); err != nil {
+	if _, err := templates.Render(deps.Logger, initTemplate, initPath, nil, initFileMode); err != nil {
 		return maskAny(err)
 	}
 	// Call init script
@@ -328,7 +328,7 @@ func createCertsTemplate(deps service.ServiceDependencies, flags *service.Servic
 	setDelims := func(t *template.Template) {
 		t.Delims("[[", "]]")
 	}
-	changed, err := templates.Render(certsTemplateTemplate, certsTemplatesPath, opts, templateFileMode, setDelims)
+	changed, err := templates.Render(deps.Logger, certsTemplateTemplate, certsTemplatesPath, opts, templateFileMode, setDelims)
 	return changed, maskAny(err)
 }
 
@@ -360,7 +360,7 @@ func createCertsService(deps service.ServiceDependencies, flags *service.Service
 		TokenPolicy:        path.Join("ca", clusterID, "pki/etcd/member"),
 		TokenRole:          fmt.Sprintf("etcd-%s", clusterID),
 	}
-	changed, err := templates.Render(certsServiceTemplate, certsServicePath, opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, certsServiceTemplate, certsServicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 
@@ -376,7 +376,7 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 	if flags.Etcd.UseVaultCA {
 		opts.After = append(opts.After, certsServiceName)
 	}
-	changed, err := templates.Render(serviceTemplate, servicePath, opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, serviceTemplate, servicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 
@@ -420,7 +420,7 @@ func createEtcd2Conf(deps service.ServiceDependencies, cfg etcdConfig) (bool, er
 		lines = append(lines, "Environment=ETCD_PROXY=on")
 	}
 
-	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), configFileMode)
+	changed, err := util.UpdateFile(deps.Logger, confPath, []byte(strings.Join(lines, "\n")), configFileMode)
 	return changed, maskAny(err)
 }
 

@@ -62,7 +62,7 @@ func createBashrc(deps service.ServiceDependencies, flags *service.ServiceFlags)
 		FleetEnabled:      flags.Fleet.IsEnabled(),
 		KubernetesEnabled: flags.Kubernetes.IsEnabled(),
 	}
-	if _, err := templates.Render(bashrcTemplate, bashrcPath, opts, fileMode); err != nil {
+	if _, err := templates.Render(deps.Logger, bashrcTemplate, bashrcPath, opts, fileMode); err != nil {
 		return maskAny(err)
 	}
 

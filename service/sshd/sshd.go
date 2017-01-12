@@ -64,6 +64,6 @@ func (t *sshdService) Setup(deps service.ServiceDependencies, flags *service.Ser
 func createSshdConfig(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", confPath)
 	os.Remove(confPath)
-	changed, err := templates.Render(confTemplate, confPath, nil, fileMode)
+	changed, err := templates.Render(deps.Logger, confTemplate, confPath, nil, fileMode)
 	return changed, maskAny(err)
 }

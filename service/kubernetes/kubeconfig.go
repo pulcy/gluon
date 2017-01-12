@@ -57,6 +57,6 @@ func createKubeConfig(deps service.ServiceDependencies, flags *service.ServiceFl
 		ClientCertPath: c.CertificatePath(),
 		ClientKeyPath:  c.KeyPath(),
 	}
-	changed, err := templates.Render(kubeConfigTemplate, c.KubeConfigPath(), opts, configFileMode)
+	changed, err := templates.Render(deps.Logger, kubeConfigTemplate, c.KubeConfigPath(), opts, configFileMode)
 	return changed, maskAny(err)
 }

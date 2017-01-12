@@ -54,7 +54,7 @@ func (t *gluonService) Setup(deps service.ServiceDependencies, flags *service.Se
 		return errgo.New("docker-subnet is missing")
 	}
 
-	changedFlags, err := flags.Save()
+	changedFlags, err := flags.Save(deps.Logger)
 	if err != nil {
 		return maskAny(err)
 	}
@@ -97,6 +97,6 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 		RktSubnet:            flags.Rkt.RktSubnet,
 		WeaveHostname:        flags.Weave.Hostname,
 	}
-	changed, err := templates.Render(serviceTemplate, servicePath, opts, fileMode)
+	changed, err := templates.Render(deps.Logger, serviceTemplate, servicePath, opts, fileMode)
 	return changed, maskAny(err)
 }

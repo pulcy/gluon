@@ -34,6 +34,7 @@ func createKubeletService(deps service.ServiceDependencies, flags *service.Servi
 		Requires            []string
 		After               []string
 		ClusterDNS          string
+		ClusterDomain       string
 		HostnameOverride    string
 		KubeConfigPath      string
 		RegisterSchedulable bool
@@ -45,6 +46,7 @@ func createKubeletService(deps service.ServiceDependencies, flags *service.Servi
 		Requires:            []string{"rkt-api.service"},
 		After:               []string{"rkt-api.service", c.CertificatesServiceName()},
 		ClusterDNS:          flags.Kubernetes.ClusterDNS,
+		ClusterDomain:       flags.Kubernetes.ClusterDomain,
 		HostnameOverride:    flags.Network.ClusterIP,
 		KubeConfigPath:      c.KubeConfigPath(),
 		RegisterSchedulable: true, //!flags.HasRole("core"),
@@ -53,6 +55,6 @@ func createKubeletService(deps service.ServiceDependencies, flags *service.Servi
 		CertPath:            c.CertificatePath(),
 		KeyPath:             c.KeyPath(),
 	}
-	changed, err := templates.Render(kubeletServiceTemplate, c.ServicePath(), opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, kubeletServiceTemplate, c.ServicePath(), opts, serviceFileMode)
 	return changed || configChanged, maskAny(err)
 }

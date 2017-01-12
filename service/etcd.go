@@ -54,10 +54,10 @@ func (flags *Etcd) setupDefaults(log *logging.Logger) error {
 
 // save applicable flags to their respective files
 // Returns true if anything has changed, false otherwise
-func (flags *Etcd) save() (bool, error) {
+func (flags *Etcd) save(log *logging.Logger) (bool, error) {
 	changes := 0
 	if flags.ClusterState != "" {
-		if changed, err := updateContent(etcdClusterStatePath, flags.ClusterState, 0644); err != nil {
+		if changed, err := updateContent(log, etcdClusterStatePath, flags.ClusterState, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++

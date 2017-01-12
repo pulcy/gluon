@@ -109,7 +109,7 @@ func createDockerService(deps service.ServiceDependencies, flags *service.Servic
 	}{
 		DockerIP: flags.Docker.DockerIP,
 	}
-	changed, err := templates.Render(serviceTemplate, servicePath, opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, serviceTemplate, servicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 
@@ -136,7 +136,7 @@ func createDockerConfig(rootConfigPath string, deps service.ServiceDependencies,
 		if err != nil {
 			return false, maskAny(err)
 		}
-		changed, err := util.UpdateFile(rootConfigPath, raw, 0600)
+		changed, err := util.UpdateFile(deps.Logger, rootConfigPath, raw, 0600)
 		return changed, maskAny(err)
 	} else {
 		deps.Logger.Warning("Skip creating .docker config")
@@ -163,6 +163,6 @@ func createDockerCleanup(deps service.ServiceDependencies, flags *service.Servic
 		return false, maskAny(err)
 	}
 
-	changed, err := util.UpdateFile(cleanupPath, asset, scriptFileMode)
+	changed, err := util.UpdateFile(deps.Logger, cleanupPath, asset, scriptFileMode)
 	return changed, maskAny(err)
 }

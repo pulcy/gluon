@@ -95,7 +95,7 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 	}{
 		Flags: args,
 	}
-	changed, err := templates.Render(consulServiceTmpl, consulServicePath, opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, consulServiceTmpl, consulServicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 

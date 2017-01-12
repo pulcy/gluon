@@ -112,13 +112,13 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 		IPRange:  flags.Weave.IPRange,
 		IPInit:   "seed=${SEED}",
 	}
-	changed, err := templates.Render(weaveServiceTmpl, weaveServicePath, opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, weaveServiceTmpl, weaveServicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 
 func createCniConf(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", cniConfPath)
-	changed, err := templates.Render(cniConfTmpl, cniConfPath, nil, configFileMode)
+	changed, err := templates.Render(deps.Logger, cniConfTmpl, cniConfPath, nil, configFileMode)
 	return changed, maskAny(err)
 }
 
@@ -144,7 +144,7 @@ func createRktNetwork(deps service.ServiceDependencies, flags *service.ServiceFl
 		Subnet:  flags.Weave.RktSubnet,
 		Gateway: flags.Weave.RktGateway,
 	}
-	changed, err := templates.Render(rktNetworkConfTemplate, rktNetworkConfPath, opts, configFileMode)
+	changed, err := templates.Render(deps.Logger, rktNetworkConfTemplate, rktNetworkConfPath, opts, configFileMode)
 	return changed, maskAny(err)
 }
 

@@ -149,7 +149,7 @@ func createV4Members(deps service.ServiceDependencies, flags *service.ServiceFla
 		opts.ClusterMemberIPs = append(opts.ClusterMemberIPs, cm.ClusterIP)
 		opts.PrivateMemberIPs = append(opts.PrivateMemberIPs, cm.PrivateHostIP)
 	}
-	changed, err := templates.Render(v4membersTemplate, v4membersPath, opts, scriptFileMode)
+	changed, err := templates.Render(deps.Logger, v4membersTemplate, v4membersPath, opts, scriptFileMode)
 	return changed, maskAny(err)
 }
 
@@ -172,7 +172,7 @@ func createV4Rules(deps service.ServiceDependencies, flags *service.ServiceFlags
 		KubernetesAPIServer:     flags.Kubernetes.IsEnabled(),
 		KubernetesAPIServerPort: flags.Kubernetes.APIServerPort,
 	}
-	changed, err := templates.Render(v4rulesTemplate, v4rulesPath, opts, rulesFileMode)
+	changed, err := templates.Render(deps.Logger, v4rulesTemplate, v4rulesPath, opts, rulesFileMode)
 	return changed, maskAny(err)
 }
 
@@ -185,24 +185,24 @@ func createV6Rules(deps service.ServiceDependencies, flags *service.ServiceFlags
 		KubernetesAPIServer:     flags.Kubernetes.IsEnabled(),
 		KubernetesAPIServerPort: flags.Kubernetes.APIServerPort,
 	}
-	changed, err := templates.Render(v6rulesTemplate, v6rulesPath, opts, rulesFileMode)
+	changed, err := templates.Render(deps.Logger, v6rulesTemplate, v6rulesPath, opts, rulesFileMode)
 	return changed, maskAny(err)
 }
 
 func createNetfilterService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", netfilterServicePath)
-	changed, err := templates.Render(netfilterTemplate, netfilterServicePath, nil, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, netfilterTemplate, netfilterServicePath, nil, serviceFileMode)
 	return changed, maskAny(err)
 }
 
 func createIp4tablesService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", v4servicePath)
-	changed, err := templates.Render(v4serviceTemplate, v4servicePath, nil, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, v4serviceTemplate, v4servicePath, nil, serviceFileMode)
 	return changed, maskAny(err)
 }
 
 func createIp6tablesService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
 	deps.Logger.Info("creating %s", v6servicePath)
-	changed, err := templates.Render(v6serviceTemplate, v6servicePath, nil, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, v6serviceTemplate, v6servicePath, nil, serviceFileMode)
 	return changed, maskAny(err)
 }

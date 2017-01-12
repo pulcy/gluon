@@ -84,6 +84,14 @@ func (c Component) ManifestPath() string {
 	return manifestPath(c.ManifestName())
 }
 
+// AddonPath returns the full path of the file containing the addon that runs the component.
+func (c Component) AddonPath() string {
+	if !c.isManifest {
+		return ""
+	}
+	return addonPath(c.ManifestName())
+}
+
 // CertificatesServiceName returns the name of the systemd service that generates the TLS certificates for the component.
 func (c Component) CertificatesServiceName() string {
 	return fmt.Sprintf("%s-certs.service", c)

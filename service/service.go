@@ -181,45 +181,45 @@ func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
 
 // Save applicable flags to their respective files
 // Returns true if anything has changed, false otherwise
-func (flags *ServiceFlags) Save() (bool, error) {
+func (flags *ServiceFlags) Save(log *logging.Logger) (bool, error) {
 	changes := 0
 	if flags.Docker.PrivateRegistryUrl != "" {
-		if changed, err := updateContent(privateRegistryUrlPath, flags.Docker.PrivateRegistryUrl, 0644); err != nil {
+		if changed, err := updateContent(log, privateRegistryUrlPath, flags.Docker.PrivateRegistryUrl, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++
 		}
 	}
-	if changed, err := flags.Fleet.save(); err != nil {
+	if changed, err := flags.Fleet.save(log); err != nil {
 		return false, maskAny(err)
 	} else if changed {
 		changes++
 	}
-	if changed, err := flags.Etcd.save(); err != nil {
+	if changed, err := flags.Etcd.save(log); err != nil {
 		return false, maskAny(err)
 	} else if changed {
 		changes++
 	}
-	if changed, err := flags.Kubernetes.save(); err != nil {
+	if changed, err := flags.Kubernetes.save(log); err != nil {
 		return false, maskAny(err)
 	} else if changed {
 		changes++
 	}
 	if flags.GluonImage != "" {
-		if changed, err := updateContent(gluonImagePath, flags.GluonImage, 0644); err != nil {
+		if changed, err := updateContent(log, gluonImagePath, flags.GluonImage, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++
 		}
 	}
-	if changed, err := flags.Weave.save(); err != nil {
+	if changed, err := flags.Weave.save(log); err != nil {
 		return false, maskAny(err)
 	} else if changed {
 		changes++
 	}
 	if len(flags.Roles) > 0 {
 		content := strings.Join(flags.Roles, "\n")
-		if changed, err := updateContent(rolesPath, content, 0644); err != nil {
+		if changed, err := updateContent(log, rolesPath, content, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++
@@ -329,10 +329,10 @@ func (flags *ServiceFlags) getClusterMembersFromFS(log *logging.Logger) ([]Clust
 	return members, nil
 }
 
-func updateContent(path, content string, fileMode os.FileMode) (bool, error) {
+func updateContent(log *logging.Logger, path, content string, fileMode os.FileMode) (bool, error) {
 	content = strings.TrimSpace(content)
 	os.MkdirAll(filepath.Dir(path), 0755)
-	changed, err := util.UpdateFile(path, []byte(content), fileMode)
+	changed, err := util.UpdateFile(log, path, []byte(content), fileMode)
 	return changed, maskAny(err)
 }
 

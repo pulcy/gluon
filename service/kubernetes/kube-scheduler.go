@@ -55,6 +55,6 @@ func createKubeSchedulerManifest(deps service.ServiceDependencies, flags *servic
 		CAPath:             c.CAPath(),
 		CertificatesFolder: path.Dir(c.CertificatePath()),
 	}
-	changed, err := templates.Render(kubeSchedulerTemplate, c.ManifestPath(), opts, manifestFileMode)
+	changed, err := templates.Render(deps.Logger, kubeSchedulerTemplate, c.ManifestPath(), opts, manifestFileMode)
 	return changed || configChanged, maskAny(err)
 }
