@@ -1,0 +1,15 @@
+{
+    "name": "default",
+    "type": "bridge",
+    "bridge": "weave",
+    "isGateway": true,
+    "ipMasq": true,
+    "ipam": {
+        "type": "host-local",
+        "subnet": "{{.Subnet}}",
+        "gateway": "{{.Gateway}}",
+        "routes": [
+            { "dst": "0.0.0.0/0" }
+        ]
+    }
+}

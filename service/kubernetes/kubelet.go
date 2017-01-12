@@ -15,8 +15,6 @@
 package kubernetes
 
 import (
-	"strings"
-
 	"github.com/pulcy/gluon/service"
 	"github.com/pulcy/gluon/templates"
 )
@@ -32,15 +30,11 @@ func createKubeletService(deps service.ServiceDependencies, flags *service.Servi
 		return false, maskAny(err)
 	}
 	deps.Logger.Info("creating %s", c.ServicePath())
-	apiServers, err := getAPIServers(deps, flags)
-	if err != nil {
-		return false, maskAny(err)
-	}
 	opts := struct {
 		Requires            []string
 		After               []string
-		APIServers          string
 		ClusterDNS          string
+		HostnameOverride    string
 		KubeConfigPath      string
 		RegisterSchedulable bool
 		NodeIP              string
@@ -50,8 +44,8 @@ func createKubeletService(deps service.ServiceDependencies, flags *service.Servi
 	}{
 		Requires:            []string{"rkt-api.service"},
 		After:               []string{"rkt-api.service", c.CertificatesServiceName()},
-		APIServers:          strings.Join(apiServers, ","),
 		ClusterDNS:          flags.Kubernetes.ClusterDNS,
+		HostnameOverride:    flags.Network.ClusterIP,
 		KubeConfigPath:      c.KubeConfigPath(),
 		RegisterSchedulable: true, //!flags.HasRole("core"),
 		NodeIP:              flags.Network.ClusterIP,

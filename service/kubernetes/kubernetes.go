@@ -61,6 +61,11 @@ func (t *k8sService) Name() string {
 
 func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
 	runKubernetes := flags.Kubernetes.IsEnabled()
+	if runKubernetes {
+		if err := linkCniBinaries(deps, flags); err != nil {
+			return maskAny(err)
+		}
+	}
 	for c, compSetup := range components {
 		installComponent := runKubernetes
 		if c.MasterOnly() && !flags.HasRole("core") {

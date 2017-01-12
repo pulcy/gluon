@@ -34,11 +34,7 @@ const (
 	privateRegistryUrlPath  = "/etc/pulcy/private-registry-url"
 	etcdClusterStatePath    = "/etc/pulcy/etcd-cluster-state"
 	gluonImagePath          = "/etc/pulcy/gluon-image"
-	weaveSeedPath           = "/etc/pulcy/weave-seed"
-	weaveIPRangePath        = "/etc/pulcy/weave-iprange"
-	weaveIPInitPath         = "/etc/pulcy/weave-ipinit"
 	privateHostIPPrefix     = "private-host-ip="
-	defaultWeaveIPRange     = "10.32.0.0/12"
 	rolesPath               = "/etc/pulcy/roles"
 	clusterIDPath           = "/etc/pulcy/cluster-id"
 )
@@ -92,12 +88,7 @@ type ServiceFlags struct {
 	Fleet Fleet
 
 	// Weave
-	Weave struct {
-		Seed     string
-		Hostname string // Weave DNS of exposed host
-		IPRange  string // Value to `--ipalloc-range` (e.g. 10.32.0.0/16)
-		IPInit   string // Value for `--ipalloc-init` (default empty)
-	}
+	Weave Weave
 
 	// private cache
 	clusterMembers []ClusterMember
@@ -134,13 +125,13 @@ func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
 			flags.Docker.PrivateRegistryUrl = string(url)
 		}
 	}
-	if err := flags.Fleet.SetupDefaults(log); err != nil {
+	if err := flags.Fleet.setupDefaults(log); err != nil {
 		return maskAny(err)
 	}
-	if err := flags.Etcd.SetupDefaults(log); err != nil {
+	if err := flags.Etcd.setupDefaults(log); err != nil {
 		return maskAny(err)
 	}
-	if err := flags.Kubernetes.SetupDefaults(log); err != nil {
+	if err := flags.Kubernetes.setupDefaults(log); err != nil {
 		return maskAny(err)
 	}
 	if flags.Network.PrivateClusterDevice == "" {
@@ -160,47 +151,8 @@ func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
 			flags.GluonImage = strings.TrimSpace(string(content))
 		}
 	}
-	if flags.Weave.Seed == "" {
-		seed, err := ioutil.ReadFile(weaveSeedPath)
-		if err != nil && !os.IsNotExist(err) {
-			return maskAny(err)
-		} else if err == nil {
-			flags.Weave.Seed = string(seed)
-		} else {
-			members, err := flags.GetClusterMembers(log)
-			if err != nil {
-				return maskAny(err)
-			}
-			var seeds []string
-			for _, m := range members {
-				if !m.EtcdProxy {
-					name, err := util.WeaveNameFromMachineID(m.MachineID)
-					if err != nil {
-						return maskAny(err)
-					}
-					seeds = append(seeds, name)
-				}
-			}
-			flags.Weave.Seed = strings.Join(seeds, ",")
-		}
-	}
-	if flags.Weave.IPRange == "" {
-		content, err := ioutil.ReadFile(weaveIPRangePath)
-		if err != nil && !os.IsNotExist(err) {
-			return maskAny(err)
-		} else if err == nil {
-			flags.Weave.IPRange = strings.TrimSpace(string(content))
-		} else {
-			flags.Weave.IPRange = defaultWeaveIPRange
-		}
-	}
-	if flags.Weave.IPInit == "" {
-		content, err := ioutil.ReadFile(weaveIPInitPath)
-		if err != nil && !os.IsNotExist(err) {
-			return maskAny(err)
-		} else if err == nil {
-			flags.Weave.IPInit = strings.TrimSpace(string(content))
-		}
+	if err := flags.Weave.setupDefaults(log, flags); err != nil {
+		return maskAny(err)
 	}
 
 	// Setup roles last, since it depends on other flags being initialized
@@ -238,17 +190,17 @@ func (flags *ServiceFlags) Save() (bool, error) {
 			changes++
 		}
 	}
-	if changed, err := flags.Fleet.Save(); err != nil {
+	if changed, err := flags.Fleet.save(); err != nil {
 		return false, maskAny(err)
 	} else if changed {
 		changes++
 	}
-	if changed, err := flags.Etcd.Save(); err != nil {
+	if changed, err := flags.Etcd.save(); err != nil {
 		return false, maskAny(err)
 	} else if changed {
 		changes++
 	}
-	if changed, err := flags.Kubernetes.Save(); err != nil {
+	if changed, err := flags.Kubernetes.save(); err != nil {
 		return false, maskAny(err)
 	} else if changed {
 		changes++
@@ -260,19 +212,10 @@ func (flags *ServiceFlags) Save() (bool, error) {
 			changes++
 		}
 	}
-	if flags.Weave.Seed != "" {
-		if changed, err := updateContent(weaveSeedPath, flags.Weave.Seed, 0644); err != nil {
-			return false, maskAny(err)
-		} else if changed {
-			changes++
-		}
-	}
-	if flags.Weave.IPRange != "" {
-		if changed, err := updateContent(weaveIPRangePath, flags.Weave.IPRange, 0644); err != nil {
-			return false, maskAny(err)
-		} else if changed {
-			changes++
-		}
+	if changed, err := flags.Weave.save(); err != nil {
+		return false, maskAny(err)
+	} else if changed {
+		changes++
 	}
 	if len(flags.Roles) > 0 {
 		content := strings.Join(flags.Roles, "\n")

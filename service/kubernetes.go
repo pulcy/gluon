@@ -38,8 +38,8 @@ const (
 	defaultClusterDNS            = "10.32.0.10"
 )
 
-// SetupDefaults fills given flags with default value
-func (flags *Kubernetes) SetupDefaults(log *logging.Logger) error {
+// setupDefaults fills given flags with default value
+func (flags *Kubernetes) setupDefaults(log *logging.Logger) error {
 	if flags.KubernetesMasterImage == "" {
 		flags.KubernetesMasterImage = defaultKubernetesMasterImage
 	}
@@ -70,9 +70,9 @@ func (flags *Kubernetes) SetupDefaults(log *logging.Logger) error {
 	return nil
 }
 
-// Save applicable flags to their respective files
+// save applicable flags to their respective files
 // Returns true if anything has changed, false otherwise
-func (flags *Kubernetes) Save() (bool, error) {
+func (flags *Kubernetes) save() (bool, error) {
 	changes := 0
 	return (changes > 0), nil
 }

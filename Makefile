@@ -42,9 +42,9 @@ endif
 SOURCES := $(shell find $(SRCDIR) -name '*.go')
 TEMPLATES := $(shell find $(SRCDIR)/templates -name '*')
 
-.PHONY: all clean deps consul weave rkt etcd fleet kubernetes
+.PHONY: all clean deps consul weave rkt etcd fleet kubernetes cni
 
-all: .build/certdump consul kubernetes weave rkt $(BIN) $(BINGPG) etcd fleet
+all: .build/certdump consul kubernetes weave rkt $(BIN) $(BINGPG) etcd fleet cni
 
 clean:
 	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR) .build $(FLEETBUILDDIR)
@@ -186,4 +186,16 @@ kubernetes: .build/kubectl .build/kubelet .build/kube-proxy
 .build/kube-proxy:
 	@mkdir -p .build
 	@curl -L https://storage.googleapis.com/kubernetes-release/release/$(K8SVERSION)/bin/linux/amd64/kube-proxy -o .build/kube-proxy
+
+# CNI 
+
+cni: .build/cni 
+
+.build/cni: .build/cni.tar.gz
+	@mkdir -p .build/cni
+	@tar -xvf .build/cni.tar.gz -C .build/cni
+
+.build/cni.tar.gz: 
+	@mkdir -p .build
+	@curl -L https://storage.googleapis.com/kubernetes-release/network-plugins/cni-07a8a28637e97b22eb8dfe710eeae1344f69d16e.tar.gz -o .build/cni.tar.gz
 

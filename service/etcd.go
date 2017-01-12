@@ -35,8 +35,8 @@ const (
 	defaultEtcdClientPort = 2379
 )
 
-// SetupDefaults fills given flags with default value
-func (flags *Etcd) SetupDefaults(log *logging.Logger) error {
+// setupDefaults fills given flags with default value
+func (flags *Etcd) setupDefaults(log *logging.Logger) error {
 	if flags.ClientPort == 0 {
 		flags.ClientPort = defaultEtcdClientPort
 	}
@@ -52,9 +52,9 @@ func (flags *Etcd) SetupDefaults(log *logging.Logger) error {
 	return nil
 }
 
-// Save applicable flags to their respective files
+// save applicable flags to their respective files
 // Returns true if anything has changed, false otherwise
-func (flags *Etcd) Save() (bool, error) {
+func (flags *Etcd) save() (bool, error) {
 	changes := 0
 	if flags.ClusterState != "" {
 		if changed, err := updateContent(etcdClusterStatePath, flags.ClusterState, 0644); err != nil {

@@ -37,8 +37,8 @@ type Fleet struct {
 	TokenLimit              int
 }
 
-// SetupDefaults fills given flags with default value
-func (flags *Fleet) SetupDefaults(log *logging.Logger) error {
+// setupDefaults fills given flags with default value
+func (flags *Fleet) setupDefaults(log *logging.Logger) error {
 	if flags.Metadata == "" {
 		raw, err := ioutil.ReadFile(fleetMetadataPath)
 		if err != nil && !os.IsNotExist(err) {
@@ -51,9 +51,9 @@ func (flags *Fleet) SetupDefaults(log *logging.Logger) error {
 	return nil
 }
 
-// Save applicable flags to their respective files
+// save applicable flags to their respective files
 // Returns true if anything has changed, false otherwise
-func (flags *Fleet) Save() (bool, error) {
+func (flags *Fleet) save() (bool, error) {
 	changes := 0
 	if flags.Metadata != "" {
 		parts := strings.Split(flags.Metadata, ",")

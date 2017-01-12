@@ -1,0 +1,10 @@
+.gobuild
+.build/*.gz
+.build/*.zip
+.build/fleet
+certdump
+service
+systemd
+templates
+vendor
+

@@ -27,12 +27,14 @@ import (
 )
 
 var (
-	weaveServiceName = "weave.service"
-	weaveServiceTmpl = "templates/weave/" + weaveServiceName + ".tmpl"
-	weaveServicePath = "/etc/systemd/system/" + weaveServiceName
-	cniConfTmpl      = "templates/weave/cni.conf"
-	cniConfPath      = "/etc/cni/net.d/10-weave.conf"
-	cniPluginDir     = "/opt/cni/bin"
+	weaveServiceName       = "weave.service"
+	weaveServiceTmpl       = "templates/weave/" + weaveServiceName + ".tmpl"
+	weaveServicePath       = "/etc/systemd/system/" + weaveServiceName
+	cniConfTmpl            = "templates/weave/cni.conf"
+	cniConfPath            = "/etc/cni/net.d/10-weave.conf"
+	cniPluginDir           = "/opt/cni/bin"
+	rktNetworkConfPath     = "/etc/rkt/net.d/10-default-weave.conf"
+	rktNetworkConfTemplate = "templates/weave/rkt-net-weave.conf.tmpl"
 
 	serviceFileMode = os.FileMode(0644)
 	configFileMode  = os.FileMode(0644)
@@ -60,6 +62,9 @@ func (t *weaveService) Setup(deps service.ServiceDependencies, flags *service.Se
 		return maskAny(err)
 	}
 	if err := setupCni(deps, flags); err != nil {
+		return maskAny(err)
+	}
+	if _, err := createRktNetwork(deps, flags); err != nil {
 		return maskAny(err)
 	}
 
@@ -125,6 +130,22 @@ func setupCni(deps service.ServiceDependencies, flags *service.ServiceFlags) err
 		return maskAny(err)
 	}
 	return nil
+}
+
+func createRktNetwork(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	if err := util.EnsureDirectoryOf(rktNetworkConfPath, 0755); err != nil {
+		return false, maskAny(err)
+	}
+	deps.Logger.Info("creating %s", rktNetworkConfPath)
+	opts := struct {
+		Subnet  string
+		Gateway string
+	}{
+		Subnet:  flags.Weave.RktSubnet,
+		Gateway: flags.Weave.RktGateway,
+	}
+	changed, err := templates.Render(rktNetworkConfTemplate, rktNetworkConfPath, opts, configFileMode)
+	return changed, maskAny(err)
 }
 
 func getPeerName(deps service.ServiceDependencies, flags *service.ServiceFlags) (string, error) {

@@ -114,15 +114,16 @@ func runSetup(cmd *cobra.Command, args []string) {
 	}
 
 	services := []service.Service{
+		// The order of entries is relevant!
 		binaries.NewService(),
 		env.NewService(),
 		iptables.NewService(),
 		journal.NewService(),
 		docker.NewService(),
 		rkt.NewService(),
-		vault.NewService(),
 		weave.NewService(),
 		consul.NewService(),
+		vault.NewService(),
 		etcd.NewService(),
 		kubernetes.NewService(),
 		fleet.NewService(),

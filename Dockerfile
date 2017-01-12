@@ -24,4 +24,6 @@ RUN chmod +x /copy.sh
 
 ADD ./gluon /dist/
 
+ADD .build/cni/bin/* /dist/cni/bin/
+
 ENTRYPOINT ["/copy.sh"]
