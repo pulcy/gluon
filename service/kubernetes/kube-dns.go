@@ -15,6 +15,8 @@
 package kubernetes
 
 import (
+	"path"
+
 	"github.com/pulcy/gluon/service"
 	"github.com/pulcy/gluon/templates"
 	"github.com/pulcy/gluon/util"
@@ -29,14 +31,22 @@ func createKubeDNSAddon(deps service.ServiceDependencies, flags *service.Service
 	if err := util.EnsureDirectoryOf(c.AddonPath(), 0755); err != nil {
 		return false, maskAny(err)
 	}
+	configChanged, err := createKubeConfig(deps, flags, c)
+	if err != nil {
+		return false, maskAny(err)
+	}
 	deps.Logger.Info("creating %s", c.AddonPath())
 	opts := struct {
-		ClusterDNS    string
-		ClusterDomain string
+		ClusterDNS         string
+		ClusterDomain      string
+		KubeConfigPath     string
+		CertificatesFolder string
 	}{
-		ClusterDNS:    flags.Kubernetes.ClusterDNS,
-		ClusterDomain: flags.Kubernetes.ClusterDomain,
+		ClusterDNS:         flags.Kubernetes.ClusterDNS,
+		ClusterDomain:      flags.Kubernetes.ClusterDomain,
+		KubeConfigPath:     c.KubeConfigPath(),
+		CertificatesFolder: path.Dir(c.CertificatePath()),
 	}
 	changed, err := templates.Render(deps.Logger, kubeDNSTemplate, c.AddonPath(), opts, manifestFileMode)
-	return changed, maskAny(err)
+	return changed || configChanged, maskAny(err)
 }

@@ -28,13 +28,13 @@ var (
 
 	components = map[Component]componentSetup{
 		// Components that should be installed on all nodes
-		NewServiceComponent("kubelet", false):    componentSetup{createKubeletService, nil},
-		NewServiceComponent("kube-proxy", false): componentSetup{createKubeProxyService, nil},
+		NewServiceComponent("kubelet", false):    componentSetup{createKubeletService, nil, false},
+		NewServiceComponent("kube-proxy", false): componentSetup{createKubeProxyService, nil, false},
 		// Components that should be installed on master nodes only
-		NewManifestComponent("kube-apiserver", true):          componentSetup{createKubeApiServerManifest, createKubeApiServerAltNames},
-		NewManifestComponent("kube-controller-manager", true): componentSetup{createKubeControllerManagerManifest, nil},
-		NewManifestComponent("kube-scheduler", true):          componentSetup{createKubeSchedulerManifest, nil},
-		NewManifestComponent("kube-dns", true):                componentSetup{createKubeDNSAddon, nil},
+		NewManifestComponent("kube-apiserver", true):          componentSetup{createKubeApiServerManifest, createKubeApiServerAltNames, true},
+		NewManifestComponent("kube-controller-manager", true): componentSetup{createKubeControllerManagerManifest, nil, false},
+		NewManifestComponent("kube-scheduler", true):          componentSetup{createKubeSchedulerManifest, nil, false},
+		NewManifestComponent("kube-dns", true):                componentSetup{createKubeDNSAddon, nil, false},
 	}
 )
 
@@ -46,8 +46,9 @@ const (
 )
 
 type componentSetup struct {
-	Setup       func(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) (bool, error)
-	GetAltNames func(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) []string
+	Setup                  func(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) (bool, error)
+	GetAltNames            func(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) []string
+	AddInternalApiServerIP bool
 }
 
 func NewService() service.Service {
@@ -80,7 +81,7 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 			if compSetup.GetAltNames != nil {
 				altNames = compSetup.GetAltNames(deps, flags, c)
 			}
-			if certsTemplateChanged, err = createCertsTemplate(deps, flags, c, altNames); err != nil {
+			if certsTemplateChanged, err = createCertsTemplate(deps, flags, c, altNames, compSetup.AddInternalApiServerIP); err != nil {
 				return maskAny(err)
 			}
 			if certsServiceChanged, err = createCertsService(deps, flags, c); err != nil {

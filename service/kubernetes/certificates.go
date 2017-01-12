@@ -16,6 +16,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"net"
 	"path"
 	"strings"
 	"text/template"
@@ -31,7 +32,7 @@ const (
 )
 
 // createCertsTemplate creates the consul-template used by the k8s-certs service.
-func createCertsTemplate(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component, altNames []string) (bool, error) {
+func createCertsTemplate(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component, altNames []string, addInternalApiServerIP bool) (bool, error) {
 	certsTemplatesPath := c.CertificatesTemplatePath()
 	if err := util.EnsureDirectoryOf(certsTemplatesPath, 0755); err != nil {
 		return false, maskAny(err)
@@ -66,6 +67,15 @@ func createCertsTemplate(deps service.ServiceDependencies, flags *service.Servic
 	}
 	if len(altNames) > 0 {
 		opts.SecretArgs = fmt.Sprintf(`"alt_names=%s" `, strings.Join(altNames, ","))
+	}
+	if addInternalApiServerIP {
+		serviceIP, _, err := net.ParseCIDR(flags.Kubernetes.ServiceClusterIPRange)
+		if err != nil {
+			return false, maskAny(err)
+		}
+		internalApiServerIP := serviceIP.To4()
+		internalApiServerIP[3] = 1
+		opts.IPSans = opts.IPSans + "," + internalApiServerIP.String()
 	}
 	setDelims := func(t *template.Template) {
 		t.Delims("[[", "]]")
