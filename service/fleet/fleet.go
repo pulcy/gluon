@@ -33,7 +33,8 @@ var (
 
 const (
 	confName          = "99-fleet.conf"
-	confPath          = "/etc/systemd/system/" + serviceName + ".d/" + confName
+	confDir           = "/etc/systemd/system/" + serviceName + ".d/"
+	confPath          = confDir + confName
 	serviceName       = "fleet.service"
 	serviceTemplate   = "templates/fleet/fleet.service.tmpl"
 	servicePath       = "/etc/systemd/system/" + serviceName
@@ -107,7 +108,7 @@ func (t *fleetService) Setup(deps service.ServiceDependencies, flags *service.Se
 		if err := deps.Systemd.StopAndRemove(socketName, socketPath); err != nil {
 			return maskAny(err)
 		}
-		if err := deps.Systemd.StopAndRemove(serviceName, servicePath, confPath, checkScriptPath); err != nil {
+		if err := deps.Systemd.StopAndRemove(serviceName, servicePath, confPath, confDir, checkScriptPath); err != nil {
 			return maskAny(err)
 		}
 	}

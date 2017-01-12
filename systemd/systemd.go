@@ -232,13 +232,14 @@ func (sdc *SystemdClient) StopAndRemove(unit string, filesToRemove ...string) er
 		if err := sdc.Stop(unit); err != nil {
 			sdc.Logger.Errorf("Failed to stop %s: %#v", unit, err)
 		}
+		if err := sdc.Disable(unit); err != nil {
+			sdc.Logger.Errorf("Disabling %s failed: %#v", unit, err)
+		}
 	}
-	if err := sdc.Disable(unit); err != nil {
-		sdc.Logger.Errorf("Disabling %s failed: %#v", unit, err)
-	} else {
-		for _, filePath := range filesToRemove {
+	for _, filePath := range filesToRemove {
+		if _, err := os.Stat(filePath); err == nil {
 			sdc.Logger.Debugf("removing %s", filePath)
-			os.Remove(filePath)
+			os.RemoveAll(filePath)
 		}
 	}
 	return nil
