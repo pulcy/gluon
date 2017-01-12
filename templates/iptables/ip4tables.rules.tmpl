@@ -14,6 +14,7 @@ COMMIT
 :OUTPUT DROP [0:0]
 :DOCKER - [0:0]
 :RKT - [0:0]
+:WEAVE - [0:0]
 :PRIVATECLUSTER - [0:0]
 :PRIVATEHOST - [0:0]
 -A INPUT -i lo -j ACCEPT
@@ -47,6 +48,12 @@ COMMIT
 -A FORWARD -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A FORWARD -s {{.DockerSubnet}} -j ACCEPT
 -A FORWARD -o docker0 -j DOCKER
+
+-A FORWARD -i weave -j ACCEPT
+-A FORWARD -i {{.PrivateClusterDevice}} -o weave -j PRIVATECLUSTER
+-A FORWARD -o weave -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -s {{.WeaveSubnet}} -j ACCEPT
+-A FORWARD -o weave -j WEAVE
 
 -A FORWARD -i {{.PrivateClusterDevice}} -o gluon0 -j PRIVATECLUSTER
 -A FORWARD -o gluon0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT

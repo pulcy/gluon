@@ -158,6 +158,7 @@ func createV4Rules(deps service.ServiceDependencies, flags *service.ServiceFlags
 	opts := struct {
 		DockerSubnet            string
 		RktSubnet               string
+		WeaveSubnet             string
 		PrivateClusterDevice    string
 		ClusterSubnet           string
 		KubernetesAPIServer     bool
@@ -165,6 +166,7 @@ func createV4Rules(deps service.ServiceDependencies, flags *service.ServiceFlags
 	}{
 		DockerSubnet:            flags.Docker.DockerSubnet,
 		RktSubnet:               flags.Rkt.RktSubnet,
+		WeaveSubnet:             flags.Weave.IPRange,
 		PrivateClusterDevice:    flags.Network.PrivateClusterDevice,
 		ClusterSubnet:           flags.Network.ClusterSubnet,
 		KubernetesAPIServer:     flags.Kubernetes.IsEnabled(),

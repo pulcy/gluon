@@ -4,7 +4,10 @@ Requires=docker.socket
 After=docker.socket
 
 [Service]
-ExecStart=/usr/bin/docker daemon --ip={{.DockerIP}} --host=fd://
+ExecStart=/usr/bin/docker daemon \
+    --ip={{.DockerIP}} \
+    --host=fd:// \
+    --storage-driver=aufs
 
 [Install]
 WantedBy=multi-user.target
