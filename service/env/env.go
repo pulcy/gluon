@@ -55,7 +55,14 @@ func (t *envService) Setup(deps service.ServiceDependencies, flags *service.Serv
 func createBashrc(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
 	deps.Logger.Info("creating %s", bashrcPath)
 	os.Remove(bashrcPath)
-	if _, err := templates.Render(bashrcTemplate, bashrcPath, nil, fileMode); err != nil {
+	opts := struct {
+		FleetEnabled      bool
+		KubernetesEnabled bool
+	}{
+		FleetEnabled:      flags.Fleet.IsEnabled(),
+		KubernetesEnabled: flags.Kubernetes.IsEnabled(),
+	}
+	if _, err := templates.Render(bashrcTemplate, bashrcPath, opts, fileMode); err != nil {
 		return maskAny(err)
 	}
 

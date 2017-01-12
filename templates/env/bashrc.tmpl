@@ -30,6 +30,7 @@ alias cluster-health="etcdctl cluster-health"
 alias els="etcdctl ls --recursive --sort"
 alias eget="etcdctl get"
 
+{{if .FleetEnabled}}
 # Fleet
 alias fc="fleetctl cat"
 alias fj="fleetctl journal"
@@ -71,6 +72,7 @@ function xcluster() {
 		ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -A -q core@${ip} $@
 	done
 }
+{{end}}
 
 # Systemd
 alias reset-failed="sudo systemctl reset-failed"
@@ -130,12 +132,12 @@ function update-gluon-old() {
 		docker run --rm -v /home/core/bin/:/destination/ ${image}
 		echo ${image} | sudo tee /etc/pulcy/gluon-image
 		sudo systemctl restart gluon
-		sudo systemctl stop fleet
+		{{if .FleetEnabled}} sudo systemctl stop fleet {{end}}
 		sudo systemctl stop etcd2 || true
 		sudo systemctl stop consul 
 		sudo mount -o remount /usr/bin 
 		sudo systemctl start etcd2 || true
 		sudo systemctl start consul 
-		sudo systemctl start fleet
+		{{if .FleetEnabled}} sudo systemctl start fleet {{end}}
 	fi
 }
