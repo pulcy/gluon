@@ -74,6 +74,33 @@ function xcluster() {
 }
 {{end}}
 
+{{if .KubernetesEnabled}}
+# Kubernetes 
+alias klp='kubectl get pods -o wide'
+alias klpa='kubectl get pods -o wide --all-namespaces'
+alias kldep='kubectl get deployments -o wide'
+alias kldepa='kubectl get deployments -o wide --all-namespaces'
+alias klds='kubectl get daemonsets -o wide'
+alias kldsa='kubectl get daemonsets -o wide --all-namespaces'
+alias kln='kubectl get nodes -o wide'
+alias klsec='kubectl get secrets -o wide'
+alias klseca='kubectl get secrets -o wide --all-namespaces'
+alias kls='kubectl get services -o wide'
+alias klsa='kubectl get services -o wide --all-namespaces'
+
+alias wklp='watch kubectl get pods -o wide'
+alias wklpa='watch kubectl get pods -o wide --all-namespaces'
+alias wkldep='watch kubectl get deployments -o wide'
+alias wkldepa='watch kubectl get deployments -o wide --all-namespaces'
+alias wklds='watch kubectl get daemonsets -o wide'
+alias wkldsa='watch kubectl get daemonsets -o wide --all-namespaces'
+alias wkln='watch kubectl get nodes -o wide'
+alias wklsec='watch kubectl get secrets -o wide'
+alias wklseca='watch kubectl get secrets -o wide --all-namespaces'
+alias wkls='watch kubectl get services -o wide'
+alias wklsa='watch kubectl get services -o wide --all-namespaces'
+{{end}}
+
 # Systemd
 alias reset-failed="sudo systemctl reset-failed"
 alias sc="sudo systemctl cat"
