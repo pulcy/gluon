@@ -35,15 +35,19 @@ func createKubeProxyService(deps service.ServiceDependencies, flags *service.Ser
 		return false, maskAny(err)
 	}
 	opts := struct {
-		Requires       []string
-		After          []string
-		Master         string
-		KubeConfigPath string
+		Requires         []string
+		After            []string
+		ClusterCIDR      string
+		HostnameOverride string
+		KubeConfigPath   string
+		Master           string
 	}{
-		Requires:       []string{},
-		After:          []string{c.CertificatesServiceName()},
-		Master:         apiServers[0],
-		KubeConfigPath: c.KubeConfigPath(),
+		Requires:         []string{},
+		After:            []string{c.CertificatesServiceName()},
+		ClusterCIDR:      flags.Weave.IPRange,
+		HostnameOverride: flags.Network.ClusterIP,
+		KubeConfigPath:   c.KubeConfigPath(),
+		Master:           apiServers[0],
 	}
 	changed, err := templates.Render(deps.Logger, kubeProxyServiceTemplate, c.ServicePath(), opts, serviceFileMode)
 	return changed || configChanged, maskAny(err)

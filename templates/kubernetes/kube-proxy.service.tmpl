@@ -10,8 +10,10 @@ After={{.}}{{end}}
 [Service]
 ExecStartPre=-/usr/bin/pkill -9 kube-proxy
 ExecStart=/usr/bin/kube-proxy \
-  --master={{.Master}} \
+  --cluster-cidr={{.ClusterCIDR}} \
+  --hostname-override={{.HostnameOverride}} \
   --kubeconfig={{.KubeConfigPath}} \
+  --master={{.Master}} \
   --proxy-mode=iptables \
   --v=2
 
