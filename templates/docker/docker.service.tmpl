@@ -6,6 +6,8 @@ After=docker.socket
 [Service]
 ExecStart=/usr/bin/docker daemon \
     --ip={{.DockerIP}} \
+    --iptables={{.IPTables}} \
+    --ip-masq={{.IPMasq}} \
     --host=fd:// \
     --storage-driver=aufs
 

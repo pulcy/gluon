@@ -106,8 +106,12 @@ func createDockerService(deps service.ServiceDependencies, flags *service.Servic
 	deps.Logger.Info("creating %s", servicePath)
 	opts := struct {
 		DockerIP string
+		IPTables bool
+		IPMasq   bool
 	}{
 		DockerIP: flags.Docker.DockerIP,
+		IPTables: !flags.Kubernetes.IsEnabled(),
+		IPMasq:   !flags.Kubernetes.IsEnabled(),
 	}
 	changed, err := templates.Render(deps.Logger, serviceTemplate, servicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
