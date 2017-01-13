@@ -31,6 +31,7 @@ const (
 	compNameKubeAPIServer         = "kube-apiserver"
 	compNameKubeControllerManager = "kube-controller-manager"
 	compNameKubeScheduler         = "kube-scheduler"
+	compNameKubeAddonManager      = "kube-addon-manager"
 	compNameKubeDNS               = "kube-dns"
 )
 
@@ -39,13 +40,14 @@ var (
 
 	components = map[Component]componentSetup{
 		// Components that should be installed on all nodes
-		NewServiceComponent(compNameKubelet, false):   componentSetup{createKubeletService, nil, false},
-		NewServiceComponent(compNameKubeProxy, false): componentSetup{createKubeProxyService, nil, false},
+		NewServiceComponent(compNameKubelet, false):   componentSetup{createKubeletService, nil, false, true},
+		NewServiceComponent(compNameKubeProxy, false): componentSetup{createKubeProxyService, nil, false, true},
 		// Components that should be installed on master nodes only
-		NewManifestComponent(compNameKubeAPIServer, true):         componentSetup{createKubeApiServerManifest, createKubeApiServerAltNames, true},
-		NewManifestComponent(compNameKubeControllerManager, true): componentSetup{createKubeControllerManagerManifest, nil, false},
-		NewManifestComponent(compNameKubeScheduler, true):         componentSetup{createKubeSchedulerManifest, nil, false},
-		NewManifestComponent(compNameKubeDNS, true):               componentSetup{createKubeDNSAddon, nil, false},
+		NewManifestComponent(compNameKubeAPIServer, true):         componentSetup{createKubeApiServerManifest, createKubeApiServerAltNames, true, true},
+		NewManifestComponent(compNameKubeControllerManager, true): componentSetup{createKubeControllerManagerManifest, nil, false, true},
+		NewManifestComponent(compNameKubeScheduler, true):         componentSetup{createKubeSchedulerManifest, nil, false, true},
+		NewManifestComponent(compNameKubeAddonManager, true):      componentSetup{createKubeAddonManagerManifest, nil, false, false},
+		NewManifestComponent(compNameKubeDNS, true):               componentSetup{createKubeDNSAddon, nil, false, false},
 	}
 )
 
@@ -60,6 +62,7 @@ type componentSetup struct {
 	Setup                  func(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) (bool, error)
 	GetAltNames            func(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) []string
 	AddInternalApiServerIP bool
+	CreateCertificates     bool
 }
 
 func NewService() service.Service {
@@ -113,32 +116,34 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 		}
 		var certsTemplateChanged, certsServiceChanged bool
 		if installComponent {
-			// Create k8s-*-certs.service and template file
-			var err error
-			var altNames []string
-			if compSetup.GetAltNames != nil {
-				altNames = compSetup.GetAltNames(deps, flags, c)
-			}
-			if certsTemplateChanged, err = createCertsTemplate(deps, flags, c, altNames, compSetup.AddInternalApiServerIP); err != nil {
-				return maskAny(err)
-			}
-			if certsServiceChanged, err = createCertsService(deps, flags, c); err != nil {
-				return maskAny(err)
-			}
-			isActive, err := deps.Systemd.IsActive(c.CertificatesServiceName())
-			if err != nil {
-				return maskAny(err)
-			}
+			if compSetup.CreateCertificates {
+				// Create k8s-*-certs.service and template file
+				var err error
+				var altNames []string
+				if compSetup.GetAltNames != nil {
+					altNames = compSetup.GetAltNames(deps, flags, c)
+				}
+				if certsTemplateChanged, err = createCertsTemplate(deps, flags, c, altNames, compSetup.AddInternalApiServerIP); err != nil {
+					return maskAny(err)
+				}
+				if certsServiceChanged, err = createCertsService(deps, flags, c); err != nil {
+					return maskAny(err)
+				}
+				isActive, err := deps.Systemd.IsActive(c.CertificatesServiceName())
+				if err != nil {
+					return maskAny(err)
+				}
 
-			if !isActive || certsTemplateChanged || certsServiceChanged || flags.Force {
-				if err := deps.Systemd.Enable(c.CertificatesServiceName()); err != nil {
-					return maskAny(err)
-				}
-				if err := deps.Systemd.Reload(); err != nil {
-					return maskAny(err)
-				}
-				if err := deps.Systemd.Restart(c.CertificatesServiceName()); err != nil {
-					return maskAny(err)
+				if !isActive || certsTemplateChanged || certsServiceChanged || flags.Force {
+					if err := deps.Systemd.Enable(c.CertificatesServiceName()); err != nil {
+						return maskAny(err)
+					}
+					if err := deps.Systemd.Reload(); err != nil {
+						return maskAny(err)
+					}
+					if err := deps.Systemd.Restart(c.CertificatesServiceName()); err != nil {
+						return maskAny(err)
+					}
 				}
 			}
 
@@ -150,7 +155,7 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 				}
 
 				if !c.IsManifest() {
-					isActive, err = deps.Systemd.IsActive(c.ServiceName())
+					isActive, err := deps.Systemd.IsActive(c.ServiceName())
 					if err != nil {
 						return maskAny(err)
 					}

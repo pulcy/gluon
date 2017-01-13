@@ -81,7 +81,6 @@ spec:
           initialDelaySeconds: 3
           timeoutSeconds: 5
         args:
-        - --kubecfg-file={{.KubeConfigPath}}
         - --domain={{.ClusterDomain}}.
         - --dns-port=10053
         - --config-map=kube-dns
@@ -89,13 +88,6 @@ spec:
         env:
         - name: PROMETHEUS_PORT
           value: "10055"
-        volumeMounts:
-        - mountPath: {{.CertificatesFolder}}
-          name: ssl-certs-kubernetes
-          readOnly: true
-        - mountPath: {{.KubeConfigPath}}
-          name: kubeconfig
-          readOnly: true
         ports:
         - containerPort: 10053
           name: dns-local
@@ -159,10 +151,3 @@ spec:
             memory: 20Mi
             cpu: 10m
       dnsPolicy: Default  # Don't use cluster DNS.
-      volumes:
-      - hostPath:
-          path: {{.CertificatesFolder}}
-        name: ssl-certs-kubernetes
-      - hostPath:
-          path: {{.KubeConfigPath}}
-        name: kubeconfig

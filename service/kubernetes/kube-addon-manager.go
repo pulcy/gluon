@@ -21,22 +21,15 @@ import (
 )
 
 const (
-	kubeDNSTemplate = "templates/kubernetes/kube-dns.yaml.tmpl"
+	kubeAddonManagerTemplate = "templates/kubernetes/kube-addon-manager.yaml.tmpl"
 )
 
-// createKubeDNSAddon creates the manifest containing the kubernetes Kube-dns addon.
-func createKubeDNSAddon(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) (bool, error) {
-	if err := util.EnsureDirectoryOf(c.AddonPath(), 0755); err != nil {
+// createKubeAddonManagerManifest creates the manifest containing the kubernetes Kube-addon-manager pod.
+func createKubeAddonManagerManifest(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) (bool, error) {
+	if err := util.EnsureDirectoryOf(c.ManifestPath(), 0755); err != nil {
 		return false, maskAny(err)
 	}
-	deps.Logger.Info("creating %s", c.AddonPath())
-	opts := struct {
-		ClusterDNS    string
-		ClusterDomain string
-	}{
-		ClusterDNS:    flags.Kubernetes.ClusterDNS,
-		ClusterDomain: flags.Kubernetes.ClusterDomain,
-	}
-	changed, err := templates.Render(deps.Logger, kubeDNSTemplate, c.AddonPath(), opts, manifestFileMode)
+	deps.Logger.Info("creating %s", c.ManifestPath())
+	changed, err := templates.Render(deps.Logger, kubeAddonManagerTemplate, c.ManifestPath(), nil, manifestFileMode)
 	return changed, maskAny(err)
 }

@@ -10,7 +10,7 @@ spec:
     image: {{.Image}}
     command:
     - /usr/bin/kube-apiserver
-    - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota
+    - --admission-control=AlwaysAdmit
     - --advertise-address={{.AdvertiseAddress}}
     - --allow-privileged=true
     - --anonymous-auth=false
