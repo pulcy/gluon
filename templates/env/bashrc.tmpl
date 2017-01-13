@@ -66,13 +66,15 @@ function frestart-failed() {
 		frestart ${unit}
 	done
 }
+{{end}}
+
 function xcluster() {
-	local IPs=$(fleetctl list-machines --fields=ip --no-legend)
+	local image=$(cat /etc/pulcy/gluon-image)
+	local IPs=$(docker run --rm -v /etc/pulcy:/etc/pulcy:ro --entrypoint=/dist/gluon ${image} member list)
 	for ip in ${IPs}; do
 		ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -A -q core@${ip} $@
 	done
 }
-{{end}}
 
 {{if .KubernetesEnabled}}
 # Kubernetes 
