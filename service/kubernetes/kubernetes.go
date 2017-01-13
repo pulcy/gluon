@@ -17,10 +17,21 @@ package kubernetes
 import (
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/juju/errgo"
 
 	"github.com/pulcy/gluon/service"
+)
+
+const (
+	compNameKubelet               = "kubelet"
+	compNameKubeProxy             = "kube-proxy"
+	compNameKubeServiceAccounts   = "kube-serviceaccounts"
+	compNameKubeAPIServer         = "kube-apiserver"
+	compNameKubeControllerManager = "kube-controller-manager"
+	compNameKubeScheduler         = "kube-scheduler"
+	compNameKubeDNS               = "kube-dns"
 )
 
 var (
@@ -28,13 +39,13 @@ var (
 
 	components = map[Component]componentSetup{
 		// Components that should be installed on all nodes
-		NewServiceComponent("kubelet", false):    componentSetup{createKubeletService, nil, false},
-		NewServiceComponent("kube-proxy", false): componentSetup{createKubeProxyService, nil, false},
+		NewServiceComponent(compNameKubelet, false):   componentSetup{createKubeletService, nil, false},
+		NewServiceComponent(compNameKubeProxy, false): componentSetup{createKubeProxyService, nil, false},
 		// Components that should be installed on master nodes only
-		NewManifestComponent("kube-apiserver", true):          componentSetup{createKubeApiServerManifest, createKubeApiServerAltNames, true},
-		NewManifestComponent("kube-controller-manager", true): componentSetup{createKubeControllerManagerManifest, nil, false},
-		NewManifestComponent("kube-scheduler", true):          componentSetup{createKubeSchedulerManifest, nil, false},
-		NewManifestComponent("kube-dns", true):                componentSetup{createKubeDNSAddon, nil, false},
+		NewManifestComponent(compNameKubeAPIServer, true):         componentSetup{createKubeApiServerManifest, createKubeApiServerAltNames, true},
+		NewManifestComponent(compNameKubeControllerManager, true): componentSetup{createKubeControllerManagerManifest, nil, false},
+		NewManifestComponent(compNameKubeScheduler, true):         componentSetup{createKubeSchedulerManifest, nil, false},
+		NewManifestComponent(compNameKubeDNS, true):               componentSetup{createKubeDNSAddon, nil, false},
 	}
 )
 
@@ -64,8 +75,35 @@ func (t *k8sService) Name() string {
 func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
 	runKubernetes := flags.Kubernetes.IsEnabled()
 	if runKubernetes {
+		// Ensure copied CNI binaries are linked to /opt/cni/bin
 		if err := linkCniBinaries(deps, flags); err != nil {
 			return maskAny(err)
+		}
+
+		// Install template & service that extracts the service-accounts-key-file
+		serviceAccountsTemplateChanged, err := createServiceAccountsTemplate(deps, flags)
+		if err != nil {
+			return maskAny(err)
+		}
+		serviceAccountsServiceChanged, err := createServiceAccountsService(deps, flags)
+		if err != nil {
+			return maskAny(err)
+		}
+		isActive, err := deps.Systemd.IsActive(serviceAccountsTokenServiceName)
+		if err != nil {
+			return maskAny(err)
+		}
+
+		if !isActive || serviceAccountsTemplateChanged || serviceAccountsServiceChanged || flags.Force {
+			if err := deps.Systemd.Enable(serviceAccountsTokenServiceName); err != nil {
+				return maskAny(err)
+			}
+			if err := deps.Systemd.Reload(); err != nil {
+				return maskAny(err)
+			}
+			if err := deps.Systemd.Restart(serviceAccountsTokenServiceName); err != nil {
+				return maskAny(err)
+			}
 		}
 	}
 	for c, compSetup := range components {
@@ -105,26 +143,28 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 			}
 
 			// Create component service / manifest
-			serviceChanged, err := compSetup.Setup(deps, flags, c)
-			if err != nil {
-				return maskAny(err)
-			}
-
-			if !c.IsManifest() {
-				isActive, err = deps.Systemd.IsActive(c.ServiceName())
+			if compSetup.Setup != nil {
+				serviceChanged, err := compSetup.Setup(deps, flags, c)
 				if err != nil {
 					return maskAny(err)
 				}
 
-				if !isActive || serviceChanged || certsTemplateChanged || certsServiceChanged || flags.Force {
-					if err := deps.Systemd.Enable(c.ServiceName()); err != nil {
+				if !c.IsManifest() {
+					isActive, err = deps.Systemd.IsActive(c.ServiceName())
+					if err != nil {
 						return maskAny(err)
 					}
-					if err := deps.Systemd.Reload(); err != nil {
-						return maskAny(err)
-					}
-					if err := deps.Systemd.Restart(c.ServiceName()); err != nil {
-						return maskAny(err)
+
+					if !isActive || serviceChanged || certsTemplateChanged || certsServiceChanged || flags.Force {
+						if err := deps.Systemd.Enable(c.ServiceName()); err != nil {
+							return maskAny(err)
+						}
+						if err := deps.Systemd.Reload(); err != nil {
+							return maskAny(err)
+						}
+						if err := deps.Systemd.Restart(c.ServiceName()); err != nil {
+							return maskAny(err)
+						}
 					}
 				}
 			}
@@ -194,4 +234,19 @@ func addonPath(addonName string) string {
 // certificatePath returns the full path of the file with given name.
 func certificatePath(fileName string) string {
 	return "/opt/certs/" + fileName
+}
+
+// jobID returns the ID of the vault-monkey job used to access certificates for the given component.
+func jobID(clusterID, componentName string) string {
+	return fmt.Sprintf("ca-%s-pki-k8s-%s", clusterID, componentName)
+}
+
+// tokenRole returns the name of the role used to extract a token by vault-monkey.
+func tokenRole(clusterID, componentName string) string {
+	return fmt.Sprintf("k8s-%s-%s", clusterID, componentName)
+}
+
+// tokenPolicy returns the name of the policy used to extract a token by vault-monkey.
+func tokenPolicy(clusterID, componentName string) string {
+	return path.Join("ca", clusterID, "pki/k8s", componentName)
 }

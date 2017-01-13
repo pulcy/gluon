@@ -62,6 +62,7 @@ func createKubeApiServerManifest(deps service.ServiceDependencies, flags *servic
 		KeyPath               string
 		CAPath                string
 		CertificatesFolder    string
+		ServiceAccountKeyPath string
 	}{
 		Image:                 flags.Kubernetes.KubernetesMasterImage,
 		APIServerCount:        len(apiServers),
@@ -76,6 +77,7 @@ func createKubeApiServerManifest(deps service.ServiceDependencies, flags *servic
 		KeyPath:               c.KeyPath(),
 		CAPath:                c.CAPath(),
 		CertificatesFolder:    path.Dir(c.CertificatePath()),
+		ServiceAccountKeyPath: serviceAccountsKeyPath,
 	}
 	changed, err := templates.Render(deps.Logger, kubeApiServiceTemplate, c.ManifestPath(), opts, manifestFileMode)
 	return changed, maskAny(err)

@@ -17,7 +17,6 @@ package kubernetes
 import (
 	"fmt"
 	"net"
-	"path"
 	"strings"
 	"text/template"
 
@@ -113,8 +112,8 @@ func createCertsService(deps service.ServiceDependencies, flags *service.Service
 		Component:          c.Name(),
 		RestartCommand:     c.RestartCommand(),
 		TokenTemplate:      `{ "vault": { "token": "{{.Token}}" }}`,
-		TokenPolicy:        path.Join("ca", clusterID, "pki/k8s", c.Name()),
-		TokenRole:          fmt.Sprintf("k8s-%s-%s", clusterID, c),
+		TokenPolicy:        tokenPolicy(clusterID, c.Name()),
+		TokenRole:          tokenRole(clusterID, c.Name()),
 	}
 	changed, err := templates.Render(deps.Logger, certsServiceTemplate, c.CertificatesServicePath(), opts, serviceFileMode)
 	return changed, maskAny(err)

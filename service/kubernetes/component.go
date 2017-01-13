@@ -114,7 +114,7 @@ func (c Component) CertificatesTemplatePath() string {
 
 // CertificatesTemplateOutputPath returns the full path of the file created by the consul-template template that generates the TLS certificates for the component.
 func (c Component) CertificatesTemplateOutputPath() string {
-	return certificatePath(fmt.Sprintf("/opt/certs/%s.serial", c))
+	return certificatePath(fmt.Sprintf("%s.serial", c))
 }
 
 // CertificatesConfigName returns the name config file used by consul-template for the component.
@@ -144,7 +144,7 @@ func (c Component) KubeConfigPath() string {
 
 // JobID returns the ID of the vault-monkey job used to access certificates for this component.
 func (c Component) JobID(clusterID string) string {
-	return fmt.Sprintf("ca-%s-pki-k8s-%s", clusterID, c)
+	return jobID(clusterID, c.Name())
 }
 
 // RestartCommand returns a full command that restarts the component

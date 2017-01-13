@@ -40,7 +40,6 @@ func createKubeControllerManagerManifest(deps service.ServiceDependencies, flags
 	if err != nil {
 		return false, maskAny(err)
 	}
-	apiComp := NewManifestComponent("kube-apiserver", true)
 	opts := struct {
 		Image                 string
 		Master                string
@@ -54,7 +53,7 @@ func createKubeControllerManagerManifest(deps service.ServiceDependencies, flags
 		Master:                apiServers[0],
 		KubeConfigPath:        c.KubeConfigPath(),
 		ServiceClusterIPRange: flags.Kubernetes.ServiceClusterIPRange,
-		ServiceAccountKeyPath: apiComp.KeyPath(),
+		ServiceAccountKeyPath: serviceAccountsKeyPath,
 		CAPath:                c.CAPath(),
 		CertificatesFolder:    path.Dir(c.CertificatePath()),
 	}
