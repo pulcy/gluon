@@ -88,6 +88,8 @@ func init() {
 	// Kubernetes
 	cmdSetup.Flags().BoolVar(&setupFlags.Kubernetes.Enabled, "k8s-enabled", defaultKubernetesEnabled(), "If set, fleet will be installed")
 	cmdSetup.Flags().StringVar(&setupFlags.Kubernetes.APIDNSName, "k8s-api-dns-name", defaultKubernetesAPIDNSName(), "Alternate name of the Kubernetes API server")
+	// Vault
+	cmdSetup.Flags().StringVar(&setupFlags.Vault.VaultImage, "vault-image", "", "Pulcy Vault docker image name")
 	// Weave
 	cmdSetup.Flags().StringVar(&setupFlags.Weave.Seed, "weave-seed", "", "SEED of the weave network")
 	cmdSetup.Flags().StringVar(&setupFlags.Weave.Hostname, "weave-hostname", defaultWeaveHostname, "DNS name for exposed host")

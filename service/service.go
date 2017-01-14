@@ -87,6 +87,9 @@ type ServiceFlags struct {
 	// Fleet
 	Fleet Fleet
 
+	// Vault config
+	Vault Vault
+
 	// Weave
 	Weave Weave
 
@@ -132,6 +135,9 @@ func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
 		return maskAny(err)
 	}
 	if err := flags.Kubernetes.setupDefaults(log); err != nil {
+		return maskAny(err)
+	}
+	if err := flags.Vault.setupDefaults(log); err != nil {
 		return maskAny(err)
 	}
 	if flags.Network.PrivateClusterDevice == "" {
@@ -201,6 +207,11 @@ func (flags *ServiceFlags) Save(log *logging.Logger) (bool, error) {
 		changes++
 	}
 	if changed, err := flags.Kubernetes.save(log); err != nil {
+		return false, maskAny(err)
+	} else if changed {
+		changes++
+	}
+	if changed, err := flags.Vault.save(log); err != nil {
 		return false, maskAny(err)
 	} else if changed {
 		changes++

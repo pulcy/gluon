@@ -91,13 +91,15 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 		}
 	}
 	opts := struct {
-		PublicIP  string
-		ClusterIP string
-		PrivateIP string
+		PublicIP   string
+		ClusterIP  string
+		PrivateIP  string
+		VaultImage string
 	}{
-		PublicIP:  "${COREOS_PUBLIC_IPV4}",
-		ClusterIP: flags.Network.ClusterIP,
-		PrivateIP: privateIP,
+		PublicIP:   "${COREOS_PUBLIC_IPV4}",
+		ClusterIP:  flags.Network.ClusterIP,
+		PrivateIP:  privateIP,
+		VaultImage: flags.Vault.VaultImage,
 	}
 	changed, err := templates.Render(deps.Logger, vaultServiceTmpl, vaultServicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
