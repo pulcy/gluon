@@ -114,7 +114,7 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 		if c.MasterOnly() && !flags.HasRole("core") {
 			installComponent = false
 		}
-		var certsTemplateChanged, certsServiceChanged bool
+		var certsTimerChanged, certsServiceChanged bool
 		if installComponent {
 			if compSetup.CreateCertificates {
 				// Create k8s-*-certs.service and template file
@@ -123,10 +123,10 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 				if compSetup.GetAltNames != nil {
 					altNames = compSetup.GetAltNames(deps, flags, c)
 				}
-				if certsTemplateChanged, err = createCertsTemplate(deps, flags, c, altNames, compSetup.AddInternalApiServerIP); err != nil {
+				if certsServiceChanged, err = createCertsService(deps, flags, c, altNames, compSetup.AddInternalApiServerIP); err != nil {
 					return maskAny(err)
 				}
-				if certsServiceChanged, err = createCertsService(deps, flags, c); err != nil {
+				if certsTimerChanged, err = createCertsTimer(deps, flags, c); err != nil {
 					return maskAny(err)
 				}
 				isActive, err := deps.Systemd.IsActive(c.CertificatesServiceName())
@@ -134,14 +134,20 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 					return maskAny(err)
 				}
 
-				if !isActive || certsTemplateChanged || certsServiceChanged || flags.Force {
+				if !isActive || certsServiceChanged || certsTimerChanged || flags.Force {
 					if err := deps.Systemd.Enable(c.CertificatesServiceName()); err != nil {
+						return maskAny(err)
+					}
+					if err := deps.Systemd.Enable(c.CertificatesTimerName()); err != nil {
 						return maskAny(err)
 					}
 					if err := deps.Systemd.Reload(); err != nil {
 						return maskAny(err)
 					}
 					if err := deps.Systemd.Restart(c.CertificatesServiceName()); err != nil {
+						return maskAny(err)
+					}
+					if err := deps.Systemd.Restart(c.CertificatesTimerName()); err != nil {
 						return maskAny(err)
 					}
 				}
@@ -160,7 +166,7 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 						return maskAny(err)
 					}
 
-					if !isActive || serviceChanged || certsTemplateChanged || certsServiceChanged || flags.Force {
+					if !isActive || serviceChanged || certsServiceChanged || flags.Force {
 						if err := deps.Systemd.Enable(c.ServiceName()); err != nil {
 							return maskAny(err)
 						}
@@ -189,7 +195,18 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 				}
 			}
 
-			// k8s-*-certs no longer needed, remove it
+			// k8s-*-certs.timer no longer needed, remove it
+			if exists, err := deps.Systemd.Exists(c.CertificatesTimerName()); err != nil {
+				return maskAny(err)
+			} else if exists {
+				if err := deps.Systemd.Disable(c.CertificatesTimerName()); err != nil {
+					deps.Logger.Errorf("Disabling %s failed: %#v", c.CertificatesTimerName(), err)
+				} else {
+					os.Remove(c.CertificatesTimerPath())
+				}
+			}
+
+			// k8s-*-certs.service no longer needed, remove it
 			if exists, err := deps.Systemd.Exists(c.CertificatesServiceName()); err != nil {
 				return maskAny(err)
 			} else if exists {
@@ -197,7 +214,6 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 					deps.Logger.Errorf("Disabling %s failed: %#v", c.CertificatesServiceName(), err)
 				} else {
 					os.Remove(c.CertificatesServicePath())
-					os.Remove(c.CertificatesTemplatePath())
 				}
 			}
 		}

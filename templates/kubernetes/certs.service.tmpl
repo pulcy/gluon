@@ -2,40 +2,36 @@
 Description=Kubernetes {{.Component}} certificates
 
 [Service]
+Type=oneshot
 EnvironmentFile=/etc/pulcy/vault.env
 Environment=VAULT_RENEW_TOKEN=true 
 Environment=VAULT_UNWRAP_TOKEN=true
 Environment=VAULT_MONKEY_JOB_ID={{.JobID}}
-ExecStartPre=/usr/bin/mkdir -p /opt/certs/
-ExecStartPre=/usr/bin/docker \
+ExecStartPre=/usr/bin/mkdir -p {{.CertificatesFolder}}
+ExecStart=/usr/bin/docker \
     run \
     --rm \
     --net=host \
     -v /etc/pulcy/cluster-id:/etc/pulcy/cluster-id:ro \
     -v /etc/machine-id:/etc/machine-id:ro \
     -v ${VAULT_CACERT}:${VAULT_CACERT}:ro \
-    -v /opt/certs:/app/config \
+    -v {{.CertificatesFolder}}:{{.CertificatesFolder}} \
     --env-file=/etc/pulcy/vault.env \
-    -e VAULT_RENEW_TOKEN=${VAULT_RENEW_TOKEN} \
-    -e VAULT_UNWRAP_TOKEN=${VAULT_UNWRAP_TOKEN} \
     -e VAULT_MONKEY_JOB_ID=${VAULT_MONKEY_JOB_ID} \
     {{.VaultMonkeyImage}} \
-    token create \
-        --path=/app/config/{{.ConfigFileName}} \
-        --template='{{.TokenTemplate}}' \
-        --policy={{.TokenPolicy}} \
-        --role={{.TokenRole}} \
-        --wrap-ttl=1m
-ExecStart=/usr/bin/consul-template \
-    -consul={{.ConsulAddress}} \
-    -config=/opt/certs/{{.ConfigFileName}} \
-    -template='{{.TemplatePath}}:{{.TemplateOutputPath}}:{{.RestartCommand}}'
-Restart=always
-RestartSec=10s
+    ca issue k8s \
+        --server=true \
+        --cluster-id-file=/etc/pulcy/cluster-id \
+        --common-name={{.CommonName}} \
+        {{range .AltNames}}--alt-name={{.}} {{end}} \
+        {{range .IPSans}}--ip-san={{.}} {{end}} \
+        --destination={{.CertificatesFolder}} \
+        --cert-file-name={{.CertFileName}} \
+        --key-file-name={{.KeyFileName}} \
+        --ca-file-name={{.CAFileName}} \
+        --role={{.Role}} 
 TimeoutStartSec=0
 TimeoutStopSec=30s
-KillMode=mixed
-KillSignal=SIGINT
 
 [Install]
 WantedBy=multi-user.target

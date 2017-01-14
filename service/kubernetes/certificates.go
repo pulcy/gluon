@@ -15,28 +15,21 @@
 package kubernetes
 
 import (
-	"fmt"
 	"net"
-	"strings"
-	"text/template"
+	"path/filepath"
 
 	"github.com/pulcy/gluon/service"
 	"github.com/pulcy/gluon/templates"
-	"github.com/pulcy/gluon/util"
 )
 
 const (
-	certsServiceTemplate  = "templates/kubernetes/certs.service.tmpl"
-	certsTemplateTemplate = "templates/kubernetes/certs.template.tmpl"
+	certsServiceTemplate = "templates/kubernetes/certs.service.tmpl"
+	certsTimerTemplate   = "templates/kubernetes/certs.timer.tmpl"
 )
 
-// createCertsTemplate creates the consul-template used by the k8s-certs service.
-func createCertsTemplate(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component, altNames []string, addInternalApiServerIP bool) (bool, error) {
-	certsTemplatesPath := c.CertificatesTemplatePath()
-	if err := util.EnsureDirectoryOf(certsTemplatesPath, 0755); err != nil {
-		return false, maskAny(err)
-	}
-	deps.Logger.Info("creating %s", certsTemplatesPath)
+// createCertsService creates the k8s-certs service.
+func createCertsService(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component, altNames []string, addInternalApiServerIP bool) (bool, error) {
+	deps.Logger.Info("creating %s", c.CertificatesServicePath())
 	clusterID, err := flags.ReadClusterID()
 	if err != nil {
 		return false, maskAny(err)
@@ -46,26 +39,29 @@ func createCertsTemplate(deps service.ServiceDependencies, flags *service.Servic
 		return false, maskAny(err)
 	}
 	opts := struct {
-		ClusterID  string
-		CommonName string
-		Component  string
-		IPSans     string
-		SecretArgs string
-		CertPath   string
-		KeyPath    string
-		CAPath     string
+		VaultMonkeyImage   string
+		JobID              string
+		Component          string
+		CommonName         string
+		Role               string
+		AltNames           []string
+		IPSans             []string
+		CertFileName       string
+		KeyFileName        string
+		CAFileName         string
+		CertificatesFolder string
 	}{
-		ClusterID:  clusterID,
-		CommonName: c.Name(),
-		Component:  c.Name(),
-		IPSans:     strings.Join([]string{flags.Network.ClusterIP, privateHostIP}, ","),
-		SecretArgs: "",
-		CertPath:   c.CertificatePath(),
-		KeyPath:    c.KeyPath(),
-		CAPath:     c.CAPath(),
-	}
-	if len(altNames) > 0 {
-		opts.SecretArgs = fmt.Sprintf(`"alt_names=%s" `, strings.Join(altNames, ","))
+		VaultMonkeyImage:   flags.VaultMonkeyImage,
+		JobID:              c.JobID(clusterID),
+		Component:          c.Name(),
+		CommonName:         c.Name(),
+		Role:               c.Name(),
+		AltNames:           altNames,
+		IPSans:             []string{flags.Network.ClusterIP, privateHostIP},
+		CertFileName:       filepath.Base(c.CertificatePath()),
+		KeyFileName:        filepath.Base(c.KeyPath()),
+		CAFileName:         filepath.Base(c.CAPath()),
+		CertificatesFolder: certificatePath(""),
 	}
 	if addInternalApiServerIP {
 		serviceIP, _, err := net.ParseCIDR(flags.Kubernetes.ServiceClusterIPRange)
@@ -74,47 +70,20 @@ func createCertsTemplate(deps service.ServiceDependencies, flags *service.Servic
 		}
 		internalApiServerIP := serviceIP.To4()
 		internalApiServerIP[3] = 1
-		opts.IPSans = opts.IPSans + "," + internalApiServerIP.String()
+		opts.IPSans = append(opts.IPSans, internalApiServerIP.String())
 	}
-	setDelims := func(t *template.Template) {
-		t.Delims("[[", "]]")
-	}
-	changed, err := templates.Render(deps.Logger, certsTemplateTemplate, certsTemplatesPath, opts, templateFileMode, setDelims)
+	changed, err := templates.Render(deps.Logger, certsServiceTemplate, c.CertificatesServicePath(), opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 
-// createCertsService creates the k8s-certs service.
-func createCertsService(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) (bool, error) {
-	deps.Logger.Info("creating %s", c.CertificatesServicePath())
-	clusterID, err := flags.ReadClusterID()
-	if err != nil {
-		return false, maskAny(err)
-	}
+// createCertsTimer creates the k8s-certs timer.
+func createCertsTimer(deps service.ServiceDependencies, flags *service.ServiceFlags, c Component) (bool, error) {
+	deps.Logger.Info("creating %s", c.CertificatesTimerPath())
 	opts := struct {
-		VaultMonkeyImage   string
-		ConsulAddress      string
-		JobID              string
-		TemplatePath       string
-		TemplateOutputPath string
-		ConfigFileName     string
-		Component          string
-		RestartCommand     string
-		TokenTemplate      string
-		TokenPolicy        string
-		TokenRole          string
+		Component string
 	}{
-		VaultMonkeyImage:   flags.VaultMonkeyImage,
-		ConsulAddress:      flags.Network.ClusterIP + ":8500",
-		JobID:              c.JobID(clusterID),
-		TemplatePath:       c.CertificatesTemplatePath(),
-		TemplateOutputPath: c.CertificatesTemplateOutputPath(),
-		ConfigFileName:     c.CertificatesConfigName(),
-		Component:          c.Name(),
-		RestartCommand:     c.RestartCommand(),
-		TokenTemplate:      `{ "vault": { "token": "{{.Token}}" }}`,
-		TokenPolicy:        tokenPolicy(clusterID, c.Name()),
-		TokenRole:          tokenRole(clusterID, c.Name()),
+		Component: c.Name(),
 	}
-	changed, err := templates.Render(deps.Logger, certsServiceTemplate, c.CertificatesServicePath(), opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, certsTimerTemplate, c.CertificatesTimerPath(), opts, serviceFileMode)
 	return changed, maskAny(err)
 }

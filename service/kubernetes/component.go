@@ -102,24 +102,14 @@ func (c Component) CertificatesServicePath() string {
 	return servicePath(c.CertificatesServiceName())
 }
 
-// CertificatesTemplateName returns the name of the consul-template template that generates the TLS certificates for the component.
-func (c Component) CertificatesTemplateName() string {
-	return fmt.Sprintf("%s-certs.template", c)
+// CertificatesTimerName returns the name of the systemd timer that generates the TLS certificates for the component.
+func (c Component) CertificatesTimerName() string {
+	return fmt.Sprintf("%s-certs.timer", c)
 }
 
-// CertificatesTemplatePath returns the full path of the consul-template template that generates the TLS certificates for the component.
-func (c Component) CertificatesTemplatePath() string {
-	return certificatePath(c.CertificatesTemplateName())
-}
-
-// CertificatesTemplateOutputPath returns the full path of the file created by the consul-template template that generates the TLS certificates for the component.
-func (c Component) CertificatesTemplateOutputPath() string {
-	return certificatePath(fmt.Sprintf("%s.serial", c))
-}
-
-// CertificatesConfigName returns the name config file used by consul-template for the component.
-func (c Component) CertificatesConfigName() string {
-	return fmt.Sprintf("%s-certs-config.json", c)
+// CertificatesTimerPath returns the full path of the file containing the systemd timer that generates the TLS certificates for the component.
+func (c Component) CertificatesTimerPath() string {
+	return servicePath(c.CertificatesTimerName())
 }
 
 // CertificatePath returns the full path of the public key part of the certificate for this component.
