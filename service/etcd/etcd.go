@@ -18,9 +18,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"strings"
-	"text/template"
 
 	"github.com/juju/errgo"
 
@@ -36,33 +35,32 @@ var (
 )
 
 const (
-	confName                 = "99-etcd2.conf"
-	confDir                  = "/etc/systemd/system/" + serviceName + ".d/"
-	confPath                 = confDir + confName
-	serviceName              = "etcd2.service"
-	serviceTemplate          = "templates/etcd/etcd.service.tmpl"
-	servicePath              = "/etc/systemd/system/" + serviceName
-	environmentPath          = "/etc/environment"
-	etcdUser                 = "etcd"
-	dataPath                 = "/var/lib/etcd2"
-	initTemplate             = "templates/etcd/etcd-init.sh.tmpl"
-	initPath                 = "/root/etcd-init.sh"
-	certsServiceName         = "etcd-certs.service"
-	certsServiceTemplate     = "templates/etcd/" + certsServiceName + ".tmpl"
-	certsServicePath         = "/etc/systemd/system/" + certsServiceName
-	certsTemplateName        = "etcd-certs.template"
-	certsTemplateTemplate    = "templates/etcd/" + certsTemplateName + ".tmpl"
-	certsTemplatesPath       = "/opt/certs/" + certsTemplateName
-	certsTemplatesOutputPath = "/opt/certs/etcd.serial"
-	CertsCertPath            = "/opt/certs/etcd-cert.pem"
-	CertsKeyPath             = "/opt/certs/etcd-key.pem"
-	CertsCAPath              = "/opt/certs/etcd-ca.pem"
+	confName             = "99-etcd2.conf"
+	confDir              = "/etc/systemd/system/" + serviceName + ".d/"
+	confPath             = confDir + confName
+	serviceName          = "etcd2.service"
+	serviceTemplate      = "templates/etcd/etcd.service.tmpl"
+	servicePath          = "/etc/systemd/system/" + serviceName
+	environmentPath      = "/etc/environment"
+	etcdUser             = "etcd"
+	dataPath             = "/var/lib/etcd2"
+	initTemplate         = "templates/etcd/etcd-init.sh.tmpl"
+	initPath             = "/root/etcd-init.sh"
+	certsServiceName     = "etcd-certs.service"
+	certsServiceTemplate = "templates/etcd/" + certsServiceName + ".tmpl"
+	certsServicePath     = "/etc/systemd/system/" + certsServiceName
+	certsTimerName       = "etcd-certs.timer"
+	certsTimerTemplate   = "templates/etcd/" + certsTimerName + ".tmpl"
+	certsTimerPath       = "/etc/systemd/system/" + certsTimerName
+	CertsCertPath        = "/opt/certs/etcd-cert.pem"
+	CertsKeyPath         = "/opt/certs/etcd-key.pem"
+	CertsCAPath          = "/opt/certs/etcd-ca.pem"
 
-	configFileMode   = os.FileMode(0644)
-	serviceFileMode  = os.FileMode(0644)
-	templateFileMode = os.FileMode(0400)
-	dataPathMode     = os.FileMode(0755)
-	initFileMode     = os.FileMode(0755)
+	configFileMode  = os.FileMode(0644)
+	serviceFileMode = os.FileMode(0644)
+	//	templateFileMode = os.FileMode(0400)
+	dataPathMode = os.FileMode(0755)
+	initFileMode = os.FileMode(0755)
 )
 
 func NewService() service.Service {
@@ -93,13 +91,13 @@ func (t *etcdService) Setup(deps service.ServiceDependencies, flags *service.Ser
 		return maskAny(err)
 	}
 
-	var certsTemplateChanged, certsServiceChanged bool
+	var certsTimerChanged, certsServiceChanged bool
 	if flags.Etcd.UseVaultCA {
 		// Create etcd-certs.service and template file
-		if certsTemplateChanged, err = createCertsTemplate(deps, flags, cfg); err != nil {
+		if certsServiceChanged, err = createCertsService(deps, flags, cfg); err != nil {
 			return maskAny(err)
 		}
-		if certsServiceChanged, err = createCertsService(deps, flags); err != nil {
+		if certsTimerChanged, err = createCertsTimer(deps, flags); err != nil {
 			return maskAny(err)
 		}
 		isActive, err := deps.Systemd.IsActive(certsServiceName)
@@ -107,8 +105,11 @@ func (t *etcdService) Setup(deps service.ServiceDependencies, flags *service.Ser
 			return maskAny(err)
 		}
 
-		if !isActive || certsTemplateChanged || certsServiceChanged || flags.Force {
+		if !isActive || certsTimerChanged || certsServiceChanged || flags.Force {
 			if err := deps.Systemd.Enable(certsServiceName); err != nil {
+				return maskAny(err)
+			}
+			if err := deps.Systemd.Enable(certsTimerName); err != nil {
 				return maskAny(err)
 			}
 			if err := deps.Systemd.Reload(); err != nil {
@@ -117,9 +118,22 @@ func (t *etcdService) Setup(deps service.ServiceDependencies, flags *service.Ser
 			if err := deps.Systemd.Restart(certsServiceName); err != nil {
 				return maskAny(err)
 			}
+			if err := deps.Systemd.Restart(certsTimerName); err != nil {
+				return maskAny(err)
+			}
 		}
 	} else {
-		// etcd-certs no longer needed, remove it
+		// etcd-certs.timer no longer needed, remove it
+		if exists, err := deps.Systemd.Exists(certsTimerName); err != nil {
+			return maskAny(err)
+		} else if exists {
+			if err := deps.Systemd.Disable(certsTimerName); err != nil {
+				deps.Logger.Errorf("Disabling %s failed: %#v", certsTimerName, err)
+			} else {
+				os.Remove(certsTimerPath)
+			}
+		}
+		// etcd-certs.service no longer needed, remove it
 		if exists, err := deps.Systemd.Exists(certsServiceName); err != nil {
 			return maskAny(err)
 		} else if exists {
@@ -127,7 +141,6 @@ func (t *etcdService) Setup(deps service.ServiceDependencies, flags *service.Ser
 				deps.Logger.Errorf("Disabling %s failed: %#v", certsServiceName, err)
 			} else {
 				os.Remove(certsServicePath)
-				os.Remove(certsTemplatesPath)
 			}
 		}
 	}
@@ -162,7 +175,7 @@ func (t *etcdService) Setup(deps service.ServiceDependencies, flags *service.Ser
 			return maskAny(err)
 		}
 
-		if !isActive || certsTemplateChanged || certsServiceChanged || changedService || changedConf || flags.Force {
+		if !isActive || certsServiceChanged || changedService || changedConf || flags.Force {
 			if err := deps.Systemd.Enable(serviceName); err != nil {
 				return maskAny(err)
 			}
@@ -296,12 +309,9 @@ func createEtcdConfig(deps service.ServiceDependencies, flags *service.ServiceFl
 
 }
 
-// createCertsTemplate creates the consul-template used by the etcd-certs service.
-func createCertsTemplate(deps service.ServiceDependencies, flags *service.ServiceFlags, config etcdConfig) (bool, error) {
-	if err := util.EnsureDirectoryOf(certsTemplatesPath, 0755); err != nil {
-		return false, maskAny(err)
-	}
-	deps.Logger.Info("creating %s", certsTemplatesPath)
+// createCertsService creates the etcd-certs service.
+func createCertsService(deps service.ServiceDependencies, flags *service.ServiceFlags, config etcdConfig) (bool, error) {
+	deps.Logger.Info("creating %s", certsServicePath)
 	clusterID, err := flags.ReadClusterID()
 	if err != nil {
 		return false, maskAny(err)
@@ -311,56 +321,44 @@ func createCertsTemplate(deps service.ServiceDependencies, flags *service.Servic
 		return false, maskAny(err)
 	}
 	opts := struct {
-		ClusterID  string
-		CommonName string
-		IPSans     string
-		CertPath   string
-		KeyPath    string
-		CAPath     string
+		VaultMonkeyImage   string
+		JobID              string
+		CommonName         string
+		Role               string
+		AltNames           []string
+		IPSans             []string
+		CertFileName       string
+		KeyFileName        string
+		CAFileName         string
+		CertificatesFolder string
+		CertPath           string
+		KeyPath            string
+		CAPath             string
+		FileMode           uint32
 	}{
-		ClusterID:  clusterID,
-		CommonName: hostname,
-		IPSans:     strings.Join([]string{config.ClusterIP, config.PrivateHostIP}, ","),
-		CertPath:   CertsCertPath,
-		KeyPath:    CertsKeyPath,
-		CAPath:     CertsCAPath,
+		VaultMonkeyImage:   flags.VaultMonkeyImage,
+		JobID:              fmt.Sprintf("ca-%s-pki-etcd", clusterID),
+		CommonName:         hostname,
+		Role:               "member",
+		AltNames:           nil,
+		IPSans:             []string{config.ClusterIP, config.PrivateHostIP},
+		CertFileName:       filepath.Base(CertsCertPath),
+		KeyFileName:        filepath.Base(CertsKeyPath),
+		CAFileName:         filepath.Base(CertsCAPath),
+		CertificatesFolder: filepath.Dir(CertsCertPath),
+		CertPath:           CertsCertPath,
+		KeyPath:            CertsKeyPath,
+		CAPath:             CertsCAPath,
+		FileMode:           0660,
 	}
-	setDelims := func(t *template.Template) {
-		t.Delims("[[", "]]")
-	}
-	changed, err := templates.Render(deps.Logger, certsTemplateTemplate, certsTemplatesPath, opts, templateFileMode, setDelims)
+	changed, err := templates.Render(deps.Logger, certsServiceTemplate, certsServicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 
-// createCertsService creates the etcd-certs service.
-func createCertsService(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
-	deps.Logger.Info("creating %s", certsServicePath)
-	clusterID, err := flags.ReadClusterID()
-	if err != nil {
-		return false, maskAny(err)
-	}
-	opts := struct {
-		VaultMonkeyImage   string
-		ConsulAddress      string
-		JobID              string
-		TemplatePath       string
-		TemplateOutputPath string
-		ServiceName        string
-		TokenTemplate      string
-		TokenPolicy        string
-		TokenRole          string
-	}{
-		VaultMonkeyImage:   flags.VaultMonkeyImage,
-		ConsulAddress:      flags.Network.ClusterIP + ":8500",
-		JobID:              fmt.Sprintf("ca-%s-pki-etcd", clusterID),
-		TemplatePath:       certsTemplatesPath,
-		TemplateOutputPath: certsTemplatesOutputPath,
-		ServiceName:        serviceName, // Note this is the name of the ETCD service itself.
-		TokenTemplate:      `{ "vault": { "token": "{{.Token}}" }}`,
-		TokenPolicy:        path.Join("ca", clusterID, "pki/etcd/member"),
-		TokenRole:          fmt.Sprintf("etcd-%s", clusterID),
-	}
-	changed, err := templates.Render(deps.Logger, certsServiceTemplate, certsServicePath, opts, serviceFileMode)
+// createCertsTimer creates the etcd-certs timer.
+func createCertsTimer(deps service.ServiceDependencies, flags *service.ServiceFlags) (bool, error) {
+	deps.Logger.Info("creating %s", certsTimerPath)
+	changed, err := templates.Render(deps.Logger, certsTimerTemplate, certsTimerPath, nil, serviceFileMode)
 	return changed, maskAny(err)
 }
 

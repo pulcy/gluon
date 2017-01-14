@@ -2,11 +2,12 @@
 Description=ETCD certificates
 
 [Service]
+Type=oneshot
 EnvironmentFile=/etc/pulcy/vault.env
 Environment=VAULT_RENEW_TOKEN=true 
 Environment=VAULT_UNWRAP_TOKEN=true
 Environment=VAULT_MONKEY_JOB_ID={{.JobID}}
-ExecStartPre=/usr/bin/mkdir -p /opt/certs/
+ExecStartPre=/usr/bin/mkdir -p {{.CertificatesFolder}}
 ExecStartPre=/usr/bin/docker \
     run \
     --rm \
@@ -14,27 +15,25 @@ ExecStartPre=/usr/bin/docker \
     -v /etc/pulcy/cluster-id:/etc/pulcy/cluster-id:ro \
     -v /etc/machine-id:/etc/machine-id:ro \
     -v ${VAULT_CACERT}:${VAULT_CACERT}:ro \
-    -v /opt/certs:/app/config \
+    -v {{.CertificatesFolder}}:{{.CertificatesFolder}} \
     --env-file=/etc/pulcy/vault.env \
-    -e VAULT_RENEW_TOKEN=${VAULT_RENEW_TOKEN} \
-    -e VAULT_UNWRAP_TOKEN=${VAULT_UNWRAP_TOKEN} \
     -e VAULT_MONKEY_JOB_ID=${VAULT_MONKEY_JOB_ID} \
     {{.VaultMonkeyImage}} \
-    token create \
-        --path=/app/config/etcd-certs-config.json \
-        --template='{{.TokenTemplate}}' \
-        --policy={{.TokenPolicy}} \
-        --role={{.TokenRole}} \
-        --wrap-ttl=1m
-ExecStart=/usr/bin/consul-template \
-    -consul={{.ConsulAddress}} \
-    -config=/opt/certs/etcd-certs-config.json \
-    -template='{{.TemplatePath}}:{{.TemplateOutputPath}}:/bin/systemctl restart {{.ServiceName}}'
-Restart=always
-RestartSec=10s
+    ca issue etcd \
+        --server=true \
+        --cluster-id-file=/etc/pulcy/cluster-id \
+        --common-name={{.CommonName}} \
+        {{range .AltNames}}--alt-name={{.}} {{end}} \
+        {{range .IPSans}}--ip-san={{.}} {{end}} \
+        --destination={{.CertificatesFolder}} \
+        --file-mode={{.FileMode}} \
+        --cert-file-name={{.CertFileName}} \
+        --key-file-name={{.KeyFileName}} \
+        --ca-file-name={{.CAFileName}} \
+        --role={{.Role}} 
+ExecStart=/bin/chown etcd:etcd {{.CertPath}} {{.KeyPath}} {{.CAPath}}
 TimeoutStartSec=0
 TimeoutStopSec=30s
-KillSignal=SIGINT
 
 [Install]
 WantedBy=multi-user.target
