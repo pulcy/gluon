@@ -20,5 +20,8 @@ COMMIT
 -A INPUT -p tcp --dport 8200 -j ACCEPT
 -A INPUT -p tcp --dport 655 -j ACCEPT
 -A INPUT -p udp --dport 655 -j ACCEPT
+{{ if .KubernetesAPIServer}}
+-A INPUT -p tcp --dport {{.KubernetesAPIServerPort}} -m state --state NEW,ESTABLISHED -j ACCEPT
+{{end}}
 -A INPUT -i eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
 COMMIT

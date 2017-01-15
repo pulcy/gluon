@@ -29,7 +29,7 @@ var (
 )
 
 const (
-	mountTemplate = "templates/usr-bin.mount.tmpl"
+	mountTemplate = "templates/binaries/usr-bin.mount.tmpl"
 	mountName     = "usr-bin.mount"
 	mountPath     = "/etc/systemd/system/" + mountName
 	mountPoint    = "/usr/bin"
@@ -87,7 +87,7 @@ func createBinariesMount(deps service.ServiceDependencies, flags *service.Servic
 		UpperDir:   upperDir,
 		WorkDir:    workDir,
 	}
-	changed, err := templates.Render(mountTemplate, mountPath, opts, fileMode)
+	changed, err := templates.Render(deps.Logger, mountTemplate, mountPath, opts, fileMode)
 	return changed, maskAny(err)
 }
 

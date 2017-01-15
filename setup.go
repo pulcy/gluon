@@ -27,6 +27,7 @@ import (
 	"github.com/pulcy/gluon/service/gluon"
 	"github.com/pulcy/gluon/service/iptables"
 	"github.com/pulcy/gluon/service/journal"
+	"github.com/pulcy/gluon/service/kubernetes"
 	"github.com/pulcy/gluon/service/rkt"
 	"github.com/pulcy/gluon/service/sshd"
 	"github.com/pulcy/gluon/service/vault"
@@ -60,6 +61,7 @@ func init() {
 	cmdSetup.Flags().BoolVar(&setupFlags.Force, "force", false, "Restart services, even if nothing has changed")
 	// Gluon
 	cmdSetup.Flags().StringVar(&setupFlags.GluonImage, "gluon-image", "", "Gluon docker image name")
+	cmdSetup.Flags().StringVar(&setupFlags.VaultMonkeyImage, "vault-monkey-image", "", "VaultMonkey docker image name")
 	// Docker
 	cmdSetup.Flags().StringVar(&setupFlags.Docker.DockerIP, "docker-ip", "", "IP address docker binds ports to")
 	cmdSetup.Flags().StringVar(&setupFlags.Docker.DockerSubnet, "docker-subnet", defaultDockerSubnet, "Subnet used by docker")
@@ -72,6 +74,7 @@ func init() {
 	cmdSetup.Flags().StringVar(&setupFlags.Network.ClusterIP, "private-ip", "", "IP address of this host in the cluster network")
 	cmdSetup.Flags().StringVar(&setupFlags.Network.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the cluster IP")
 	// Fleet
+	cmdSetup.Flags().BoolVar(&setupFlags.Fleet.Enabled, "fleet-enabled", defaultFleetEnabled(), "If set, fleet will be installed")
 	cmdSetup.Flags().StringVar(&setupFlags.Fleet.Metadata, "fleet-metadata", "", "Metadata list for fleet")
 	cmdSetup.Flags().StringVar(&setupFlags.Fleet.AgentTTL, "fleet-agent-ttl", defaultFleetAgentTTL, "agent_ttl option for fleet")
 	cmdSetup.Flags().BoolVar(&setupFlags.Fleet.DisableEngine, "fleet-disable-engine", defaultFleetDisableEngine, "disable_engine option for fleet")
@@ -82,6 +85,11 @@ func init() {
 	cmdSetup.Flags().StringVar(&setupFlags.Etcd.ClusterState, "etcd-cluster-state", "", "State of the ETCD cluster new|existing")
 	cmdSetup.Flags().BoolVar(&setupFlags.Etcd.UseVaultCA, "etcd-use-vault-ca", defaultEtcdUseVaultCA(), "If set, use vault to create peer (and optional client) TLS certificates")
 	cmdSetup.Flags().BoolVar(&setupFlags.Etcd.SecureClients, "etcd-secure-clients", defaultEtcdSecureClients(), "If set, force clients to connect over TLS")
+	// Kubernetes
+	cmdSetup.Flags().BoolVar(&setupFlags.Kubernetes.Enabled, "k8s-enabled", defaultKubernetesEnabled(), "If set, fleet will be installed")
+	cmdSetup.Flags().StringVar(&setupFlags.Kubernetes.APIDNSName, "k8s-api-dns-name", defaultKubernetesAPIDNSName(), "Alternate name of the Kubernetes API server")
+	// Vault
+	cmdSetup.Flags().StringVar(&setupFlags.Vault.VaultImage, "vault-image", "", "Pulcy Vault docker image name")
 	// Weave
 	cmdSetup.Flags().StringVar(&setupFlags.Weave.Seed, "weave-seed", "", "SEED of the weave network")
 	cmdSetup.Flags().StringVar(&setupFlags.Weave.Hostname, "weave-hostname", defaultWeaveHostname, "DNS name for exposed host")
@@ -108,16 +116,18 @@ func runSetup(cmd *cobra.Command, args []string) {
 	}
 
 	services := []service.Service{
+		// The order of entries is relevant!
 		binaries.NewService(),
 		env.NewService(),
 		iptables.NewService(),
 		journal.NewService(),
 		docker.NewService(),
 		rkt.NewService(),
-		vault.NewService(),
 		weave.NewService(),
 		consul.NewService(),
+		vault.NewService(),
 		etcd.NewService(),
+		kubernetes.NewService(),
 		fleet.NewService(),
 		sshd.NewService(),
 		gluon.NewService(),

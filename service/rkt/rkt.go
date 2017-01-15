@@ -30,16 +30,17 @@ import (
 
 var (
 	tmpFilesConfPath   = "/usr/lib/tmpfiles.d/rkt.conf"
-	tmpFilesConfSource = "templates/rkt.conf"
+	tmpFilesConfSource = "templates/rkt/rkt.conf"
 
 	apiServiceName      = "rkt-api.service"
+	apiSocketName       = "rkt-api.socket"
 	gcServiceName       = "rkt-gc.service"
 	gcTimerName         = "rkt-gc.timer"
 	metadataServiceName = "rkt-metadata.service"
 	metadataSocketName  = "rkt-metadata.socket"
 
 	networkConfPath     = "/etc/rkt/net.d/10-gluon.conf"
-	networkConfTemplate = "templates/rkt-net-gluon.conf.tmpl"
+	networkConfTemplate = "templates/rkt/rkt-net-gluon.conf.tmpl"
 
 	privateRegistryAuthConfPath = "/etc/rkt/auth.d/gluon-private-registry.json"
 
@@ -78,23 +79,33 @@ func (t *rktService) Setup(deps service.ServiceDependencies, flags *service.Serv
 		return maskAny(err)
 	}
 
-	for _, serviceName := range []string{
+	serviceNames := []string{
 		apiServiceName,
+		apiSocketName,
 		gcServiceName,
 		gcTimerName,
 		metadataSocketName, // Keep this before metadataServiceName
 		metadataServiceName,
-	} {
+	}
+	var serviceChanged []bool
+	anyChanged := false
+	for _, serviceName := range serviceNames {
 		changed, err := createService(serviceName, deps, flags)
 		if err != nil {
 			return maskAny(err)
 		}
-
+		serviceChanged = append(serviceChanged, changed)
+		anyChanged = anyChanged || changed
+	}
+	if anyChanged || flags.Force {
+		if err := deps.Systemd.Reload(); err != nil {
+			return maskAny(err)
+		}
+	}
+	for i, serviceName := range serviceNames {
+		changed := serviceChanged[i]
 		if flags.Force || changed {
 			if err := deps.Systemd.Enable(serviceName); err != nil {
-				return maskAny(err)
-			}
-			if err := deps.Systemd.Reload(); err != nil {
 				return maskAny(err)
 			}
 			if err := deps.Systemd.Restart(serviceName); err != nil {
@@ -113,7 +124,7 @@ func createTmpFilesConf(deps service.ServiceDependencies, flags *service.Service
 		return false, maskAny(err)
 	}
 
-	changed, err := util.UpdateFile(tmpFilesConfPath, asset, 0644)
+	changed, err := util.UpdateFile(deps.Logger, tmpFilesConfPath, asset, 0644)
 	return changed, maskAny(err)
 
 }
@@ -145,12 +156,12 @@ func createService(serviceName string, deps service.ServiceDependencies, flags *
 	servicePath := servicePath(serviceName)
 	deps.Logger.Info("creating %s", servicePath)
 	opts := struct{}{}
-	changed, err := templates.Render(serviceTemplate, servicePath, opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, serviceTemplate, servicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 
 func serviceTemplate(serviceName string) string {
-	return fmt.Sprintf("templates/%s.tmpl", serviceName)
+	return fmt.Sprintf("templates/rkt/%s.tmpl", serviceName)
 }
 
 func servicePath(serviceName string) string {
@@ -195,7 +206,7 @@ func createPrivateRegistryAuthConf(deps service.ServiceDependencies, flags *serv
 		if err != nil {
 			return false, maskAny(err)
 		}
-		changed, err := util.UpdateFile(privateRegistryAuthConfPath, raw, 0600)
+		changed, err := util.UpdateFile(deps.Logger, privateRegistryAuthConfPath, raw, 0600)
 		return changed, maskAny(err)
 	} else {
 		deps.Logger.Warningf("Skip creating %s", privateRegistryAuthConfPath)
@@ -211,6 +222,6 @@ func createNetwork(deps service.ServiceDependencies, flags *service.ServiceFlags
 	}{
 		RktSubnet: flags.Rkt.RktSubnet,
 	}
-	changed, err := templates.Render(networkConfTemplate, networkConfPath, opts, configFileMode)
+	changed, err := templates.Render(deps.Logger, networkConfTemplate, networkConfPath, opts, configFileMode)
 	return changed, maskAny(err)
 }

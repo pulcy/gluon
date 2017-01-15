@@ -1,0 +1,40 @@
+[Unit]
+Description=Kubernetes Kubelet
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+
+{{range .Requires }}
+Requires={{.}}{{end}}
+{{range .After }}
+After={{.}}{{end}}
+
+[Service]
+ExecStartPre=-/usr/bin/pkill -9 kubelet
+ExecStart=/usr/bin/kubelet \
+  --allow-privileged=true \
+  --cloud-provider= \
+  --cluster-dns={{.ClusterDNS}} \
+  --cluster-domain={{.ClusterDomain}} \
+  --cni-bin-dir=/opt/cni/bin \
+  --cni-conf-dir=/etc/cni/net.d \
+  --container-runtime=docker \
+  --hostname-override={{.HostnameOverride}} \
+  --kubeconfig={{.KubeConfigPath}} \
+  --network-plugin=cni \
+  --node-ip={{.NodeIP}} \
+  --node-labels={{.NodeLabels}} \
+  --pod-manifest-path=/etc/kubernetes/manifests \
+  --register-node=true \
+  --register-schedulable={{.RegisterSchedulable}} \
+  --require-kubeconfig=true \
+  --rkt-api-endpoint=localhost:15441 \
+  --rkt-path=/usr/bin/rkt \
+  --serialize-image-pulls=false \
+  --tls-cert-file={{.CertPath}} \
+  --tls-private-key-file={{.KeyPath}} \
+  --v=2
+
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

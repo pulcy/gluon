@@ -21,6 +21,7 @@ import (
 	"text/template"
 
 	"github.com/juju/errgo"
+	logging "github.com/op/go-logging"
 
 	"github.com/pulcy/gluon/util"
 )
@@ -33,7 +34,7 @@ type TemplateConfigurator func(*template.Template)
 
 // Render updates the given destinationPath according to the given template and options.
 // Returns true if the file was created or changed, false if nothing has changed.
-func Render(templateName, destinationPath string, options interface{}, destinationFileMode os.FileMode, config ...TemplateConfigurator) (bool, error) {
+func Render(log *logging.Logger, templateName, destinationPath string, options interface{}, destinationFileMode os.FileMode, config ...TemplateConfigurator) (bool, error) {
 	asset, err := Asset(templateName)
 	if err != nil {
 		return false, maskAny(err)
@@ -63,7 +64,7 @@ func Render(templateName, destinationPath string, options interface{}, destinati
 	}
 
 	// Update file
-	changed, err := util.UpdateFile(destinationPath, buf.Bytes(), destinationFileMode)
+	changed, err := util.UpdateFile(log, destinationPath, buf.Bytes(), destinationFileMode)
 	return changed, maskAny(err)
 }
 

@@ -22,6 +22,7 @@ import (
 	"github.com/juju/errgo"
 
 	"github.com/pulcy/gluon/service"
+	"github.com/pulcy/gluon/service/etcd"
 	"github.com/pulcy/gluon/templates"
 	"github.com/pulcy/gluon/util"
 )
@@ -31,16 +32,16 @@ var (
 )
 
 const (
-	confTemplate      = "templates/99-fleet.conf.tmpl"
 	confName          = "99-fleet.conf"
-	confPath          = "/etc/systemd/system/" + serviceName + ".d/" + confName
+	confDir           = "/etc/systemd/system/" + serviceName + ".d/"
+	confPath          = confDir + confName
 	serviceName       = "fleet.service"
-	serviceTemplate   = "templates/fleet.service.tmpl"
+	serviceTemplate   = "templates/fleet/fleet.service.tmpl"
 	servicePath       = "/etc/systemd/system/" + serviceName
 	socketName        = "fleet.socket"
 	socketPath        = "/etc/systemd/system/fleet.socket"
-	socketTemplate    = "templates/fleet.socket.tmpl"
-	checkScriptSource = "templates/fleet-check.sh"
+	socketTemplate    = "templates/fleet/fleet.socket.tmpl"
+	checkScriptSource = "templates/fleet/fleet-check.sh"
 	checkScriptPath   = "/home/core/bin/fleet-check.sh"
 
 	serviceFileMode = os.FileMode(0644)
@@ -59,49 +60,58 @@ func (t *fleetService) Name() string {
 }
 
 func (t *fleetService) Setup(deps service.ServiceDependencies, flags *service.ServiceFlags) error {
-	changedConf, err := createFleetConf(deps, flags)
-	if err != nil {
-		return maskAny(err)
-	}
-	changedService, err := createService(deps, flags)
-	if err != nil {
-		return maskAny(err)
-	}
-	changedSocket, err := createSocket(deps, flags)
-	if err != nil {
-		return maskAny(err)
-	}
-
-	if err := deps.Systemd.Reload(); err != nil {
-		return maskAny(err)
-	}
-
-	isActive, err := deps.Systemd.IsActive(serviceName)
-	if err != nil {
-		return maskAny(err)
-	}
-
-	if !isActive || changedService || changedConf || flags.Force {
-		if err := deps.Systemd.Enable(serviceName); err != nil {
+	if flags.Fleet.IsEnabled() {
+		changedConf, err := createFleetConf(deps, flags)
+		if err != nil {
 			return maskAny(err)
 		}
+		changedService, err := createService(deps, flags)
+		if err != nil {
+			return maskAny(err)
+		}
+		changedSocket, err := createSocket(deps, flags)
+		if err != nil {
+			return maskAny(err)
+		}
+
 		if err := deps.Systemd.Reload(); err != nil {
 			return maskAny(err)
 		}
-		if err := deps.Systemd.Restart(serviceName); err != nil {
+
+		isActive, err := deps.Systemd.IsActive(serviceName)
+		if err != nil {
+			return maskAny(err)
+		}
+
+		if !isActive || changedService || changedConf || flags.Force {
+			if err := deps.Systemd.Enable(serviceName); err != nil {
+				return maskAny(err)
+			}
+			if err := deps.Systemd.Reload(); err != nil {
+				return maskAny(err)
+			}
+			if err := deps.Systemd.Restart(serviceName); err != nil {
+				return maskAny(err)
+			}
+		}
+		if changedSocket || flags.Force {
+			if err := deps.Systemd.Restart(socketName); err != nil {
+				return maskAny(err)
+			}
+		}
+
+		if _, err := createFleetCheck(deps, flags); err != nil {
+			return maskAny(err)
+		}
+	} else {
+		// Remove fleet
+		if err := deps.Systemd.StopAndRemove(socketName, socketPath); err != nil {
+			return maskAny(err)
+		}
+		if err := deps.Systemd.StopAndRemove(serviceName, servicePath, confPath, confDir, checkScriptPath); err != nil {
 			return maskAny(err)
 		}
 	}
-	if changedSocket || flags.Force {
-		if err := deps.Systemd.Restart(socketName); err != nil {
-			return maskAny(err)
-		}
-	}
-
-	if _, err := createFleetCheck(deps, flags); err != nil {
-		return maskAny(err)
-	}
-
 	return nil
 }
 
@@ -116,7 +126,7 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 	}{
 		HaveEtcd: !proxy,
 	}
-	changed, err := templates.Render(serviceTemplate, servicePath, opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, serviceTemplate, servicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 
@@ -133,7 +143,7 @@ func createFleetConf(deps service.ServiceDependencies, flags *service.ServiceFla
 	etcdServers := []string{}
 	for _, cm := range members {
 		if !cm.EtcdProxy {
-			etcdServers = append(etcdServers, fmt.Sprintf("http://%s:2379", cm.ClusterIP))
+			etcdServers = append(etcdServers, flags.Etcd.CreateEndpoint(cm.ClusterIP))
 		}
 	}
 
@@ -148,8 +158,15 @@ func createFleetConf(deps service.ServiceDependencies, flags *service.ServiceFla
 		fmt.Sprintf("Environment=FLEET_ENGINE_RECONCILE_INTERVAL=%d", flags.Fleet.EngineReconcileInterval),
 		fmt.Sprintf("Environment=FLEET_TOKEN_LIMIT=%d", flags.Fleet.TokenLimit),
 	}
+	if flags.Etcd.SecureClients {
+		lines = append(lines,
+			fmt.Sprintf("Environment=FLEET_ETCD_CERTFILE=%s", etcd.CertsCertPath),
+			fmt.Sprintf("Environment=FLEET_ETCD_KEYFILE=%s", etcd.CertsKeyPath),
+			fmt.Sprintf("Environment=FLEET_ETCD_CAFILE=%s", etcd.CertsCAPath),
+		)
+	}
 
-	changed, err := util.UpdateFile(confPath, []byte(strings.Join(lines, "\n")), configFileMode)
+	changed, err := util.UpdateFile(deps.Logger, confPath, []byte(strings.Join(lines, "\n")), configFileMode)
 	return changed, maskAny(err)
 }
 
@@ -161,7 +178,7 @@ func createFleetCheck(deps service.ServiceDependencies, flags *service.ServiceFl
 		return false, maskAny(err)
 	}
 
-	changed, err := util.UpdateFile(checkScriptPath, asset, scriptFileMode)
+	changed, err := util.UpdateFile(deps.Logger, checkScriptPath, asset, scriptFileMode)
 	return changed, maskAny(err)
 }
 
@@ -172,7 +189,7 @@ func createSocket(deps service.ServiceDependencies, flags *service.ServiceFlags)
 	}{
 		ClusterIP: flags.Network.ClusterIP,
 	}
-	changed, err := templates.Render(socketTemplate, socketPath, opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, socketTemplate, socketPath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 

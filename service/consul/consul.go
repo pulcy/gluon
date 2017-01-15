@@ -27,7 +27,7 @@ import (
 
 var (
 	consulServiceName = "consul.service"
-	consulServiceTmpl = "templates/" + consulServiceName + ".tmpl"
+	consulServiceTmpl = "templates/consul/" + consulServiceName + ".tmpl"
 	consulServicePath = "/etc/systemd/system/" + consulServiceName
 
 	serviceFileMode = os.FileMode(0644)
@@ -95,7 +95,7 @@ func createService(deps service.ServiceDependencies, flags *service.ServiceFlags
 	}{
 		Flags: args,
 	}
-	changed, err := templates.Render(consulServiceTmpl, consulServicePath, opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, consulServiceTmpl, consulServicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 

@@ -25,10 +25,12 @@ ETCDVERSION := v3.0.15
 FLEETVERSION := e6c838b9bdc0184d727eb8c43bd856ecfa4a1519
 FLEETBUILDDIR := $(ROOTDIR)/.build/fleet
 
-RKTVERSION := v1.21.0
+RKTVERSION := v1.22.0
 
 CONSULVERSION := 0.7.2
 CONSULTEMPLATEVERSION := 0.16.0
+
+K8SVERSION := v1.5.1
 
 ifndef GOOS
 	GOOS := linux
@@ -40,9 +42,9 @@ endif
 SOURCES := $(shell find $(SRCDIR) -name '*.go')
 TEMPLATES := $(shell find $(SRCDIR)/templates -name '*')
 
-.PHONY: all clean deps
+.PHONY: all clean deps consul weave rkt etcd fleet kubernetes cni
 
-all: .build/certdump .build/consul .build/consul-template .build/weave .build/rkt $(BIN) $(BINGPG) .build/etcd .build/fleetd
+all: .build/certdump consul kubernetes weave rkt $(BIN) $(BINGPG) etcd fleet cni
 
 clean:
 	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR) .build $(FLEETBUILDDIR)
@@ -82,7 +84,7 @@ $(BIN): $(GOBUILDDIR) $(GOBINDATA) $(SOURCES) templates/templates_bindata.go
 
 # Special rule, because this file is generated
 templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)
-	$(GOBINDATA) -pkg templates -o templates/templates_bindata.go templates/
+	$(GOBINDATA) -pkg templates -o templates/templates_bindata.go templates/...
 
 .build/certdump: certdump/certdump.go 
 	mkdir -p .build
@@ -96,12 +98,20 @@ templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)
 		go build -o /usr/code/certdump 
 	mv $(ROOTDIR)/certdump/certdump .build/
 
+# ETCD 
+
+etcd: .build/etcd
+
 .build/etcd: .build/etcd.tar.gz
 	cd .build && tar zxf etcd.tar.gz && cp etcd-${ETCDVERSION}-linux-amd64/etcd* . && touch ./etcd
 
 .build/etcd.tar.gz:
 	mkdir -p .build
 	curl -L  https://github.com/coreos/etcd/releases/download/$(ETCDVERSION)/etcd-$(ETCDVERSION)-linux-amd64.tar.gz -o .build/etcd.tar.gz
+
+# Fleet 
+
+fleet: .build/fleetd
 
 .build/fleetd: $(FLEETBUILDDIR)
 	docker run \
@@ -119,17 +129,29 @@ templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)
 $(FLEETBUILDDIR):
 	@pulsar get -b $(FLEETVERSION) https://github.com/coreos/fleet.git $(FLEETBUILDDIR)
 
+
+# Rkt
+rkt: .build/rkt
+
 .build/rkt: .build/rkt.tar.gz
 	cd .build && tar zxf rkt.tar.gz && mv rkt-${RKTVERSION} rkt && touch ./rkt/rkt
-	cp .build/rkt/init/systemd/tmpfiles.d/rkt.conf templates/
+	cp .build/rkt/init/systemd/tmpfiles.d/rkt.conf templates/rkt/
 
 .build/rkt.tar.gz:
 	mkdir -p .build
 	curl -L  https://github.com/coreos/rkt/releases/download/$(RKTVERSION)/rkt-$(RKTVERSION).tar.gz -o .build/rkt.tar.gz
 
+# Weave 
+
+weave: .build/weave
+
 .build/weave:
 	mkdir -p .build
 	curl -L git.io/weave -o .build/weave
+
+# Consul 
+
+consul: .build/consul .build/consul-template
 
 .build/consul: .build/consul.zip
 	@rm -f .build/consul
@@ -148,3 +170,32 @@ $(FLEETBUILDDIR):
 .build/consul-template.zip:
 	@mkdir -p .build
 	@curl -L https://releases.hashicorp.com/consul-template/$(CONSULTEMPLATEVERSION)/consul-template_$(CONSULTEMPLATEVERSION)_linux_amd64.zip -o .build/consul-template.zip 
+
+# Kubernetes 
+
+kubernetes: .build/kubectl .build/kubelet .build/kube-proxy
+
+.build/kubectl:
+	@mkdir -p .build
+	@curl -L https://storage.googleapis.com/kubernetes-release/release/$(K8SVERSION)/bin/linux/amd64/kubectl -o .build/kubectl
+
+.build/kubelet:
+	@mkdir -p .build
+	@curl -L https://storage.googleapis.com/kubernetes-release/release/$(K8SVERSION)/bin/linux/amd64/kubelet -o .build/kubelet
+
+.build/kube-proxy:
+	@mkdir -p .build
+	@curl -L https://storage.googleapis.com/kubernetes-release/release/$(K8SVERSION)/bin/linux/amd64/kube-proxy -o .build/kube-proxy
+
+# CNI 
+
+cni: .build/cni 
+
+.build/cni: .build/cni.tar.gz
+	@mkdir -p .build/cni
+	@tar -xvf .build/cni.tar.gz -C .build/cni
+
+.build/cni.tar.gz: 
+	@mkdir -p .build
+	@curl -L https://storage.googleapis.com/kubernetes-release/network-plugins/cni-07a8a28637e97b22eb8dfe710eeae1344f69d16e.tar.gz -o .build/cni.tar.gz
+

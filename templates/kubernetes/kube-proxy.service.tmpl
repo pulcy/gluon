@@ -1,0 +1,24 @@
+[Unit]
+Description=Kubernetes Kube Proxy
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+
+{{range .Requires }}
+Requires={{.}}{{end}}
+{{range .After }}
+After={{.}}{{end}}
+
+[Service]
+ExecStartPre=-/usr/bin/pkill -9 kube-proxy
+ExecStart=/usr/bin/kube-proxy \
+  --cluster-cidr={{.ClusterCIDR}} \
+  --hostname-override={{.HostnameOverride}} \
+  --kubeconfig={{.KubeConfigPath}} \
+  --master={{.Master}} \
+  --proxy-mode=iptables \
+  --v=2
+
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -15,6 +15,7 @@
 package service
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
@@ -28,17 +29,14 @@ import (
 )
 
 const (
-	clusterMembersPath     = "/etc/pulcy/cluster-members"
-	privateRegistryUrlPath = "/etc/pulcy/private-registry-url"
-	etcdClusterStatePath   = "/etc/pulcy/etcd-cluster-state"
-	fleetMetadataPath      = "/etc/pulcy/fleet-metadata"
-	gluonImagePath         = "/etc/pulcy/gluon-image"
-	weaveSeedPath          = "/etc/pulcy/weave-seed"
-	weaveIPRangePath       = "/etc/pulcy/weave-iprange"
-	weaveIPInitPath        = "/etc/pulcy/weave-ipinit"
-	privateHostIPPrefix    = "private-host-ip="
-	defaultWeaveIPRange    = "10.32.0.0/12"
-	rolesPath              = "/etc/pulcy/roles"
+	defaultVaultMonkeyImage = "pulcy/vault-monkey:0.6.0"
+	clusterMembersPath      = "/etc/pulcy/cluster-members"
+	privateRegistryUrlPath  = "/etc/pulcy/private-registry-url"
+	etcdClusterStatePath    = "/etc/pulcy/etcd-cluster-state"
+	gluonImagePath          = "/etc/pulcy/gluon-image"
+	privateHostIPPrefix     = "private-host-ip="
+	rolesPath               = "/etc/pulcy/roles"
+	clusterIDPath           = "/etc/pulcy/cluster-id"
 )
 
 type Service interface {
@@ -55,8 +53,9 @@ type ServiceFlags struct {
 	Force bool // Start/reload even if nothing has changed
 
 	// gluon
-	GluonImage string
-	Roles      []string
+	GluonImage       string
+	VaultMonkeyImage string
+	Roles            []string
 
 	// Docker
 	Docker struct {
@@ -80,29 +79,19 @@ type ServiceFlags struct {
 	}
 
 	// ETCD
-	Etcd struct {
-		ClusterState  string
-		UseVaultCA    bool // If set, use vault to create peer (and optional client) TLS certificates
-		SecureClients bool // If set, force clients to connect over TLS
-	}
+	Etcd Etcd
+
+	// Kubernetes config
+	Kubernetes Kubernetes
 
 	// Fleet
-	Fleet struct {
-		Metadata                string
-		AgentTTL                string
-		DisableEngine           bool
-		DisableWatches          bool
-		EngineReconcileInterval int
-		TokenLimit              int
-	}
+	Fleet Fleet
+
+	// Vault config
+	Vault Vault
 
 	// Weave
-	Weave struct {
-		Seed     string
-		Hostname string // Weave DNS of exposed host
-		IPRange  string // Value to `--ipalloc-range` (e.g. 10.32.0.0/16)
-		IPInit   string // Value for `--ipalloc-init` (default empty)
-	}
+	Weave Weave
 
 	// private cache
 	clusterMembers []ClusterMember
@@ -128,6 +117,9 @@ type ClusterMember struct {
 
 // SetupDefaults fills given flags with default value
 func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
+	if flags.VaultMonkeyImage == "" {
+		flags.VaultMonkeyImage = defaultVaultMonkeyImage
+	}
 	if flags.Docker.PrivateRegistryUrl == "" {
 		url, err := ioutil.ReadFile(privateRegistryUrlPath)
 		if err != nil && !os.IsNotExist(err) {
@@ -136,23 +128,17 @@ func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
 			flags.Docker.PrivateRegistryUrl = string(url)
 		}
 	}
-	if flags.Fleet.Metadata == "" {
-		raw, err := ioutil.ReadFile(fleetMetadataPath)
-		if err != nil && !os.IsNotExist(err) {
-			return maskAny(err)
-		} else if err == nil {
-			lines := trimLines(strings.Split(string(raw), "\n"))
-			flags.Fleet.Metadata = strings.Join(lines, ",")
-		}
+	if err := flags.Fleet.setupDefaults(log); err != nil {
+		return maskAny(err)
 	}
-	if flags.Etcd.ClusterState == "" {
-		raw, err := ioutil.ReadFile(etcdClusterStatePath)
-		if err != nil && !os.IsNotExist(err) {
-			return maskAny(err)
-		} else if err == nil {
-			lines := trimLines(strings.Split(string(raw), "\n"))
-			flags.Etcd.ClusterState = strings.TrimSpace(strings.Join(lines, " "))
-		}
+	if err := flags.Etcd.setupDefaults(log); err != nil {
+		return maskAny(err)
+	}
+	if err := flags.Kubernetes.setupDefaults(log); err != nil {
+		return maskAny(err)
+	}
+	if err := flags.Vault.setupDefaults(log); err != nil {
+		return maskAny(err)
 	}
 	if flags.Network.PrivateClusterDevice == "" {
 		flags.Network.PrivateClusterDevice = "eth1"
@@ -171,47 +157,8 @@ func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
 			flags.GluonImage = strings.TrimSpace(string(content))
 		}
 	}
-	if flags.Weave.Seed == "" {
-		seed, err := ioutil.ReadFile(weaveSeedPath)
-		if err != nil && !os.IsNotExist(err) {
-			return maskAny(err)
-		} else if err == nil {
-			flags.Weave.Seed = string(seed)
-		} else {
-			members, err := flags.GetClusterMembers(log)
-			if err != nil {
-				return maskAny(err)
-			}
-			var seeds []string
-			for _, m := range members {
-				if !m.EtcdProxy {
-					name, err := util.WeaveNameFromMachineID(m.MachineID)
-					if err != nil {
-						return maskAny(err)
-					}
-					seeds = append(seeds, name)
-				}
-			}
-			flags.Weave.Seed = strings.Join(seeds, ",")
-		}
-	}
-	if flags.Weave.IPRange == "" {
-		content, err := ioutil.ReadFile(weaveIPRangePath)
-		if err != nil && !os.IsNotExist(err) {
-			return maskAny(err)
-		} else if err == nil {
-			flags.Weave.IPRange = strings.TrimSpace(string(content))
-		} else {
-			flags.Weave.IPRange = defaultWeaveIPRange
-		}
-	}
-	if flags.Weave.IPInit == "" {
-		content, err := ioutil.ReadFile(weaveIPInitPath)
-		if err != nil && !os.IsNotExist(err) {
-			return maskAny(err)
-		} else if err == nil {
-			flags.Weave.IPInit = strings.TrimSpace(string(content))
-		}
+	if err := flags.Weave.setupDefaults(log, flags); err != nil {
+		return maskAny(err)
 	}
 
 	// Setup roles last, since it depends on other flags being initialized
@@ -240,55 +187,50 @@ func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
 
 // Save applicable flags to their respective files
 // Returns true if anything has changed, false otherwise
-func (flags *ServiceFlags) Save() (bool, error) {
+func (flags *ServiceFlags) Save(log *logging.Logger) (bool, error) {
 	changes := 0
 	if flags.Docker.PrivateRegistryUrl != "" {
-		if changed, err := updateContent(privateRegistryUrlPath, flags.Docker.PrivateRegistryUrl, 0644); err != nil {
+		if changed, err := updateContent(log, privateRegistryUrlPath, flags.Docker.PrivateRegistryUrl, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++
 		}
 	}
-	if flags.Fleet.Metadata != "" {
-		parts := strings.Split(flags.Fleet.Metadata, ",")
-		content := strings.Join(parts, "\n")
-		if changed, err := updateContent(fleetMetadataPath, content, 0644); err != nil {
-			return false, maskAny(err)
-		} else if changed {
-			changes++
-		}
+	if changed, err := flags.Fleet.save(log); err != nil {
+		return false, maskAny(err)
+	} else if changed {
+		changes++
 	}
-	if flags.Etcd.ClusterState != "" {
-		if changed, err := updateContent(etcdClusterStatePath, flags.Etcd.ClusterState, 0644); err != nil {
-			return false, maskAny(err)
-		} else if changed {
-			changes++
-		}
+	if changed, err := flags.Etcd.save(log); err != nil {
+		return false, maskAny(err)
+	} else if changed {
+		changes++
+	}
+	if changed, err := flags.Kubernetes.save(log); err != nil {
+		return false, maskAny(err)
+	} else if changed {
+		changes++
+	}
+	if changed, err := flags.Vault.save(log); err != nil {
+		return false, maskAny(err)
+	} else if changed {
+		changes++
 	}
 	if flags.GluonImage != "" {
-		if changed, err := updateContent(gluonImagePath, flags.GluonImage, 0644); err != nil {
+		if changed, err := updateContent(log, gluonImagePath, flags.GluonImage, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++
 		}
 	}
-	if flags.Weave.Seed != "" {
-		if changed, err := updateContent(weaveSeedPath, flags.Weave.Seed, 0644); err != nil {
-			return false, maskAny(err)
-		} else if changed {
-			changes++
-		}
-	}
-	if flags.Weave.IPRange != "" {
-		if changed, err := updateContent(weaveIPRangePath, flags.Weave.IPRange, 0644); err != nil {
-			return false, maskAny(err)
-		} else if changed {
-			changes++
-		}
+	if changed, err := flags.Weave.save(log); err != nil {
+		return false, maskAny(err)
+	} else if changed {
+		changes++
 	}
 	if len(flags.Roles) > 0 {
 		content := strings.Join(flags.Roles, "\n")
-		if changed, err := updateContent(rolesPath, content, 0644); err != nil {
+		if changed, err := updateContent(log, rolesPath, content, 0644); err != nil {
 			return false, maskAny(err)
 		} else if changed {
 			changes++
@@ -321,6 +263,29 @@ func (flags *ServiceFlags) GetClusterMembers(log *logging.Logger) ([]ClusterMemb
 
 	flags.clusterMembers = members
 	return members, nil
+}
+
+// ReadClusterID reads the cluster ID from /etc/pulcy/cluster-id
+func (flags *ServiceFlags) ReadClusterID() (string, error) {
+	content, err := ioutil.ReadFile(clusterIDPath)
+	if err != nil {
+		return "", maskAny(err)
+	}
+	return strings.TrimSpace(string(content)), nil
+}
+
+// PrivateHostIP returns the private IPv4 address of the host.
+func (flags *ServiceFlags) PrivateHostIP(log *logging.Logger) (string, error) {
+	members, err := flags.GetClusterMembers(log)
+	if err != nil {
+		return "", maskAny(err)
+	}
+	for _, m := range members {
+		if m.ClusterIP == flags.Network.ClusterIP {
+			return m.PrivateHostIP, nil
+		}
+	}
+	return "", maskAny(fmt.Errorf("No cluster member found for %s", flags.Network.ClusterIP))
 }
 
 // getClusterMembersFromFS returns a list of the private IP
@@ -375,10 +340,10 @@ func (flags *ServiceFlags) getClusterMembersFromFS(log *logging.Logger) ([]Clust
 	return members, nil
 }
 
-func updateContent(path, content string, fileMode os.FileMode) (bool, error) {
+func updateContent(log *logging.Logger, path, content string, fileMode os.FileMode) (bool, error) {
 	content = strings.TrimSpace(content)
 	os.MkdirAll(filepath.Dir(path), 0755)
-	changed, err := util.UpdateFile(path, []byte(content), fileMode)
+	changed, err := util.UpdateFile(log, path, []byte(content), fileMode)
 	return changed, maskAny(err)
 }
 

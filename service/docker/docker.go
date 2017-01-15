@@ -32,12 +32,12 @@ var (
 )
 
 const (
-	serviceTemplate = "templates/docker.service.tmpl"
+	serviceTemplate = "templates/docker/docker.service.tmpl"
 	ServiceName     = "docker.service"
 	servicePath     = "/etc/systemd/system/" + ServiceName
 	rootConfigPath1 = "/root/.docker/config"
 	rootConfigPath2 = "/root/.docker/config.json"
-	cleanupSource   = "templates/docker-cleanup.sh"
+	cleanupSource   = "templates/docker/docker-cleanup.sh"
 	cleanupPath     = "/home/core/bin/docker-cleanup.sh"
 
 	scriptFileMode  = os.FileMode(0755)
@@ -106,10 +106,14 @@ func createDockerService(deps service.ServiceDependencies, flags *service.Servic
 	deps.Logger.Info("creating %s", servicePath)
 	opts := struct {
 		DockerIP string
+		IPTables bool
+		IPMasq   bool
 	}{
 		DockerIP: flags.Docker.DockerIP,
+		IPTables: !flags.Kubernetes.IsEnabled(),
+		IPMasq:   !flags.Kubernetes.IsEnabled(),
 	}
-	changed, err := templates.Render(serviceTemplate, servicePath, opts, serviceFileMode)
+	changed, err := templates.Render(deps.Logger, serviceTemplate, servicePath, opts, serviceFileMode)
 	return changed, maskAny(err)
 }
 
@@ -136,7 +140,7 @@ func createDockerConfig(rootConfigPath string, deps service.ServiceDependencies,
 		if err != nil {
 			return false, maskAny(err)
 		}
-		changed, err := util.UpdateFile(rootConfigPath, raw, 0600)
+		changed, err := util.UpdateFile(deps.Logger, rootConfigPath, raw, 0600)
 		return changed, maskAny(err)
 	} else {
 		deps.Logger.Warning("Skip creating .docker config")
@@ -163,6 +167,6 @@ func createDockerCleanup(deps service.ServiceDependencies, flags *service.Servic
 		return false, maskAny(err)
 	}
 
-	changed, err := util.UpdateFile(cleanupPath, asset, scriptFileMode)
+	changed, err := util.UpdateFile(deps.Logger, cleanupPath, asset, scriptFileMode)
 	return changed, maskAny(err)
 }

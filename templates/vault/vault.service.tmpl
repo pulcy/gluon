@@ -3,6 +3,8 @@ Description=Secure vault
 # Wait for networking
 Requires=network-online.target
 After=network-online.target
+Requires=consul.service
+After=consul.service
 
 [Service]
 Restart=always
@@ -11,7 +13,7 @@ StartLimitInterval=60s
 StartLimitBurst=3
 TimeoutStartSec=0
 EnvironmentFile=/etc/environment
-Environment="IMAGE=pulcy/vault:0.7.1"
+Environment="IMAGE={{.VaultImage}}"
 ExecStartPre=/bin/sh -c 'test -e /etc/pulcy/vault || mkdir -p /etc/pulcy/vault'
 ExecStart=/usr/bin/rkt \
     run \

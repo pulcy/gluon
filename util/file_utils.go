@@ -21,6 +21,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	logging "github.com/op/go-logging"
 )
 
 // EnsureDirectoryOf checks if the directory of the given file path exists and if not creates it.
@@ -50,7 +52,7 @@ func EnsureDirectory(dirPath string, perm os.FileMode) error {
 // if the content is different, the file is updated.
 // If the file does not exist, it is created.
 // Returns: true if the file is created or updated, false otherwise.
-func UpdateFile(filePath string, content []byte, perm os.FileMode) (bool, error) {
+func UpdateFile(log *logging.Logger, filePath string, content []byte, perm os.FileMode) (bool, error) {
 	if err := EnsureDirectoryOf(filePath, perm); err != nil {
 		return false, maskAny(err)
 	}
@@ -79,6 +81,7 @@ func UpdateFile(filePath string, content []byte, perm os.FileMode) (bool, error)
 		return false, nil
 	}
 	// Not found or content changed, update it
+	log.Debugf("updating %s", filePath)
 	if err := ioutil.WriteFile(filePath, content, perm); err != nil {
 		return true, maskAny(err)
 	}
