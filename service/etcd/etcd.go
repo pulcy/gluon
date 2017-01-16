@@ -292,7 +292,7 @@ func createEtcdConfig(deps service.ServiceDependencies, flags *service.ServiceFl
 		fmt.Sprintf("%s://%s:%d", clientScheme, flags.Network.ClusterIP, clientPort),
 		fmt.Sprintf("%s://%s:4001", clientScheme, flags.Network.ClusterIP),
 		fmt.Sprintf("%s://127.0.0.1:%d", clientScheme, clientPort),
-		fmt.Sprintf("%s://127.0.0.1:4001", clientScheme),
+		fmt.Sprintf("http://127.0.0.1:4001"),
 	}, ",")
 	result.AdvertiseClientURLs = strings.Join([]string{
 		fmt.Sprintf("%s://%s:%d", clientScheme, flags.Network.ClusterIP, clientPort),
@@ -341,7 +341,7 @@ func createCertsService(deps service.ServiceDependencies, flags *service.Service
 		CommonName:         hostname,
 		Role:               "member",
 		AltNames:           nil,
-		IPSans:             []string{config.ClusterIP, config.PrivateHostIP},
+		IPSans:             []string{config.ClusterIP, config.PrivateHostIP, "127.0.0.1"},
 		CertFileName:       filepath.Base(CertsCertPath),
 		KeyFileName:        filepath.Base(CertsKeyPath),
 		CAFileName:         filepath.Base(CertsCAPath),
