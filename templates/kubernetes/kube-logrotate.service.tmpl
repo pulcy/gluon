@@ -1,0 +1,9 @@
+[Unit]
+Description=Kubernetes log rotation
+
+[Service]
+Type=oneshot
+ExecStart=-/usr/sbin/logrotate /etc/logrotate.conf
+
+[Install]
+WantedBy=multi-user.target

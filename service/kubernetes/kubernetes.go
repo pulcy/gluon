@@ -33,6 +33,7 @@ const (
 	compNameKubeScheduler         = "kube-scheduler"
 	compNameKubeAddonManager      = "kube-addon-manager"
 	compNameKubeDNS               = "kube-dns"
+	compNameKubeLogrotate         = "kube-logrotate"
 )
 
 var (
@@ -40,8 +41,9 @@ var (
 
 	components = map[Component]componentSetup{
 		// Components that should be installed on all nodes
-		NewServiceComponent(compNameKubelet, false):   componentSetup{createKubeletService, nil, false, true},
-		NewServiceComponent(compNameKubeProxy, false): componentSetup{createKubeProxyService, nil, false, true},
+		NewServiceComponent(compNameKubelet, false):               componentSetup{createKubeletService, nil, false, true},
+		NewServiceComponent(compNameKubeProxy, false):             componentSetup{createKubeProxyService, nil, false, true},
+		NewServiceAndTimerComponent(compNameKubeLogrotate, false): componentSetup{createKubeLogrotateService, nil, false, false},
 		// Components that should be installed on master nodes only
 		NewManifestComponent(compNameKubeAPIServer, true):         componentSetup{createKubeApiServerManifest, createKubeApiServerAltNames, true, true},
 		NewManifestComponent(compNameKubeControllerManager, true): componentSetup{createKubeControllerManagerManifest, nil, false, true},
@@ -170,11 +172,21 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 						if err := deps.Systemd.Enable(c.ServiceName()); err != nil {
 							return maskAny(err)
 						}
+						if c.HasTimer() {
+							if err := deps.Systemd.Enable(c.TimerName()); err != nil {
+								return maskAny(err)
+							}
+						}
 						if err := deps.Systemd.Reload(); err != nil {
 							return maskAny(err)
 						}
 						if err := deps.Systemd.Restart(c.ServiceName()); err != nil {
 							return maskAny(err)
+						}
+						if c.HasTimer() {
+							if err := deps.Systemd.Restart(c.TimerName()); err != nil {
+								return maskAny(err)
+							}
 						}
 					}
 				}
@@ -184,6 +196,17 @@ func (t *k8sService) Setup(deps service.ServiceDependencies, flags *service.Serv
 			if c.IsManifest() {
 				os.Remove(c.ManifestPath())
 			} else {
+				if c.HasTimer() {
+					if exists, err := deps.Systemd.Exists(c.TimerName()); err != nil {
+						return maskAny(err)
+					} else if exists {
+						if err := deps.Systemd.Disable(c.TimerName()); err != nil {
+							deps.Logger.Errorf("Disabling %s failed: %#v", c.TimerName(), err)
+						} else {
+							os.Remove(c.TimerPath())
+						}
+					}
+				}
 				if exists, err := deps.Systemd.Exists(c.ServiceName()); err != nil {
 					return maskAny(err)
 				} else if exists {

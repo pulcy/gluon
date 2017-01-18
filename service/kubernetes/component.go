@@ -20,16 +20,22 @@ type Component struct {
 	name       string
 	masterOnly bool
 	isManifest bool
+	hasTimer   bool
 }
 
 // NewServiceComponent creates a new component that runs in a systemd service
 func NewServiceComponent(name string, masterOnly bool) Component {
-	return Component{name, masterOnly, false}
+	return Component{name, masterOnly, false, false}
+}
+
+// NewServiceAndTimerComponent creates a new component that runs in a systemd service & timer
+func NewServiceAndTimerComponent(name string, masterOnly bool) Component {
+	return Component{name, masterOnly, false, true}
 }
 
 // NewManifestComponent creates a new component that runs in a static pod inside kubelet
 func NewManifestComponent(name string, masterOnly bool) Component {
-	return Component{name, masterOnly, true}
+	return Component{name, masterOnly, true, false}
 }
 
 // String returns the name of the component
@@ -52,6 +58,11 @@ func (c Component) IsManifest() bool {
 	return c.isManifest
 }
 
+// HasTimer returns true if this component is deployed as a systemd service + timer.
+func (c Component) HasTimer() bool {
+	return c.hasTimer
+}
+
 // ServiceName returns the name of the systemd service that runs the component.
 func (c Component) ServiceName() string {
 	if c.isManifest {
@@ -66,6 +77,22 @@ func (c Component) ServicePath() string {
 		return ""
 	}
 	return servicePath(c.ServiceName())
+}
+
+// TimerName returns the name of the systemd timer that runs the component.
+func (c Component) TimerName() string {
+	if c.isManifest || !c.hasTimer {
+		return ""
+	}
+	return fmt.Sprintf("%s.timer", c)
+}
+
+// TimerPath returns the full path of the file containing the systemd timer that runs the component.
+func (c Component) TimerPath() string {
+	if c.isManifest || !c.hasTimer {
+		return ""
+	}
+	return servicePath(c.TimerName())
 }
 
 // ManifestName returns the name of the static pod manifest that runs the component.
