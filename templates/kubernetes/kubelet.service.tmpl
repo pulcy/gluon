@@ -17,6 +17,7 @@ ExecStart=/usr/bin/kubelet \
   --cni-bin-dir=/opt/cni/bin \
   --cni-conf-dir=/etc/cni/net.d \
   --container-runtime=docker \
+  --hairpin-mode=none \
   --hostname-override={{.HostnameOverride}} \
   --kubeconfig={{.KubeConfigPath}} \
   --network-plugin=cni \
