@@ -33,9 +33,11 @@ func createKubeDNSAddon(deps service.ServiceDependencies, flags *service.Service
 	opts := struct {
 		ClusterDNS    string
 		ClusterDomain string
+		Version       string
 	}{
 		ClusterDNS:    flags.Kubernetes.ClusterDNS,
 		ClusterDomain: flags.Kubernetes.ClusterDomain,
+		Version:       "1.11.0",
 	}
 	changed, err := templates.Render(deps.Logger, kubeDNSTemplate, c.AddonPath(), opts, manifestFileMode)
 	return changed, maskAny(err)
