@@ -23,7 +23,6 @@ import (
 	"github.com/pulcy/gluon/service/docker"
 	"github.com/pulcy/gluon/service/env"
 	"github.com/pulcy/gluon/service/etcd"
-	"github.com/pulcy/gluon/service/fleet"
 	"github.com/pulcy/gluon/service/gluon"
 	"github.com/pulcy/gluon/service/iptables"
 	"github.com/pulcy/gluon/service/journal"
@@ -40,12 +39,7 @@ const (
 	defaultRktSubnet            = "172.22.0.0/16"
 	defaultPrivateClusterDevice = "eth1"
 
-	defaultFleetAgentTTL                = "30s"
-	defaultFleetDisableEngine           = false
-	defaultFleetDisableWatches          = true
-	defaultFleetEngineReconcileInterval = 10
-	defaultFleetTokenLimit              = 50
-	defaultWeaveHostname                = "hosts.weave.local"
+	defaultWeaveHostname = "hosts.weave.local"
 )
 
 var (
@@ -73,21 +67,14 @@ func init() {
 	// Network
 	cmdSetup.Flags().StringVar(&setupFlags.Network.ClusterIP, "private-ip", "", "IP address of this host in the cluster network")
 	cmdSetup.Flags().StringVar(&setupFlags.Network.PrivateClusterDevice, "private-cluster-device", defaultPrivateClusterDevice, "Network device connected to the cluster IP")
-	// Fleet
-	cmdSetup.Flags().BoolVar(&setupFlags.Fleet.Enabled, "fleet-enabled", defaultFleetEnabled(), "If set, fleet will be installed")
-	cmdSetup.Flags().StringVar(&setupFlags.Fleet.Metadata, "fleet-metadata", "", "Metadata list for fleet")
-	cmdSetup.Flags().StringVar(&setupFlags.Fleet.AgentTTL, "fleet-agent-ttl", defaultFleetAgentTTL, "agent_ttl option for fleet")
-	cmdSetup.Flags().BoolVar(&setupFlags.Fleet.DisableEngine, "fleet-disable-engine", defaultFleetDisableEngine, "disable_engine option for fleet")
-	cmdSetup.Flags().BoolVar(&setupFlags.Fleet.DisableWatches, "fleet-disable-watches", defaultFleetDisableWatches, "disable_watches option for fleet")
-	cmdSetup.Flags().IntVar(&setupFlags.Fleet.EngineReconcileInterval, "fleet-engine-reconcile-interval", defaultFleetEngineReconcileInterval, "engine_reconcile_interval option for fleet")
-	cmdSetup.Flags().IntVar(&setupFlags.Fleet.TokenLimit, "fleet-token-limit", defaultFleetTokenLimit, "token_limit option for fleet")
 	// ETCD
 	cmdSetup.Flags().StringVar(&setupFlags.Etcd.ClusterState, "etcd-cluster-state", "", "State of the ETCD cluster new|existing")
 	cmdSetup.Flags().BoolVar(&setupFlags.Etcd.UseVaultCA, "etcd-use-vault-ca", defaultEtcdUseVaultCA(), "If set, use vault to create peer (and optional client) TLS certificates")
 	cmdSetup.Flags().BoolVar(&setupFlags.Etcd.SecureClients, "etcd-secure-clients", defaultEtcdSecureClients(), "If set, force clients to connect over TLS")
 	// Kubernetes
-	cmdSetup.Flags().BoolVar(&setupFlags.Kubernetes.Enabled, "k8s-enabled", defaultKubernetesEnabled(), "If set, fleet will be installed")
+	cmdSetup.Flags().BoolVar(&setupFlags.Kubernetes.Enabled, "k8s-enabled", defaultKubernetesEnabled(), "If set, kubernetes will be installed")
 	cmdSetup.Flags().StringVar(&setupFlags.Kubernetes.APIDNSName, "k8s-api-dns-name", defaultKubernetesAPIDNSName(), "Alternate name of the Kubernetes API server")
+	cmdSetup.Flags().StringVar(&setupFlags.Kubernetes.Metadata, "k8s-metadata", "", "Metadata list for kubelet")
 	// Vault
 	cmdSetup.Flags().StringVar(&setupFlags.Vault.VaultImage, "vault-image", "", "Pulcy Vault docker image name")
 	// Weave
@@ -128,7 +115,6 @@ func runSetup(cmd *cobra.Command, args []string) {
 		vault.NewService(),
 		etcd.NewService(),
 		kubernetes.NewService(),
-		fleet.NewService(),
 		sshd.NewService(),
 		gluon.NewService(),
 	}

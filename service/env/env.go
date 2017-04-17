@@ -64,10 +64,8 @@ func createBashrc(deps service.ServiceDependencies, flags *service.ServiceFlags)
 	deps.Logger.Info("creating %s", bashrcPath)
 	os.Remove(bashrcPath)
 	opts := struct {
-		FleetEnabled      bool
 		KubernetesEnabled bool
 	}{
-		FleetEnabled:      flags.Fleet.IsEnabled(),
 		KubernetesEnabled: flags.Kubernetes.IsEnabled(),
 	}
 	if _, err := templates.Render(deps.Logger, bashrcTemplate, bashrcPath, opts, fileMode); err != nil {

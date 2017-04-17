@@ -15,6 +15,7 @@
 package service
 
 import (
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -30,6 +31,7 @@ type Kubernetes struct {
 	ClusterDNS            string // IP address of DNS server
 	ClusterDomain         string // Name of culster domain
 	APIDNSName            string
+	Metadata              string
 }
 
 const (
@@ -38,6 +40,11 @@ const (
 	defaultAPIServerPort         = 6443
 	defaultClusterDNS            = "10.71.0.10"
 	defaultClusterDomain         = "cluster.local"
+)
+
+const (
+	kubeletMetadataPath       = "/etc/pulcy/kubelet-metadata"
+	obsoleteFleetMetadataPath = "/etc/pulcy/fleet-metadata"
 )
 
 // setupDefaults fills given flags with default value
@@ -72,6 +79,18 @@ func (flags *Kubernetes) setupDefaults(log *logging.Logger) error {
 			flags.APIDNSName = hostname
 		}
 	}
+	if flags.Metadata == "" {
+		raw, err := ioutil.ReadFile(kubeletMetadataPath)
+		if os.IsNotExist(err) {
+			raw, err = ioutil.ReadFile(obsoleteFleetMetadataPath)
+		}
+		if err != nil && !os.IsNotExist(err) {
+			return maskAny(err)
+		} else if err == nil {
+			lines := trimLines(strings.Split(string(raw), "\n"))
+			flags.Metadata = strings.Join(lines, ",")
+		}
+	}
 	return nil
 }
 
@@ -79,6 +98,15 @@ func (flags *Kubernetes) setupDefaults(log *logging.Logger) error {
 // Returns true if anything has changed, false otherwise
 func (flags *Kubernetes) save(log *logging.Logger) (bool, error) {
 	changes := 0
+	if flags.Metadata != "" {
+		parts := strings.Split(flags.Metadata, ",")
+		content := strings.Join(parts, "\n")
+		if changed, err := updateContent(log, kubeletMetadataPath, content, 0644); err != nil {
+			return false, maskAny(err)
+		} else if changed {
+			changes++
+		}
+	}
 	return (changes > 0), nil
 }
 
