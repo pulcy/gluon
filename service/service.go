@@ -84,9 +84,6 @@ type ServiceFlags struct {
 	// Kubernetes config
 	Kubernetes Kubernetes
 
-	// Fleet
-	Fleet Fleet
-
 	// Vault config
 	Vault Vault
 
@@ -128,9 +125,6 @@ func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
 			flags.Docker.PrivateRegistryUrl = string(url)
 		}
 	}
-	if err := flags.Fleet.setupDefaults(log); err != nil {
-		return maskAny(err)
-	}
 	if err := flags.Etcd.setupDefaults(log); err != nil {
 		return maskAny(err)
 	}
@@ -170,16 +164,6 @@ func (flags *ServiceFlags) SetupDefaults(log *logging.Logger) error {
 			lines := trimLines(strings.Split(string(content), "\n"))
 			roles := strings.Join(lines, ",")
 			flags.Roles = strings.Split(roles, ",")
-		} else {
-			// roles files not found, default to fleet metadata.
-			// Everything with `key=true` results in a role named `key`
-			meta := strings.Split(flags.Fleet.Metadata, ",")
-			for _, x := range meta {
-				parts := strings.SplitN(x, "=", 2)
-				if len(parts) == 2 && parts[1] == "true" {
-					flags.Roles = append(flags.Roles, parts[0])
-				}
-			}
 		}
 	}
 	return nil
@@ -195,11 +179,6 @@ func (flags *ServiceFlags) Save(log *logging.Logger) (bool, error) {
 		} else if changed {
 			changes++
 		}
-	}
-	if changed, err := flags.Fleet.save(log); err != nil {
-		return false, maskAny(err)
-	} else if changed {
-		changes++
 	}
 	if changed, err := flags.Etcd.save(log); err != nil {
 		return false, maskAny(err)

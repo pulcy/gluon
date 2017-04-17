@@ -22,9 +22,6 @@ GOVERSION := 1.8.1-alpine
 
 ETCDVERSION := v3.0.15
 
-FLEETVERSION := e6c838b9bdc0184d727eb8c43bd856ecfa4a1519
-FLEETBUILDDIR := $(ROOTDIR)/.build/fleet
-
 RKTVERSION := v1.22.0
 
 CONSULVERSION := 0.7.2
@@ -42,12 +39,12 @@ endif
 SOURCES := $(shell find $(SRCDIR) -name '*.go')
 TEMPLATES := $(shell find $(SRCDIR)/templates -name '*')
 
-.PHONY: all clean deps consul weave rkt etcd fleet kubernetes cni
+.PHONY: all clean deps consul weave rkt etcd kubernetes cni
 
-all: .build/certdump consul kubernetes weave rkt $(BIN) $(BINGPG) etcd fleet cni
+all: .build/certdump consul kubernetes weave rkt $(BIN) $(BINGPG) etcd cni
 
 clean:
-	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR) .build $(FLEETBUILDDIR)
+	rm -Rf $(BIN) $(BINGPG) $(GOBUILDDIR) .build 
 
 deps:
 	@${MAKE} -B -s $(GOBUILDDIR) $(GOBINDATA)
@@ -108,27 +105,6 @@ etcd: .build/etcd
 .build/etcd.tar.gz:
 	mkdir -p .build
 	curl -L  https://github.com/coreos/etcd/releases/download/$(ETCDVERSION)/etcd-$(ETCDVERSION)-linux-amd64.tar.gz -o .build/etcd.tar.gz
-
-# Fleet 
-
-fleet: .build/fleetd
-
-.build/fleetd: $(FLEETBUILDDIR)
-	docker run \
-		--rm \
-		-v $(FLEETBUILDDIR):/usr/code \
-		-e GOOS=$(GOOS) \
-		-e GOARCH=$(GOARCH) \
-		-e CGO_ENABLED=0 \
-		-w /usr/code/ \
-		golang:1.7.0 \
-		/usr/code/build
-	cp $(FLEETBUILDDIR)/bin/fleetd .build/
-	cp $(FLEETBUILDDIR)/bin/fleetctl .build/
-
-$(FLEETBUILDDIR):
-	@pulsar get -b $(FLEETVERSION) https://github.com/coreos/fleet.git $(FLEETBUILDDIR)
-
 
 # Rkt
 rkt: .build/rkt

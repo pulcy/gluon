@@ -22,9 +22,6 @@ chmod a+x /destination/overlay/certdump
 cp -f /dist/etcd* /destination/overlay/
 chmod a+x /destination/overlay/etcd*
 
-cp -f /dist/fleet* /destination/overlay/
-chmod a+x /destination/overlay/fleet*
-
 cp -f /dist/rkt/rkt /destination/overlay/
 cp -f /dist/rkt/stage1*.aci /destination/overlay/
 mkdir -p /destination/overlay/rkt-scripts
