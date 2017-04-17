@@ -18,7 +18,7 @@ BIN := $(BINDIR)/$(PROJECT)
 GOBINDATA := $(GOBUILDDIR)/bin/go-bindata
 
 GOPATH := $(GOBUILDDIR)
-GOVERSION := 1.7.3-alpine
+GOVERSION := 1.8.1-alpine
 
 ETCDVERSION := v3.0.15
 
@@ -94,7 +94,7 @@ templates/templates_bindata.go: $(TEMPLATES) $(GOBINDATA)
 		-e GOOS=$(GOOS) \
 		-e GOARCH=$(GOARCH) \
 		-w /usr/code/ \
-		golang:1.7.4 \
+		golang:$(GOVERSION) \
 		go build -o /usr/code/certdump 
 	mv $(ROOTDIR)/certdump/certdump .build/
 
