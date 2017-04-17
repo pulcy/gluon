@@ -27,8 +27,16 @@ alias rgc-all='sudo rkt gc --grace-period=0s'
 
 # Etcd
 alias cluster-health="etcdctl cluster-health"
-alias els="etcdctl ls --recursive --sort"
-alias eget="etcdctl get"
+alias els="ETCDCTL_API=3 etcdctl get --prefix --keys-only"
+alias eget="ETCDCTL_API=3 etcdctl get"
+alias els2="ETCDCTL_API=2 etcdctl ls --recursive --sort"
+alias eget2="ETCDCTL_API=2 etcdctl get"
+source /etc/environment 
+export ETCDCTL_CACERT
+export ETCDCTL_CERT
+export ETCDCTL_KEY
+export ETCDCTL_ENDPOINTS
+export ETCDCTL_API=3
 
 function xcluster() {
 	local image=$(cat /etc/pulcy/gluon-image)
