@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	defaultVaultMonkeyImage = "pulcy/vault-monkey:0.6.0"
+	defaultVaultMonkeyImage = "pulcy/vault-monkey:0.7.0"
 	clusterMembersPath      = "/etc/pulcy/cluster-members"
 	privateRegistryUrlPath  = "/etc/pulcy/private-registry-url"
 	etcdClusterStatePath    = "/etc/pulcy/etcd-cluster-state"

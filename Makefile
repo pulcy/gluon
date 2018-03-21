@@ -18,7 +18,7 @@ BIN := $(BINDIR)/$(PROJECT)
 GOBINDATA := $(GOBUILDDIR)/bin/go-bindata
 
 GOPATH := $(GOBUILDDIR)
-GOVERSION := 1.8.1-alpine
+GOVERSION := 1.10.0-alpine
 
 ETCDVERSION := v3.1.5
 
