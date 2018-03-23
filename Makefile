@@ -18,7 +18,7 @@ BIN := $(BINDIR)/$(PROJECT)
 GOBINDATA := $(GOBUILDDIR)/bin/go-bindata
 
 GOPATH := $(GOBUILDDIR)
-GOVERSION := 1.8.1-alpine
+GOVERSION := 1.10.0-alpine
 
 ETCDVERSION := v3.1.5
 
@@ -123,7 +123,7 @@ weave: .build/weave
 
 .build/weave:
 	mkdir -p .build
-	curl -L git.io/weave -o .build/weave
+	curl -L https://github.com/weaveworks/weave/releases/download/v1.9.3/weave -o .build/weave
 
 # Consul 
 

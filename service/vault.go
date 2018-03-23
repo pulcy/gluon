@@ -22,7 +22,7 @@ type Vault struct {
 }
 
 const (
-	defaultVaultImage = "pulcy/vault:0.7.2"
+	defaultVaultImage = "pulcy/vault:0.8.0"
 )
 
 // setupDefaults fills given flags with default value
